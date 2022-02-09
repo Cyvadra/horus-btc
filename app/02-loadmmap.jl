@@ -1,8 +1,4 @@
 using BSON, JSON
-using ProgressMeter
-using ThreadSafeDicts
-using Dates
-using UnixMmap; using UnixMmap: mmap, msync!
 using JLD2, DataFrames
 
 # Config
@@ -10,7 +6,7 @@ using JLD2, DataFrames
 	addrDictPath = dataFolder * "addr.latest.txt"
 	counterFile  = dataFolder * "counter"
 	TxStateDF    = JLD2.load(dataFolder * "TxStateDF.jld2")["TxStateDF"]
-	TxRowsDF     = JLD2.load(dataFolder * "TxRowsDF.jld2")["TxRowsDF"]
+	TxRowsDF     = JLD2.load(dataFolder * "TxRowsDF.working.jld2")["TxRowsDF"]
 	GlobalStat   = JSON.Parser.parse(readline(counterFile))
 	@show GlobalStat
 
