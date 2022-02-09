@@ -202,6 +202,59 @@ include("./02-loadmmap.jl")
 		end
 
 
+# New Procedure Purpose: CalcUint
+	mutable struct CalcCell
+		resultType::DataType
+		description::String
+		handler::Function
+		end
+	Calculations = CalcCell[]
+	mutable struct CellAddressComparative
+		numTotalActive::Int32
+		amountTotalTransfer::Float64
+		percentNumNew::Float32
+		percentNumSending::Float32
+		percentNumReceiving::Float32
+		end
+	mutable struct CellAddressBehavior
+		# charge / withdraw
+		numChargePercentBelow25::Int32
+		numChargePercentBelow50::Int32
+		numChargePercentBelow80::Int32
+		numChargePercentEquals100::Int32
+		numWithdrawPercentBelow50::Int32
+		numWithdrawPercentAbove80::Int32
+		numWithdrawPercentEquals100::Int32
+		amountChargePercentBelow25::Float32
+		amountChargePercentBelow50::Float32
+		amountChargePercentBelow80::Float32
+		amountChargePercentEquals100::Float32
+		amountWithdrawPercentBelow50::Float32
+		amountWithdrawPercentAbove80::Float32
+		amountWithdrawPercentEquals100::Float32
+		# wakeup / accumulation
+		amountWakeupW1Sending::Float32
+		amountWakeupM1Sending::Float32
+		amountContinuousD1Buying::Float32
+		amountContinuousD3Buying::Float32
+		amountContinuousW1Buying::Float32
+		end
+	mutable struct CellAddressSupplier
+		balanceSupplierMean::Float32
+		balanceSupplierStd::Float32
+		balanceSupplierPercent20::Float32
+		balanceSupplierPercent40::Float32
+		balanceSupplierMiddle::Float32
+		balanceSupplierPercent60::Float32
+		balanceSupplierPercent80::Float32
+		amountSupplierBalanceBelow20::Float32
+		amountSupplierBalanceAbove80::Float32
+		end
+
+
+
+
+
 # Runtime Statistics
 	mutable struct PeriodStat
 		timestamp::Int32
