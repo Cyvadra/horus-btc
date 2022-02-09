@@ -130,13 +130,23 @@ include("./02-loadmmap.jl")
 		tplAddrStat = AddressStatistics(zeros(length(AddressStatistics.types))...)
 	AddressState  = ThreadSafeDict{UInt32,AddressStatistics}()
 	function touch!(addrId::UInt32, ts::Int32, amount::Float64)::Nothing
-		if !haskey(AddressState,addrId)
-			AddressState[addrId] = deepcopy(tplAddrStat)
-			AddressState[addrId].TimestampCreated = ts
-		end
 		AddressState.enabled = false
 		coinPrice = FinanceDB.GetDerivativePriceWhen(pairName,ts)
 		coinUsdt  = abs(coinPrice * amount)
+		if !haskey(AddressState,addrId)
+			AddressState[addrId] = deepcopy(tplAddrStat)
+			AddressState[addrId].TimestampCreated = ts
+			AddressState[addrId].TimestampLastActive = ts
+			AddressState[addrId].TimestampLastReceived = ts
+			AddressState[addrId].TimestampLastPayed = ts
+			AddressState[addrId].AmountIncomeTotal = amount
+			AddressState[addrId].NumTxInTotal = 1
+			AddressState[addrId].UsdtPayed4Input = coinUsdt
+			AddressState[addrId].AveragePurchasePrice = coinPrice
+			AddressState[addrId].LastSellPrice = coinPrice
+			AddressState[addrId].Balance = amount
+			return nothing
+		end
 		if amount < 0
 			AddressState[addrId].AmountExpenseTotal -= amount
 			AddressState[addrId].NumTxOutTotal      += 1
@@ -168,13 +178,13 @@ include("./02-loadmmap.jl")
 		TsActiveVector::Vector{Int32}
 		# in profit
 		NumInProfitRealized::Int64
-		AmountInProfitRealized::Float64
 		NumInProfitUnrealized::Int64
+		AmountInProfitRealized::Float64
 		AmountInProfitUnrealized::Float64
 		# in loss
 		NumInLossRealized::Int64
-		AmountInLossRealized::Float64
 		NumInLossUnrealized::Int64
+		AmountInLossRealized::Float64
 		AmountInLossUnrealized::Float64
 		end
 	tplAddressSnapshot = AddressSnapshot(Float64[], Int32[], zeros(length(AddressSnapshot.types)-2)...)
@@ -205,34 +215,37 @@ include("./02-loadmmap.jl")
 # New Procedure Purpose: CalcUint
 	mutable struct CalcCell
 		resultType::DataType
-		description::String
 		handler::Function
 		end
 	Calculations = CalcCell[]
 	mutable struct CellAddressComparative
 		numTotalActive::Int32
-		amountTotalTransfer::Float64
+		amountTotalTransfer::Float32
 		percentNumNew::Float32
 		percentNumSending::Float32
 		percentNumReceiving::Float32
 		end
-	mutable struct CellAddressBehavior
-		# charge / withdraw
+	mutable struct CellAddressDirection
 		numChargePercentBelow25::Int32
 		numChargePercentBelow50::Int32
 		numChargePercentBelow80::Int32
 		numChargePercentEquals100::Int32
 		numWithdrawPercentBelow50::Int32
-		numWithdrawPercentAbove80::Int32
-		numWithdrawPercentEquals100::Int32
+		numWithdrawPercentAbove75::Int32
+		numWithdrawPercentAbove90::Int32
 		amountChargePercentBelow25::Float32
 		amountChargePercentBelow50::Float32
 		amountChargePercentBelow80::Float32
 		amountChargePercentEquals100::Float32
 		amountWithdrawPercentBelow50::Float32
-		amountWithdrawPercentAbove80::Float32
-		amountWithdrawPercentEquals100::Float32
-		# wakeup / accumulation
+		amountWithdrawPercentAbove75::Float32
+		amountWithdrawPercentAbove90::Float32
+	mutable struct CellAddressAccumulation
+		numWakeupW1Sending::Float32
+		numWakeupM1Sending::Float32
+		numContinuousD1Buying::Float32
+		numContinuousD3Buying::Float32
+		numContinuousW1Buying::Float32
 		amountWakeupW1Sending::Float32
 		amountWakeupM1Sending::Float32
 		amountContinuousD1Buying::Float32
@@ -250,79 +263,43 @@ include("./02-loadmmap.jl")
 		amountSupplierBalanceBelow20::Float32
 		amountSupplierBalanceAbove80::Float32
 		end
+	mutable struct CellAddressUsdtDiff
+		numRealizedProfit::Int32
+		numRealizedLoss::Int32
+		amountRealizedProfit::Float32
+		amountRealizedLoss::Float32
+		end
+	function CalcAddressComparative(addrIds::Vector{UInt32}, tagNew::Vector{Bool}, amount::Vector{Float64})::CellAddressComparative
+		ret = CellAddressComparative(zeros(length(CellAddressComparative.types))...)
+		return ret
+		end
+	function CalcAddressDirection(addrIds::Vector{UInt32}, tagNew::Vector{Bool}, amount::Vector{Float64})::CellAddressDirection
+		ret = CellAddressDirection(zeros(length(CellAddressDirection.types))...)
+		return ret
+		end
+	function CalcAddressAccumulation(addrIds::Vector{UInt32}, tagNew::Vector{Bool}, amount::Vector{Float64})::CellAddressAccumulation
+		ret = CellAddressAccumulation(zeros(length(CellAddressAccumulation.types))...)
+		return ret
+		end
+	function CalcAddressSupplier(addrIds::Vector{UInt32}, tagNew::Vector{Bool}, amount::Vector{Float64})::CellAddressSupplier
+		ret = CellAddressSupplier(zeros(length(CellAddressSupplier.types))...)
+		return ret
+		end
+	function CalcAddressUsdtDiff(addrIds::Vector{UInt32}, tagNew::Vector{Bool}, amount::Vector{Float64})::CellAddressUsdtDiff
+		ret = CellAddressUsdtDiff(zeros(length(CellAddressUsdtDiff.types))...)
+		return ret
+		end
+	push!(Calculations, CalcCell(
+		CellAddressComparative, CalcAddressComparative))
+	push!(Calculations, CalcCell(
+		CellAddressDirection, CalcAddressDirection))
+	push!(Calculations, CalcCell(
+		CellAddressAccumulation, CalcAddressAccumulation))
+	push!(Calculations, CalcCell(
+		CellAddressSupplier, CalcAddressSupplier))
+	push!(Calculations, CalcCell(
+		CellAddressUsdtDiff, CalcAddressUsdtDiff))
 
-
-
-
-
-# Runtime Statistics
-	mutable struct PeriodStat
-		timestamp::Int32
-	# CellAddressActivity # T3 
-		numNew::Int32
-		numChargePercentAbove50::Int32
-		numChargePercentAbove75::Int32
-		numWithdrawPercentAbove50::Int32
-		numWithdrawPercentAbove75::Int32
-		numSending::Int32
-		numReceiving::Int32
-		numRecentM1Sending::Int32
-		numRecentM1Receiving::Int32
-		numTotalActive::Int32
-	# CellAddressSupply # T1
-		# of all inputs, how much balance did they have before
-		supplierBalanceMicro::Int32
-		supplierBalance0001::Int32
-		supplierBalance001::Int32
-		supplierBalance01::Int32
-		supplierBalance1::Int32
-		supplierBalance10::Int32
-		supplierBalance100::Int32
-		supplierBalance1k::Int32
-		supplierBalance10k::Int32
-		supplierBalance50k::Int32
-		supplierBalanceMore::Int32
-		supplierBalanceMicroAmount::Float64
-		supplierBalance0001Amount::Float64
-		supplierBalance001Amount::Float64
-		supplierBalance01Amount::Float64
-		supplierBalance1Amount::Float64
-		supplierBalance10Amount::Float64
-		supplierBalance100Amount::Float64
-		supplierBalance1kAmount::Float64
-		supplierBalance10kAmount::Float64
-		supplierBalance50kAmount::Float64
-		supplierBalanceMoreAmount::Float64
-		wakeupAmountM1Sending::Float64
-		wakeupAmountM1Receiving::Float64
-		wakeupAmountM3Sending::Float64
-		wakeupAmountM3Receiving::Float64
-		# those who transferred 75%+ of balance
-		supplierBreakMicro::Int32
-		supplierBreak0001::Int32
-		supplierBreak001::Int32
-		supplierBreak01::Int32
-		supplierBreak1::Int32
-		supplierBreak10::Int32
-		supplierBreak100::Int32
-		supplierBreak1k::Int32
-		supplierBreak10k::Int32
-		supplierBreak50k::Int32
-		supplierBreakMore::Int32
-	# CellAddressBalanceDiff # T2
-		numBalanceNonZero::Int32 # not implemented
-		numBalanceDiffMicro::Int32
-		numBalanceDiff0001::Int32
-		numBalanceDiff001::Int32
-		numBalanceDiff01::Int32
-		numBalanceDiff1::Int32
-		numBalanceDiff10::Int32
-		numBalanceDiff100::Int32
-		numBalanceDiff1k::Int32
-		numBalanceDiff10k::Int32
-		numBalanceDiff50k::Int32
-	end
-	tplPeriodStat = PeriodStat(zeros(length(PeriodStat.types))...)
 
 
 # Processing
@@ -342,8 +319,11 @@ include("./02-loadmmap.jl")
 	end
 	# AddressState.enabled = true
 	# now it's time to process real stuff
-	results = Vector{PeriodStat}()
-	ProcessPeriods!(fromDate, toDate, Hour(12), Ref(results))
+
+
+
+
+
 
 # Analyze results
 	# you are free to process simple indicators first
