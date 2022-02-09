@@ -1,16 +1,16 @@
-# horus-btc
+# horus
 
 ### Todos:
 
-1. [x] Save results into DataFrame format.
-2. [x] Set plans for this week.
-3. [ ] Consider real-time update?
+1. [ ] Expand target functions.
+3. [ ] Deal with GC performance issue. (in function touch!)
+5. [ ] Parallel computing.
+7. [ ] Code test.
+9. [ ] Save results directly to mem-mapped database.
 
 
-### Works:
+99. [ ] Consider real-time update?
 
-- Add feature to DB.jl, support data auto-save.
-- so much for today.
 
 
 
