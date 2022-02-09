@@ -2,6 +2,7 @@ using ThreadSafeDicts # private repo
 using ProgressMeter
 using Dates
 using FinanceDB
+using Statistics
 
 @show Threads.nthreads()
 include("./02-loadmmap.jl")
@@ -284,6 +285,7 @@ include("./02-loadmmap.jl")
 		amountWithdrawPercentBelow50::Float32
 		amountWithdrawPercentAbove75::Float32
 		amountWithdrawPercentAbove90::Float32
+		end
 	mutable struct CellAddressAccumulation
 		numWakeupW1Sending::Float32
 		numWakeupM1Sending::Float32
@@ -314,23 +316,113 @@ include("./02-loadmmap.jl")
 		amountRealizedLoss::Float32
 		end
 	function CalcAddressComparative(txs::Vector{TransactionRow})::CellAddressComparative
-		ret = CellAddressComparative(zeros(length(CellAddressComparative.types))...)
+		ret = CellAddressComparative(
+				length(txs),
+				reduce(+, map(x->abs(x.amount),txs))/2,
+				count(x->x.tagNew, txs),
+				count(x->x.amount<=0, txs),
+				count(x->x.amount>0, txs),
+			)
 		return ret
 		end
 	function CalcAddressDirection(txs::Vector{TransactionRow})::CellAddressDirection
-		ret = CellAddressDirection(zeros(length(CellAddressDirection.types))...)
+		concreteIndexes  = map(x->!x.tagNew,txs)
+		concreteBalances = map(x->abs(AddressState[x.addrId].Balance), txs[concreteIndexes])
+		concretePercents = map(x->x.amount, txs[concreteIndexes]) ./ concreteBalances
+		concreteAmounts  = map(x->abs(x.amount), txs[concreteIndexes])
+		tmpIndexes = (
+			cpb25 = map(x-> 0.0 < x <= 0.25, concretePercents),
+			cpb50 = map(x-> 0.25 < x <= 0.5, concretePercents),
+			cpb80 = map(x-> 0.50 < x <= 0.8, concretePercents),
+			wpb50 = map(x-> -0.5 < x < 0.0, concretePercents),
+			wpa75 = map(x-> -0.9 < x <= -0.75, concretePercents),
+			wpa90 = map(x-> -1.1 < x <= -0.90, concretePercents),
+			)
+		newIndexes = map(x->x.tagNew, txs)
+		ret = CellAddressDirection(
+				sum(tmpIndexes.cpb25),
+				sum(tmpIndexes.cpb50),
+				sum(tmpIndexes.cpb80),
+				sum(newIndexes),
+				sum(tmpIndexes.wpb50),
+				sum(tmpIndexes.wpa75),
+				sum(tmpIndexes.wpa90),
+				
+				reduce(+, concreteAmounts[tmpIndexes.cpb25]),
+				reduce(+, concreteAmounts[tmpIndexes.cpb50]),
+				reduce(+, concreteAmounts[tmpIndexes.cpb80]),
+				reduce(+, map(x->abs(x.amount), txs[newIndexes])),
+				reduce(+, concreteAmounts[tmpIndexes.wpb50]),
+				reduce(+, concreteAmounts[tmpIndexes.wpa75]),
+				reduce(+, concreteAmounts[tmpIndexes.wpa90]),
+			)
 		return ret
 		end
 	function CalcAddressAccumulation(txs::Vector{TransactionRow})::CellAddressAccumulation
-		ret = CellAddressAccumulation(zeros(length(CellAddressAccumulation.types))...)
+		tsMin = min(txs[1].ts, txs[end].ts)
+		tsMax = max(txs[1].ts, txs[end].ts)
+		concreteIndexes  = map(x->!x.tagNew,txs)
+		concreteLastPayed    = map(x->AddressState[x.addrId].LastPayed, txs[concreteIndexes])
+		concreteLastReceived = map(x->AddressState[x.addrId].LastReceived, txs[concreteIndexes])
+		concreteAmounts      = map(x->abs(x.amount), txs[concreteIndexes])
+		tmpIndexes = (
+				wakeupW1 = map(x->tsMax-x > 7seconds.Day, concreteLastPayed),
+				wakeupM1 = map(x->tsMax-x > seconds.Month, concreteLastPayed),
+				contiD1  = map(x->x-tsMin > seconds.Day, concreteLastReceived),
+				contiD3  = map(x->x-tsMin > 3seconds.Day, concreteLastReceived),
+				contiW1  = map(x->x-tsMin > 7seconds.Day, concreteLastReceived),
+			)
+		ret = CellAddressAccumulation(
+				sum(tmpIndexes.wakeupW1),
+				sum(tmpIndexes.wakeupM1),
+				sum(tmpIndexes.contiD1),
+				sum(tmpIndexes.contiD3),
+				sum(tmpIndexes.contiW1),
+				
+				reduce(+, concreteAmounts[tmpIndexes.wakeupW1]),
+				reduce(+, concreteAmounts[tmpIndexes.wakeupM1]),
+				reduce(+, concreteAmounts[tmpIndexes.contiD1]),
+				reduce(+, concreteAmounts[tmpIndexes.contiD3]),
+				reduce(+, concreteAmounts[tmpIndexes.contiW1]),
+			)
 		return ret
 		end
 	function CalcAddressSupplier(txs::Vector{TransactionRow})::CellAddressSupplier
-		ret = CellAddressSupplier(zeros(length(CellAddressSupplier.types))...)
+		concreteIndexes  = map(x->!x.tagNew && x.amount<0, txs)
+		concreteBalances = map(x->abs(AddressState[x.addrId].Balance), txs[concreteIndexes])
+		concreteAmounts  = map(x->abs(x.amount), txs[concreteIndexes])
+		sortedBalances = sort(concreteBalances)
+		ret = CellAddressSupplier(
+				sum(sortedBalances) / length(sortedBalances),
+				Statistics.std(sortedBalances),
+				sortedBalances[floor(Int, 0.2*end)],
+				sortedBalances[floor(Int, 0.4*end)],
+				sortedBalances[round(Int, 0.5*end)],
+				sortedBalances[ceil(Int, 0.6*end)],
+				sortedBalances[ceil(Int, 0.8*end)],
+				reduce(+, concreteAmounts[
+					map(x -> x <= sortedBalances[floor(Int, 0.2*end)], concreteBalances)
+					]),
+				reduce(+, concreteAmounts[
+					map(x -> x >= sortedBalances[ceil(Int, 0.8*end)], concreteBalances)
+					]),
+			)
 		return ret
 		end
 	function CalcAddressUsdtDiff(txs::Vector{TransactionRow})::CellAddressUsdtDiff
 		ret = CellAddressUsdtDiff(zeros(length(CellAddressUsdtDiff.types))...)
+		concreteIndexes  = map(x->!x.tagNew && x.amount<0, txs)
+		for r in txs[concreteIndexes]
+			coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, r.ts)
+			boughtPrice = AddressState[r.addrId].AveragePurchasePrice
+			if coinPrice > boughtPrice
+				ret.numRealizedProfit += 1
+				ret.amountRealizedProfit += (coinPrice-boughtPrice) * abs(r.amount)
+			else
+				ret.numRealizedLoss += 1
+				ret.amountRealizedLoss += (boughtPrice-coinPrice) * abs(r.amount)
+			end
+		end
 		return ret
 		end
 	push!(Calculations, CalcCell(
