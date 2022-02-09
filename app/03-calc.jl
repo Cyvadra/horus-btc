@@ -192,7 +192,7 @@ include("./02-loadmmap.jl")
 			return nothing
 		end
 		refStat = Ref(AddressState[tr.addrId])
-		if amount < 0
+		if tr.amount < 0
 			refStat[].AmountExpenseTotal -= tr.amount
 			refStat[].NumTxOutTotal      += 1
 			refStat[].TimestampLastPayed = max(refStat[].TimestampLastPayed, tr.ts)
@@ -362,8 +362,8 @@ include("./02-loadmmap.jl")
 		tsMin = min(txs[1].ts, txs[end].ts)
 		tsMax = max(txs[1].ts, txs[end].ts)
 		concreteIndexes  = map(x->!x.tagNew,txs)
-		concreteLastPayed    = map(x->AddressState[x.addrId].LastPayed, txs[concreteIndexes])
-		concreteLastReceived = map(x->AddressState[x.addrId].LastReceived, txs[concreteIndexes])
+		concreteLastPayed    = map(x->AddressState[x.addrId].TimestampLastPayed, txs[concreteIndexes])
+		concreteLastReceived = map(x->AddressState[x.addrId].TimestampLastReceived, txs[concreteIndexes])
 		concreteAmounts      = map(x->abs(x.amount), txs[concreteIndexes])
 		tmpIndexes = (
 				wakeupW1 = map(x->tsMax-x > 7seconds.Day, concreteLastPayed),
