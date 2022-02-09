@@ -104,6 +104,14 @@ include("./02-loadmmap.jl")
 		)
 	=#
 
+# Runtime Vars
+	mutable struct TransactionRow
+		addrId::UInt32
+		tagNew::Bool
+		amount::Float32
+		ts::Int32
+		end
+
 # Runtime Address
 	mutable struct AddressStatistics
 		# timestamp
@@ -127,46 +135,81 @@ include("./02-loadmmap.jl")
 		UsdtNetUnrealized::Float64
 		Balance::Float64 # btc
 		end
-		tplAddrStat = AddressStatistics(zeros(length(AddressStatistics.types))...)
 	AddressState  = ThreadSafeDict{UInt32,AddressStatistics}()
-	function touch!(addrId::UInt32, ts::Int32, amount::Float64)::Nothing
-		AddressState.enabled = false
-		coinPrice = FinanceDB.GetDerivativePriceWhen(pairName,ts)
-		coinUsdt  = abs(coinPrice * amount)
-		if !haskey(AddressState,addrId)
-			AddressState[addrId] = deepcopy(tplAddrStat)
-			AddressState[addrId].TimestampCreated = ts
-			AddressState[addrId].TimestampLastActive = ts
-			AddressState[addrId].TimestampLastReceived = ts
-			AddressState[addrId].TimestampLastPayed = ts
-			AddressState[addrId].AmountIncomeTotal = amount
-			AddressState[addrId].NumTxInTotal = 1
-			AddressState[addrId].UsdtPayed4Input = coinUsdt
-			AddressState[addrId].AveragePurchasePrice = coinPrice
-			AddressState[addrId].LastSellPrice = coinPrice
-			AddressState[addrId].Balance = amount
+	function touch!(tr::TransactionRow)::Nothing
+		coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, tr.ts)
+		coinUsdt  = abs(coinPrice * tr.amount)
+		if !haskey(AddressState, tr.addrId)
+			if amount >= 0
+				AddressState[tr.addrId] = AddressStatistics(
+						# timestamp
+						tr.ts, # TimestampCreated
+						tr.ts, # TimestampLastActive
+						tr.ts, # TimestampLastReceived
+						tr.ts, # TimestampLastPayed
+						# amount
+						tr.amount, # AmountIncomeTotal
+						0, # AmountExpenseTotal
+						# statistics
+						1, # NumTxInTotal
+						0, # NumTxOutTotal
+						# relevant usdt amount
+						coinUsdt, # UsdtPayed4Input
+						0, # UsdtReceived4Output
+						coinPrice, # AveragePurchasePrice
+						coinPrice, # LastSellPrice
+						# calculated extra
+						0, # UsdtNetRealized
+						0, # UsdtNetUnrealized
+						tr.amount, # Balance
+					)
+			else
+				@warn "unexpected address when $(tr.ts)"
+				AddressState[tr.addrId] = AddressStatistics(
+					# timestamp
+					tr.ts, # TimestampCreated
+					tr.ts, # TimestampLastActive
+					tr.ts, # TimestampLastReceived
+					tr.ts, # TimestampLastPayed
+					# amount
+					0, # AmountIncomeTotal
+					abs(tr.amount), # AmountExpenseTotal
+					# statistics
+					0, # NumTxInTotal
+					1, # NumTxOutTotal
+					# relevant usdt amount
+					0, # UsdtPayed4Input
+					coinUsdt, # UsdtReceived4Output
+					coinPrice, # AveragePurchasePrice
+					coinPrice, # LastSellPrice
+					# calculated extra
+					coinUsdt, # UsdtNetRealized
+					0, # UsdtNetUnrealized
+					tr.amount, # Balance
+				)
+			end
 			return nothing
 		end
+		refStat = Ref(AddressState[tr.addrId])
 		if amount < 0
-			AddressState[addrId].AmountExpenseTotal -= amount
-			AddressState[addrId].NumTxOutTotal      += 1
-			AddressState[addrId].TimestampLastPayed = ts
-			AddressState[addrId].UsdtReceived4Output += coinUsdt
-			AddressState[addrId].LastSellPrice      = coinPrice
+			refStat[].AmountExpenseTotal -= tr.amount
+			refStat[].NumTxOutTotal      += 1
+			refStat[].TimestampLastPayed = tr.ts
+			refStat[].UsdtReceived4Output += coinUsdt
+			refStat[].LastSellPrice      = coinPrice
 		else
-			AddressState[addrId].AmountIncomeTotal  += amount
-			AddressState[addrId].NumTxInTotal       += 1
-			AddressState[addrId].TimestampLastReceived = ts
-			AddressState[addrId].UsdtPayed4Input += coinUsdt
-			AddressState[addrId].AveragePurchasePrice = Float32(
-				(AddressState[addrId].AveragePurchasePrice * AddressState[addrId].Balance + coinUsdt) / (AddressState[addrId].Balance + amount)
+			refStat[].AmountIncomeTotal  += tr.amount
+			refStat[].NumTxInTotal       += 1
+			refStat[].TimestampLastReceived = tr.ts
+			refStat[].UsdtPayed4Input += coinUsdt
+			refStat[].AveragePurchasePrice = Float32(
+				(refStat[].AveragePurchasePrice * refStat[].Balance + coinUsdt) / (refStat[].Balance + tr.amount)
 				)
 		end
-		AddressState[addrId].Balance += amount
-		AddressState[addrId].TimestampLastActive = ts
-		AddressState[addrId].UsdtNetRealized = AddressState[addrId].UsdtReceived4Output - AddressState[addrId].UsdtPayed4Input
-		AddressState[addrId].UsdtNetUnrealized = (coinPrice-AddressState[addrId].AveragePurchasePrice) * AddressState[addrId].Balance
-		AddressState.enabled = true
+		refStat[].Balance += tr.amount
+		refStat[].TimestampLastActive = tr.ts
+		refStat[].UsdtNetRealized = refStat[].UsdtReceived4Output - refStat[].UsdtPayed4Input
+		refStat[].UsdtNetUnrealized = (coinPrice-refStat[].AveragePurchasePrice) * refStat[].Balance
 		nothing
 		end
 
@@ -208,13 +251,6 @@ include("./02-loadmmap.jl")
 			end
 		end
 		return ret
-		end
-
-# Runtime Vars
-	mutable struct TransactionRow
-		addrId::UInt32
-		tagNew::Bool
-		amount::Float64
 		end
 
 # New Procedure Purpose: CalcUint
