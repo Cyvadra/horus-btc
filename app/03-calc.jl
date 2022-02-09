@@ -169,7 +169,6 @@ include("./02-loadmmap.jl")
 		AddressState.enabled = true
 		nothing
 		end
-	AddressDiffTpl = ThreadSafeDict{UInt32,Float64}()
 
 # Address Snapshot
 	mutable struct AddressSnapshot
@@ -211,6 +210,12 @@ include("./02-loadmmap.jl")
 		return ret
 		end
 
+# Runtime Vars
+	mutable struct TransactionRow
+		addrId::UInt32
+		tagNew::Bool
+		amount::Float64
+		end
 
 # New Procedure Purpose: CalcUint
 	mutable struct CalcCell
@@ -269,23 +274,23 @@ include("./02-loadmmap.jl")
 		amountRealizedProfit::Float32
 		amountRealizedLoss::Float32
 		end
-	function CalcAddressComparative(addrIds::Vector{UInt32}, tagNew::Vector{Bool}, amount::Vector{Float64})::CellAddressComparative
+	function CalcAddressComparative(txs::Vector{TransactionRow})::CellAddressComparative
 		ret = CellAddressComparative(zeros(length(CellAddressComparative.types))...)
 		return ret
 		end
-	function CalcAddressDirection(addrIds::Vector{UInt32}, tagNew::Vector{Bool}, amount::Vector{Float64})::CellAddressDirection
+	function CalcAddressDirection(txs::Vector{TransactionRow})::CellAddressDirection
 		ret = CellAddressDirection(zeros(length(CellAddressDirection.types))...)
 		return ret
 		end
-	function CalcAddressAccumulation(addrIds::Vector{UInt32}, tagNew::Vector{Bool}, amount::Vector{Float64})::CellAddressAccumulation
+	function CalcAddressAccumulation(txs::Vector{TransactionRow})::CellAddressAccumulation
 		ret = CellAddressAccumulation(zeros(length(CellAddressAccumulation.types))...)
 		return ret
 		end
-	function CalcAddressSupplier(addrIds::Vector{UInt32}, tagNew::Vector{Bool}, amount::Vector{Float64})::CellAddressSupplier
+	function CalcAddressSupplier(txs::Vector{TransactionRow})::CellAddressSupplier
 		ret = CellAddressSupplier(zeros(length(CellAddressSupplier.types))...)
 		return ret
 		end
-	function CalcAddressUsdtDiff(addrIds::Vector{UInt32}, tagNew::Vector{Bool}, amount::Vector{Float64})::CellAddressUsdtDiff
+	function CalcAddressUsdtDiff(txs::Vector{TransactionRow})::CellAddressUsdtDiff
 		ret = CellAddressUsdtDiff(zeros(length(CellAddressUsdtDiff.types))...)
 		return ret
 		end
