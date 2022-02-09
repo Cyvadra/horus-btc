@@ -1,11 +1,14 @@
 using ThreadSafeDicts # private repo
 using ProgressMeter
 using Dates
+using FinanceDB
 
 @show Threads.nthreads()
-include("./dataloader.jl")
+include("./02-loadmmap.jl")
 
 # Config
+	FinanceDB.SetDataFolder("/mnt/data/mmap")
+	pairName = "BTC_USDT"
 	seconds = (
 		Day = 3600 * 24,
 		Month = 3600 * 24 * 30,
@@ -103,48 +106,60 @@ include("./dataloader.jl")
 
 # Runtime Address
 	mutable struct AddressStatistics
+		# timestamp
 		TimestampCreated::Int32
 		TimestampLastActive::Int32
+		TimestampLastReceived::Int32
+		TimestampLastPayed::Int32
+		# amount
 		AmountIncomeTotal::Float64
 		AmountExpenseTotal::Float64
+		# statistics
 		NumTxInTotal::Int32
 		NumTxOutTotal::Int32
-		Balance::Float64
-		# extra
+		# relevant usdt amount
 		UsdtPayed4Input::Float64
 		UsdtReceived4Output::Float64
+		AveragePurchasePrice::Float32
+		LastSellPrice::Float32
 		# calculated extra
-		UsdtNet::Float64
+		UsdtNetRealized::Float64
+		UsdtNetUnrealized::Float64
+		Balance::Float64 # btc
 		end
-		tplAddrStat = AddressStatistics(zeros(10)...)
+		tplAddrStat = AddressStatistics(zeros(length(AddressStatistics.types))...)
 	AddressState  = ThreadSafeDict{UInt32,AddressStatistics}()
 	function touch!(addrId::UInt32, ts::Int32, amount::Float64)::Nothing
 		if !haskey(AddressState,addrId)
 			AddressState[addrId] = deepcopy(tplAddrStat)
 			AddressState[addrId].TimestampCreated = ts
-		else
-			AddressState[addrId].TimestampCreated = min(AddressState[addrId].TimestampCreated, ts)
 		end
+		AddressState.enabled = false
+		coinPrice = FinanceDB.GetDerivativePriceWhen(pairName,ts)
+		coinUsdt  = abs(coinPrice * amount)
 		if amount < 0
 			AddressState[addrId].AmountExpenseTotal -= amount
 			AddressState[addrId].NumTxOutTotal      += 1
+			AddressState[addrId].TimestampLastPayed = ts
+			AddressState[addrId].UsdtReceived4Output += coinUsdt
+			AddressState[addrId].LastSellPrice      = coinPrice
 		else
 			AddressState[addrId].AmountIncomeTotal  += amount
 			AddressState[addrId].NumTxInTotal       += 1
+			AddressState[addrId].TimestampLastReceived = ts
+			AddressState[addrId].UsdtPayed4Input += coinUsdt
+			AddressState[addrId].AveragePurchasePrice = Float32(
+				(AddressState[addrId].AveragePurchasePrice * AddressState[addrId].Balance + coinUsdt) / (AddressState[addrId].Balance + amount)
+				)
 		end
-		AddressState[addrId].TimestampLastActive = max(AddressState[addrId].TimestampLastActive, ts)
 		AddressState[addrId].Balance += amount
-		return nothing
+		AddressState[addrId].TimestampLastActive = ts
+		AddressState[addrId].UsdtNetRealized = AddressState[addrId].UsdtReceived4Output - AddressState[addrId].UsdtPayed4Input
+		AddressState[addrId].UsdtNetUnrealized = (coinPrice-AddressState[addrId].AveragePurchasePrice) * AddressState[addrId].Balance
+		AddressState.enabled = true
+		nothing
 		end
 	AddressDiffTpl = ThreadSafeDict{UInt32,Float64}()
-	function recordDiff!(addrDiff::ThreadSafeDict, addrId::UInt32, amount::Float64)::Nothing
-		if !haskey(addrDiff, addrId)
-			addrDiff[addrId]  = amount
-		else
-			addrDiff[addrId] += amount
-		end
-		return nothing
-		end
 
 # Runtime Statistics
 	mutable struct PeriodStat
