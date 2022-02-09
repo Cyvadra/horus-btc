@@ -139,8 +139,8 @@ include("./02-loadmmap.jl")
 	function touch!(tr::TransactionRow)::Nothing
 		coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, tr.ts)
 		coinUsdt  = abs(coinPrice * tr.amount)
-		if !haskey(AddressState, tr.addrId)
-			if amount >= 0
+		if tr.tagNew
+			if tr.amount >= 0
 				AddressState[tr.addrId] = AddressStatistics(
 						# timestamp
 						tr.ts, # TimestampCreated
@@ -164,7 +164,7 @@ include("./02-loadmmap.jl")
 						tr.amount, # Balance
 					)
 			else
-				@warn "unexpected address when $(tr.ts)"
+				# @warn "unexpected address when $(tr.ts)"
 				AddressState[tr.addrId] = AddressStatistics(
 					# timestamp
 					tr.ts, # TimestampCreated
@@ -194,20 +194,23 @@ include("./02-loadmmap.jl")
 		if amount < 0
 			refStat[].AmountExpenseTotal -= tr.amount
 			refStat[].NumTxOutTotal      += 1
-			refStat[].TimestampLastPayed = tr.ts
+			refStat[].TimestampLastPayed = max(refStat[].TimestampLastPayed, tr.ts)
 			refStat[].UsdtReceived4Output += coinUsdt
 			refStat[].LastSellPrice      = coinPrice
 		else
 			refStat[].AmountIncomeTotal  += tr.amount
 			refStat[].NumTxInTotal       += 1
-			refStat[].TimestampLastReceived = tr.ts
+			refStat[].TimestampLastReceived = max(refStat[].TimestampLastReceived, tr.ts)
 			refStat[].UsdtPayed4Input += coinUsdt
 			refStat[].AveragePurchasePrice = Float32(
 				(refStat[].AveragePurchasePrice * refStat[].Balance + coinUsdt) / (refStat[].Balance + tr.amount)
 				)
 		end
+		if refStat[].Balance < 0
+			refStat[].TimestampCreated = min(refStat[].TimestampCreated, tr.ts)
+		end
+		refStat[].TimestampLastActive = max(refStat[].TimestampLastActive, tr.ts)
 		refStat[].Balance += tr.amount
-		refStat[].TimestampLastActive = tr.ts
 		refStat[].UsdtNetRealized = refStat[].UsdtReceived4Output - refStat[].UsdtPayed4Input
 		refStat[].UsdtNetUnrealized = (coinPrice-refStat[].AveragePurchasePrice) * refStat[].Balance
 		nothing
@@ -355,10 +358,12 @@ include("./02-loadmmap.jl")
 	AddressState.enabled = false
 	for i in 1:posStart-1
 		addrId, amount, ts = TxRowsDF[i,:]
-		touch!(addrId, ts, amount)
+		touch!(TransactionRow(
+			addrId, !haskey(AddressState, addrId), amount, ts
+			))
 		next!(prog)
 	end
-	# AddressState.enabled = true
+	AddressState.enabled = true
 	# now it's time to process real stuff
 
 
