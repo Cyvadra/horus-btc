@@ -289,7 +289,7 @@ include("./02-loadmmap.jl")
 	function CalcAddressComparative(txs::Vector{TransactionRow})::CellAddressComparative
 		lenUnique  = length( unique(map(x->x.addrId, txs)) )
 		biasAmount = reduce(+, map(x->x.amount,txs))
-		estAmount  = reduce(+, map(x->abs(x.amount),txs) - biasAmount) / 2
+		estAmount  = (reduce(+, map(x->abs(x.amount),txs)) - biasAmount) / 2
 		ret = CellAddressComparative(
 				lenUnique,
 				length(txs),
@@ -303,9 +303,11 @@ include("./02-loadmmap.jl")
 		end
 	function CalcAddressDirection(txs::Vector{TransactionRow})::CellAddressDirection
 		concreteIndexes  = map(x->!x.tagNew,txs)
-		concreteBalances = AddressService.GetListAddrBalanceAbs(txs[concreteIndexes])
+		concreteBalances = AddressService.GetListAddrBalanceAbs(
+			map(x->x.addrId, txs[concreteIndexes])
+			)
 		concretePercents = map(x->x.amount, txs[concreteIndexes]) ./ concreteBalances
-		concreteAmounts  = map(x->abs(x.amount), txs[concreteIndexes])
+		concreteAmounts  = abs.(map(x->x.amount, txs[concreteIndexes]))
 		tmpIndexes = (
 			cpb10 = map(x-> 0.00 < x <= 0.10, concretePercents),
 			cpb25 = map(x-> 0.10 < x <= 0.25, concretePercents),
@@ -351,8 +353,12 @@ include("./02-loadmmap.jl")
 		tsMax = max(txs[1].ts, txs[end].ts)
 		tsMid = round(Int32, (tsMin+tsMax)/2)
 		concreteIndexes  = map(x->!x.tagNew,txs)
-		concreteLastPayed    = AddressService.GetListTimestampLastPayed(txs[concreteIndexes])
-		concreteLastReceived = AddressService.GetListTimestampLastReceived(txs[concreteIndexes])
+		concreteLastPayed    = AddressService.GetListTimestampLastPayed(
+			map(x->x.addrId, txs[concreteIndexes])
+			)
+		concreteLastReceived = AddressService.GetListTimestampLastReceived(
+			map(x->x.addrId, txs[concreteIndexes])
+			)
 		concreteAmounts      = map(x->x.amount, txs[concreteIndexes])
 		concreteAmountsSend  = concreteAmounts .< 0.0
 		concreteAmountsBuy   = concreteAmounts .> 0.0
@@ -405,9 +411,11 @@ include("./02-loadmmap.jl")
 		end
 	function CalcAddressSupplier(txs::Vector{TransactionRow})::CellAddressSupplier
 		concreteIndexes  = map(x->!x.tagNew && x.amount<0, txs)
-		concreteBalances = AddressService.GetListAddrBalanceAbs(txs[concreteIndexes])
+		concreteBalances = AddressService.GetListAddrBalanceAbs(
+			map(x->x.addrId, txs[concreteIndexes])
+			)
 		concreteAmounts  = abs.(map(x->x.amount, txs[concreteIndexes]))
-		sortedBalances = sort(concreteBalances)
+		sortedBalances = sort(concreteBalances)[1:floor(Int, 0.99*end)]
 		ret = CellAddressSupplier(
 				sum(sortedBalances) / length(sortedBalances),
 				Statistics.std(sortedBalances),
@@ -647,7 +655,7 @@ include("./02-loadmmap.jl")
 	prevPosEnd   = posStart - 10
 	thisPosEnd   = posStart - 10
 	thisPosStart = posStart - 10
-	resultsLen   = (toDate - fromDate).x / 1000 / seconds.Hour / 3
+	resultsLen   = (toDate - fromDate).value / 1000 / seconds.Hour / 3
 	resultsLen   = ceil(Int, resultsLen)
 	results      = Vector{ResultCalculations}(undef,resultsLen)
 	resultCounter= 1
