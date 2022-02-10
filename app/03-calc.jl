@@ -13,7 +13,8 @@ include("./02-loadmmap.jl")
 	FinanceDB.SetDataFolder("/mnt/data/mmap")
 	pairName = "BTC_USDT"
 	seconds = (
-		Day = 3600 * 24,
+		Hour  = 3600,
+		Day   = 3600 * 24,
 		Month = 3600 * 24 * 30,
 		)
 	intervals = (
@@ -245,24 +246,24 @@ include("./02-loadmmap.jl")
 		numRecentD3Buying::Int32
 		numWakeupW1Buying::Int32
 		numWakeupM1Buying::Int32
-		numContinuousH0Sending::Int32
-		numContinuousH3Sending::Int32
 		numContinuousD1Sending::Int32
-		numContinuousH0Buying::Int32
-		numContinuousH3Buying::Int32
+		numContinuousD3Sending::Int32
+		numContinuousW1Sending::Int32
 		numContinuousD1Buying::Int32
+		numContinuousD3Buying::Int32
+		numContinuousW1Buying::Int32
 		amountRecentD3Sending::Float32
 		amountWakeupW1Sending::Float32
 		amountWakeupM1Sending::Float32
 		amountRecentD3Buying::Float32
 		amountWakeupW1Buying::Float32
 		amountWakeupM1Buying::Float32
-		amountContinuousH0Sending::Float32
-		amountContinuousH3Sending::Float32
 		amountContinuousD1Sending::Float32
-		amountContinuousH0Buying::Float32
-		amountContinuousH3Buying::Float32
+		amountContinuousD3Sending::Float32
+		amountContinuousW1Sending::Float32
 		amountContinuousD1Buying::Float32
+		amountContinuousD3Buying::Float32
+		amountContinuousW1Buying::Float32
 		end
 	mutable struct CellAddressSupplier
 		balanceSupplierMean::Float32
@@ -286,10 +287,14 @@ include("./02-loadmmap.jl")
 		amountRealizedLossBillion::Float64
 		end
 	function CalcAddressComparative(txs::Vector{TransactionRow})::CellAddressComparative
-		lenUnique = length( unique(map(x->x.addrId, txs)) )
+		lenUnique  = length( unique(map(x->x.addrId, txs)) )
+		biasAmount = reduce(+, map(x->x.amount,txs))
+		estAmount  = reduce(+, map(x->abs(x.amount),txs) - biasAmount) / 2
 		ret = CellAddressComparative(
 				lenUnique,
-				reduce(+, map(x->abs(x.amount),txs))/2,
+				length(txs),
+				estAmount,
+				biasAmount / estAmount,
 				count(x->x.tagNew, txs) / length(txs),
 				count(x->x.amount<=0, txs) / length(txs),
 				count(x->x.amount>0, txs) / length(txs),
@@ -302,69 +307,106 @@ include("./02-loadmmap.jl")
 		concretePercents = map(x->x.amount, txs[concreteIndexes]) ./ concreteBalances
 		concreteAmounts  = map(x->abs(x.amount), txs[concreteIndexes])
 		tmpIndexes = (
-			cpb10 = map(x-> 0.0 < x <= 0.10, concretePercents),
-			cpb25 = map(x-> 0.0 < x <= 0.25, concretePercents),
-			cpb50 = map(x-> 0.0 < x <= 0.50, concretePercents),
-			cpb80 = map(x-> 0.0 < x <= 0.80, concretePercents),
-			wpb25 = map(x-> -0.25 <= x < 0.0, concretePercents),
-			wpb50 = map(x-> -0.50 <= x < 0.0, concretePercents),
-			wpa80 = map(x-> -0.80 <= x < 0.0, concretePercents),
-			wpa90 = map(x-> -1.1 < x <= -0.90, concretePercents),
+			cpb10 = map(x-> 0.00 < x <= 0.10, concretePercents),
+			cpb25 = map(x-> 0.10 < x <= 0.25, concretePercents),
+			cpb50 = map(x-> 0.25 < x <= 0.50, concretePercents),
+			cpb80 = map(x-> 0.50 < x <= 0.80, concretePercents),
+			cpb95 = map(x-> 0.80 < x <= 0.95, concretePercents),
+			cpe100= map(x->x.tagNew, txs),
+			wpb10 = map(x-> -0.10 <= x < 0.0, concretePercents),
+			wpb25 = map(x-> -0.25 <= x < 0.10, concretePercents),
+			wpb50 = map(x-> -0.50 <= x < 0.25, concretePercents),
+			wpa80 = map(x-> -0.95 < x <= -0.80, concretePercents),
+			wpa95 = map(x-> -1.1 < x <= -0.95, concretePercents),
 			)
-		newIndexes = map(x->x.tagNew, txs)
 		ret = CellAddressDirection(
+				sum(tmpIndexes.cpb10),
 				sum(tmpIndexes.cpb25),
 				sum(tmpIndexes.cpb50),
 				sum(tmpIndexes.cpb80),
-				sum(newIndexes),
+				sum(tmpIndexes.cpb95),
+				sum(tmpIndexes.cpe100),
+				sum(tmpIndexes.wpb10),
+				sum(tmpIndexes.wpb25),
 				sum(tmpIndexes.wpb50),
 				sum(tmpIndexes.wpa80),
-				sum(tmpIndexes.wpa90),
-				
+				sum(tmpIndexes.wpa95),
+
+				reduce(+, concreteAmounts[tmpIndexes.cpb10]),
 				reduce(+, concreteAmounts[tmpIndexes.cpb25]),
 				reduce(+, concreteAmounts[tmpIndexes.cpb50]),
 				reduce(+, concreteAmounts[tmpIndexes.cpb80]),
-				reduce(+, map(x->abs(x.amount), txs[newIndexes])),
+				reduce(+, concreteAmounts[tmpIndexes.cpb95]),
+				reduce(+, map(x->x.amount,txs[tmpIndexes.cpe100])),
+				reduce(+, concreteAmounts[tmpIndexes.wpb10]),
+				reduce(+, concreteAmounts[tmpIndexes.wpb25]),
 				reduce(+, concreteAmounts[tmpIndexes.wpb50]),
 				reduce(+, concreteAmounts[tmpIndexes.wpa80]),
-				reduce(+, concreteAmounts[tmpIndexes.wpa90]),
+				reduce(+, concreteAmounts[tmpIndexes.wpa95]),
 			)
 		return ret
 		end
 	function CalcAddressAccumulation(txs::Vector{TransactionRow})::CellAddressAccumulation
 		tsMin = min(txs[1].ts, txs[end].ts)
 		tsMax = max(txs[1].ts, txs[end].ts)
+		tsMid = round(Int32, (tsMin+tsMax)/2)
 		concreteIndexes  = map(x->!x.tagNew,txs)
 		concreteLastPayed    = AddressService.GetListTimestampLastPayed(txs[concreteIndexes])
 		concreteLastReceived = AddressService.GetListTimestampLastReceived(txs[concreteIndexes])
-		concreteAmounts      = map(x->abs(x.amount), txs[concreteIndexes])
+		concreteAmounts      = map(x->x.amount, txs[concreteIndexes])
+		concreteAmountsSend  = concreteAmounts .< 0.0
+		concreteAmountsBuy   = concreteAmounts .> 0.0
 		tmpIndexes = (
-				wakeupW1 = map(x->tsMax-x > 7seconds.Day, concreteLastPayed),
-				wakeupM1 = map(x->tsMax-x > seconds.Month, concreteLastPayed),
-				# todo
-				contiD1  = map(x->x-tsMin > seconds.Day, concreteLastReceived),
-				contiD3  = map(x->x-tsMin > 3seconds.Day, concreteLastReceived),
-				contiW1  = map(x->x-tsMin > 7seconds.Day, concreteLastReceived),
+			recentD3Sending = map(t->tsMid-t < 3seconds.Day, concreteLastPayed),
+			wakeupW1Sending = map(t->tsMid-t > 7seconds.Day, concreteLastPayed),
+			wakeupM1Sending = map(t->tsMid-t > seconds.Month, concreteLastPayed),
+
+			recentD3Buying = map(t->tsMid-t < 3seconds.Day, concreteLastReceived),
+			wakeupW1Buying = map(t->tsMid-t > 7seconds.Day, concreteLastReceived),
+			wakeupM1Buying = map(t->tsMid-t > seconds.Month, concreteLastReceived),
+
+			contiD1Sending = map(t->tsMax-t > seconds.Day, concreteLastReceived) .&& concreteAmountsSend,
+			contiD3Sending = map(t->tsMax-t > 3seconds.Day, concreteLastReceived) .&& concreteAmountsSend,
+			contiW1Sending = map(t->tsMax-t > 7seconds.Day, concreteLastReceived) .&& concreteAmountsSend,
+
+			contiD1Buying  = map(t->tsMax-t >= seconds.Day, concreteLastPayed) .&& concreteAmountsBuy,
+			contiD3Buying  = map(t->tsMax-t > 3seconds.Day, concreteLastPayed) .&& concreteAmountsBuy,
+			contiW1Buying  = map(t->tsMax-t > 7seconds.Day, concreteLastPayed) .&& concreteAmountsBuy,
 			)
+		concreteAmounts = abs.(concreteAmounts)
 		ret = CellAddressAccumulation(
-				sum(tmpIndexes.wakeupW1),
-				sum(tmpIndexes.wakeupM1),
-				sum(tmpIndexes.contiD1),
-				sum(tmpIndexes.contiD3),
-				sum(tmpIndexes.contiW1),
+				sum(tmpIndexes.recentD3Sending),
+				sum(tmpIndexes.wakeupW1Sending),
+				sum(tmpIndexes.wakeupM1Sending),
+				sum(tmpIndexes.recentD3Buying),
+				sum(tmpIndexes.wakeupW1Buying),
+				sum(tmpIndexes.wakeupM1Buying),
+				sum(tmpIndexes.contiD1Sending),
+				sum(tmpIndexes.contiD3Sending),
+				sum(tmpIndexes.contiW1Sending),
+				sum(tmpIndexes.contiD1Buying),
+				sum(tmpIndexes.contiD3Buying),
+				sum(tmpIndexes.contiW1Buying),
 				
-				reduce(+, concreteAmounts[tmpIndexes.wakeupW1]),
-				reduce(+, concreteAmounts[tmpIndexes.wakeupM1]),
-				reduce(+, concreteAmounts[tmpIndexes.contiD1]),
-				reduce(+, concreteAmounts[tmpIndexes.contiD3]),
-				reduce(+, concreteAmounts[tmpIndexes.contiW1]),
+				reduce(+,concreteAmounts[tmpIndexes.recentD3Sending]),
+				reduce(+,concreteAmounts[tmpIndexes.wakeupW1Sending]),
+				reduce(+,concreteAmounts[tmpIndexes.wakeupM1Sending]),
+				reduce(+,concreteAmounts[tmpIndexes.recentD3Buying]),
+				reduce(+,concreteAmounts[tmpIndexes.wakeupW1Buying]),
+				reduce(+,concreteAmounts[tmpIndexes.wakeupM1Buying]),
+				reduce(+,concreteAmounts[tmpIndexes.contiD1Sending]),
+				reduce(+,concreteAmounts[tmpIndexes.contiD3Sending]),
+				reduce(+,concreteAmounts[tmpIndexes.contiW1Sending]),
+				reduce(+,concreteAmounts[tmpIndexes.contiD1Buying]),
+				reduce(+,concreteAmounts[tmpIndexes.contiD3Buying]),
+				reduce(+,concreteAmounts[tmpIndexes.contiW1Buying]),
 			)
 		return ret
 		end
 	function CalcAddressSupplier(txs::Vector{TransactionRow})::CellAddressSupplier
 		concreteIndexes  = map(x->!x.tagNew && x.amount<0, txs)
 		concreteBalances = AddressService.GetListAddrBalanceAbs(txs[concreteIndexes])
-		concreteAmounts  = map(x->abs(x.amount), txs[concreteIndexes])
+		concreteAmounts  = abs.(map(x->x.amount, txs[concreteIndexes]))
 		sortedBalances = sort(concreteBalances)
 		ret = CellAddressSupplier(
 				sum(sortedBalances) / length(sortedBalances),
@@ -374,11 +416,21 @@ include("./02-loadmmap.jl")
 				sortedBalances[round(Int, 0.5*end)],
 				sortedBalances[ceil(Int, 0.6*end)],
 				sortedBalances[ceil(Int, 0.8*end)],
+				sortedBalances[ceil(Int, 0.95*end)],
 				reduce(+, concreteAmounts[
 					map(x -> x <= sortedBalances[floor(Int, 0.2*end)], concreteBalances)
 					]),
 				reduce(+, concreteAmounts[
-					map(x -> x >= sortedBalances[ceil(Int, 0.8*end)], concreteBalances)
+					map(x -> x <= sortedBalances[floor(Int, 0.4*end)], concreteBalances)
+					]),
+				reduce(+, concreteAmounts[
+					map(x -> x <= sortedBalances[floor(Int, 0.6*end)], concreteBalances)
+					]),
+				reduce(+, concreteAmounts[
+					map(x -> x <= sortedBalances[floor(Int, 0.8*end)], concreteBalances)
+					]),
+				reduce(+, concreteAmounts[
+					map(x -> x >= sortedBalances[ceil(Int, 0.95*end)], concreteBalances)
 					]),
 			)
 		return ret
@@ -391,10 +443,10 @@ include("./02-loadmmap.jl")
 			boughtPrice = AddressService.GetAveragePurchasePrice(r.addrId)
 			if coinPrice > boughtPrice
 				ret.numRealizedProfit += 1
-				ret.amountRealizedProfit += (coinPrice-boughtPrice) * abs(r.amount)
+				ret.amountRealizedProfitBillion += Float64(coinPrice-boughtPrice) * abs(r.amount) / 1e9
 			else
 				ret.numRealizedLoss += 1
-				ret.amountRealizedLoss += (boughtPrice-coinPrice) * abs(r.amount)
+				ret.amountRealizedLossBillion += Float64(boughtPrice-coinPrice) * abs(r.amount) / 1e9
 			end
 		end
 		return ret
@@ -412,33 +464,57 @@ include("./02-loadmmap.jl")
 	struct ResultCalculations
 		# CellAddressComparative
 		numTotalActive::Int32
+		numTotalRows::Int32
 		amountTotalTransfer::Float32
+		percentBiasReference::Float32
 		percentNumNew::Float32
 		percentNumSending::Float32
 		percentNumReceiving::Float32
 		# CellAddressDirection
+		numChargePercentBelow10::Int32
 		numChargePercentBelow25::Int32
 		numChargePercentBelow50::Int32
 		numChargePercentBelow80::Int32
+		numChargePercentBelow95::Int32
 		numChargePercentEquals100::Int32
+		numWithdrawPercentBelow10::Int32
+		numWithdrawPercentBelow25::Int32
 		numWithdrawPercentBelow50::Int32
-		numWithdrawPercentAbove75::Int32
-		numWithdrawPercentAbove90::Int32
+		numWithdrawPercentAbove80::Int32
+		numWithdrawPercentAbove95::Int32
+		amountChargePercentBelow10::Float32
 		amountChargePercentBelow25::Float32
 		amountChargePercentBelow50::Float32
 		amountChargePercentBelow80::Float32
+		amountChargePercentBelow95::Float32
 		amountChargePercentEquals100::Float32
+		amountWithdrawPercentBelow10::Float32
+		amountWithdrawPercentBelow25::Float32
 		amountWithdrawPercentBelow50::Float32
-		amountWithdrawPercentAbove75::Float32
-		amountWithdrawPercentAbove90::Float32
+		amountWithdrawPercentAbove80::Float32
+		amountWithdrawPercentAbove95::Float32
 		# CellAddressAccumulation
-		numWakeupW1Sending::Float32
-		numWakeupM1Sending::Float32
-		numContinuousD1Buying::Float32
-		numContinuousD3Buying::Float32
-		numContinuousW1Buying::Float32
+		numRecentD3Sending::Int32
+		numWakeupW1Sending::Int32
+		numWakeupM1Sending::Int32
+		numRecentD3Buying::Int32
+		numWakeupW1Buying::Int32
+		numWakeupM1Buying::Int32
+		numContinuousD1Sending::Int32
+		numContinuousD3Sending::Int32
+		numContinuousW1Sending::Int32
+		numContinuousD1Buying::Int32
+		numContinuousD3Buying::Int32
+		numContinuousW1Buying::Int32
+		amountRecentD3Sending::Float32
 		amountWakeupW1Sending::Float32
 		amountWakeupM1Sending::Float32
+		amountRecentD3Buying::Float32
+		amountWakeupW1Buying::Float32
+		amountWakeupM1Buying::Float32
+		amountContinuousD1Sending::Float32
+		amountContinuousD3Sending::Float32
+		amountContinuousW1Sending::Float32
 		amountContinuousD1Buying::Float32
 		amountContinuousD3Buying::Float32
 		amountContinuousW1Buying::Float32
@@ -450,13 +526,17 @@ include("./02-loadmmap.jl")
 		balanceSupplierMiddle::Float32
 		balanceSupplierPercent60::Float32
 		balanceSupplierPercent80::Float32
+		balanceSupplierPercent95::Float32
 		amountSupplierBalanceBelow20::Float32
-		amountSupplierBalanceAbove80::Float32
+		amountSupplierBalanceBelow40::Float32
+		amountSupplierBalanceBelow60::Float32
+		amountSupplierBalanceBelow80::Float32
+		amountSupplierBalanceAbove95::Float32
 		# CellAddressUsdtDiff
 		numRealizedProfit::Int32
 		numRealizedLoss::Int32
-		amountRealizedProfit::Float32
-		amountRealizedLoss::Float32
+		amountRealizedProfitBillion::Float64
+		amountRealizedLossBillion::Float64
 		end
 	function DoCalculations(txs::Vector{TransactionRow})::ResultCalculations
 		listTask = Vector{Task}(undef,length(Calculations))
@@ -466,52 +546,80 @@ include("./02-loadmmap.jl")
 		wait.(listTask)
 		return ResultCalculations(
 			# CellAddressComparative
-			listTask[1].result.numTotalActive,
-			listTask[1].result.amountTotalTransfer,
-			listTask[1].result.percentNumNew,
-			listTask[1].result.percentNumSending,
-			listTask[1].result.percentNumReceiving,
+				listTask[1].result.numTotalActive,
+				listTask[1].result.numTotalRows,
+				listTask[1].result.amountTotalTransfer,
+				listTask[1].result.percentBiasReference,
+				listTask[1].result.percentNumNew,
+				listTask[1].result.percentNumSending,
+				listTask[1].result.percentNumReceiving,
 			# CellAddressDirection
-			listTask[2].result.numChargePercentBelow25,
-			listTask[2].result.numChargePercentBelow50,
-			listTask[2].result.numChargePercentBelow80,
-			listTask[2].result.numChargePercentEquals100,
-			listTask[2].result.numWithdrawPercentBelow50,
-			listTask[2].result.numWithdrawPercentAbove75,
-			listTask[2].result.numWithdrawPercentAbove90,
-			listTask[2].result.amountChargePercentBelow25,
-			listTask[2].result.amountChargePercentBelow50,
-			listTask[2].result.amountChargePercentBelow80,
-			listTask[2].result.amountChargePercentEquals100,
-			listTask[2].result.amountWithdrawPercentBelow50,
-			listTask[2].result.amountWithdrawPercentAbove75,
-			listTask[2].result.amountWithdrawPercentAbove90,
+				listTask[2].result.numChargePercentBelow10,
+				listTask[2].result.numChargePercentBelow25,
+				listTask[2].result.numChargePercentBelow50,
+				listTask[2].result.numChargePercentBelow80,
+				listTask[2].result.numChargePercentBelow95,
+				listTask[2].result.numChargePercentEquals100,
+				listTask[2].result.numWithdrawPercentBelow10,
+				listTask[2].result.numWithdrawPercentBelow25,
+				listTask[2].result.numWithdrawPercentBelow50,
+				listTask[2].result.numWithdrawPercentAbove80,
+				listTask[2].result.numWithdrawPercentAbove95,
+				listTask[2].result.amountChargePercentBelow10,
+				listTask[2].result.amountChargePercentBelow25,
+				listTask[2].result.amountChargePercentBelow50,
+				listTask[2].result.amountChargePercentBelow80,
+				listTask[2].result.amountChargePercentBelow95,
+				listTask[2].result.amountChargePercentEquals100,
+				listTask[2].result.amountWithdrawPercentBelow10,
+				listTask[2].result.amountWithdrawPercentBelow25,
+				listTask[2].result.amountWithdrawPercentBelow50,
+				listTask[2].result.amountWithdrawPercentAbove80,
+				listTask[2].result.amountWithdrawPercentAbove95,
 			# CellAddressAccumulation
-			listTask[3].result.numWakeupW1Sending,
-			listTask[3].result.numWakeupM1Sending,
-			listTask[3].result.numContinuousD1Buying,
-			listTask[3].result.numContinuousD3Buying,
-			listTask[3].result.numContinuousW1Buying,
-			listTask[3].result.amountWakeupW1Sending,
-			listTask[3].result.amountWakeupM1Sending,
-			listTask[3].result.amountContinuousD1Buying,
-			listTask[3].result.amountContinuousD3Buying,
-			listTask[3].result.amountContinuousW1Buying,
+				listTask[3].result.numRecentD3Sending,
+				listTask[3].result.numWakeupW1Sending,
+				listTask[3].result.numWakeupM1Sending,
+				listTask[3].result.numRecentD3Buying,
+				listTask[3].result.numWakeupW1Buying,
+				listTask[3].result.numWakeupM1Buying,
+				listTask[3].result.numContinuousD1Sending,
+				listTask[3].result.numContinuousD3Sending,
+				listTask[3].result.numContinuousW1Sending,
+				listTask[3].result.numContinuousD1Buying,
+				listTask[3].result.numContinuousD3Buying,
+				listTask[3].result.numContinuousW1Buying,
+				listTask[3].result.amountRecentD3Sending,
+				listTask[3].result.amountWakeupW1Sending,
+				listTask[3].result.amountWakeupM1Sending,
+				listTask[3].result.amountRecentD3Buying,
+				listTask[3].result.amountWakeupW1Buying,
+				listTask[3].result.amountWakeupM1Buying,
+				listTask[3].result.amountContinuousD1Sending,
+				listTask[3].result.amountContinuousD3Sending,
+				listTask[3].result.amountContinuousW1Sending,
+				listTask[3].result.amountContinuousD1Buying,
+				listTask[3].result.amountContinuousD3Buying,
+				listTask[3].result.amountContinuousW1Buying,
 			# CellAddressSupplier
-			listTask[4].result.balanceSupplierMean,
-			listTask[4].result.balanceSupplierStd,
-			listTask[4].result.balanceSupplierPercent20,
-			listTask[4].result.balanceSupplierPercent40,
-			listTask[4].result.balanceSupplierMiddle,
-			listTask[4].result.balanceSupplierPercent60,
-			listTask[4].result.balanceSupplierPercent80,
-			listTask[4].result.amountSupplierBalanceBelow20,
-			listTask[4].result.amountSupplierBalanceAbove80,
+				listTask[4].result.balanceSupplierMean,
+				listTask[4].result.balanceSupplierStd,
+				listTask[4].result.balanceSupplierPercent20,
+				listTask[4].result.balanceSupplierPercent40,
+				listTask[4].result.balanceSupplierMiddle,
+				listTask[4].result.balanceSupplierPercent60,
+				listTask[4].result.balanceSupplierPercent80,
+				listTask[4].result.balanceSupplierPercent95,
+				listTask[4].result.amountSupplierBalanceBelow20,
+				listTask[4].result.amountSupplierBalanceBelow40,
+				listTask[4].result.amountSupplierBalanceBelow60,
+				listTask[4].result.amountSupplierBalanceBelow80,
+				listTask[4].result.amountSupplierBalanceAbove95,
 			# CellAddressUsdtDiff
-			listTask[5].result.numRealizedProfit,
-			listTask[5].result.numRealizedLoss,
-			listTask[5].result.amountRealizedProfit,
-			listTask[5].result.amountRealizedLoss,
+				listTask[5].result.numRealizedProfit,
+				listTask[5].result.numRealizedLoss,
+				listTask[5].result.amountRealizedProfitBillion,
+				listTask[5].result.amountRealizedLossBillion,
 		)
 		end
 
