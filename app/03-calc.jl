@@ -1,8 +1,10 @@
-using ThreadSafeDicts # private repo
 using ProgressMeter
 using Dates
-using FinanceDB
 using Statistics
+# private repos
+using FinanceDB
+using ThreadSafeDicts
+using AddressService
 
 @show Threads.nthreads()
 include("./02-loadmmap.jl")
@@ -119,7 +121,7 @@ include("./02-loadmmap.jl")
 		if tr.tagNew
 			if tr.amount >= 0
 				AddressService.SetAddress(tr.addrId,
-					AddressStatistics(
+					AddressService.AddressStatistics(
 						# timestamp
 						tr.ts, # TimestampCreated
 						tr.ts, # TimestampLastActive
@@ -145,7 +147,7 @@ include("./02-loadmmap.jl")
 			else
 				# @warn "unexpected address when $(tr.ts)"
 				AddressService.SetAddress(tr.addrId,
-					AddressStatistics(
+					AddressService.AddressStatistics(
 					# timestamp
 					tr.ts, # TimestampCreated
 					tr.ts, # TimestampLastActive
@@ -171,7 +173,7 @@ include("./02-loadmmap.jl")
 			end
 			return nothing
 		end
-		refStat = GetStatRef(tr.addrId)
+		refStat = AddressService.GetStatRef(tr.addrId)
 		if tr.amount < 0
 			refStat[].AmountExpenseTotal -= tr.amount
 			refStat[].NumTxOutTotal      += 1
