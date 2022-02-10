@@ -265,38 +265,47 @@ include("./02-loadmmap.jl")
 	Calculations = CalcCell[]
 	mutable struct CellAddressComparative
 		numTotalActive::Int32
+		numTotalRows::Int32
 		amountTotalTransfer::Float32
 		percentNumNew::Float32
 		percentNumSending::Float32
 		percentNumReceiving::Float32
 		end
 	mutable struct CellAddressDirection
+		numChargePercentBelow10::Int32
 		numChargePercentBelow25::Int32
 		numChargePercentBelow50::Int32
 		numChargePercentBelow80::Int32
+		numChargePercentBelow95::Int32
 		numChargePercentEquals100::Int32
+		numWithdrawPercentBelow10::Int32
+		numWithdrawPercentBelow25::Int32
 		numWithdrawPercentBelow50::Int32
-		numWithdrawPercentAbove75::Int32
-		numWithdrawPercentAbove90::Int32
+		numWithdrawPercentAbove80::Int32
+		numWithdrawPercentAbove95::Int32
+		amountChargePercentBelow10::Float32
 		amountChargePercentBelow25::Float32
 		amountChargePercentBelow50::Float32
 		amountChargePercentBelow80::Float32
+		amountChargePercentBelow95::Float32
 		amountChargePercentEquals100::Float32
+		amountWithdrawPercentBelow10::Float32
+		amountWithdrawPercentBelow25::Float32
 		amountWithdrawPercentBelow50::Float32
-		amountWithdrawPercentAbove75::Float32
-		amountWithdrawPercentAbove90::Float32
+		amountWithdrawPercentAbove80::Float32
+		amountWithdrawPercentAbove95::Float32
 		end
 	mutable struct CellAddressAccumulation
 		numWakeupW1Sending::Float32
 		numWakeupM1Sending::Float32
+		numContinuousH0Buying::Float32
+		numContinuousH3Buying::Float32
 		numContinuousD1Buying::Float32
-		numContinuousD3Buying::Float32
-		numContinuousW1Buying::Float32
 		amountWakeupW1Sending::Float32
 		amountWakeupM1Sending::Float32
+		amountContinuousH0Buying::Float32
+		amountContinuousH3Buying::Float32
 		amountContinuousD1Buying::Float32
-		amountContinuousD3Buying::Float32
-		amountContinuousW1Buying::Float32
 		end
 	mutable struct CellAddressSupplier
 		balanceSupplierMean::Float32
@@ -306,14 +315,16 @@ include("./02-loadmmap.jl")
 		balanceSupplierMiddle::Float32
 		balanceSupplierPercent60::Float32
 		balanceSupplierPercent80::Float32
+		balanceSupplierPercent95::Float32
 		amountSupplierBalanceBelow20::Float32
-		amountSupplierBalanceAbove80::Float32
+		amountSupplierBalanceBelow80::Float32
+		amountSupplierBalanceAbove95::Float32
 		end
 	mutable struct CellAddressUsdtDiff
 		numRealizedProfit::Int32
 		numRealizedLoss::Int32
-		amountRealizedProfit::Float32
-		amountRealizedLoss::Float32
+		amountRealizedProfitBillion::Float64
+		amountRealizedLossBillion::Float64
 		end
 	function CalcAddressComparative(txs::Vector{TransactionRow})::CellAddressComparative
 		lenUnique = length( unique(map(x->x.addrId, txs)) )
