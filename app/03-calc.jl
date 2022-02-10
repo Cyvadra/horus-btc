@@ -267,6 +267,7 @@ include("./02-loadmmap.jl")
 		numTotalActive::Int32
 		numTotalRows::Int32
 		amountTotalTransfer::Float32
+		percentBiasReference::Float32
 		percentNumNew::Float32
 		percentNumSending::Float32
 		percentNumReceiving::Float32
@@ -296,13 +297,27 @@ include("./02-loadmmap.jl")
 		amountWithdrawPercentAbove95::Float32
 		end
 	mutable struct CellAddressAccumulation
-		numWakeupW1Sending::Float32
-		numWakeupM1Sending::Float32
-		numContinuousH0Buying::Float32
-		numContinuousH3Buying::Float32
-		numContinuousD1Buying::Float32
+		numRecentD3Sending::Int32
+		numWakeupW1Sending::Int32
+		numWakeupM1Sending::Int32
+		numRecentD3Buying::Int32
+		numWakeupW1Buying::Int32
+		numWakeupM1Buying::Int32
+		numContinuousH0Sending::Int32
+		numContinuousH3Sending::Int32
+		numContinuousD1Sending::Int32
+		numContinuousH0Buying::Int32
+		numContinuousH3Buying::Int32
+		numContinuousD1Buying::Int32
+		amountRecentD3Sending::Float32
 		amountWakeupW1Sending::Float32
 		amountWakeupM1Sending::Float32
+		amountRecentD3Buying::Float32
+		amountWakeupW1Buying::Float32
+		amountWakeupM1Buying::Float32
+		amountContinuousH0Sending::Float32
+		amountContinuousH3Sending::Float32
+		amountContinuousD1Sending::Float32
 		amountContinuousH0Buying::Float32
 		amountContinuousH3Buying::Float32
 		amountContinuousD1Buying::Float32
@@ -317,6 +332,8 @@ include("./02-loadmmap.jl")
 		balanceSupplierPercent80::Float32
 		balanceSupplierPercent95::Float32
 		amountSupplierBalanceBelow20::Float32
+		amountSupplierBalanceBelow40::Float32
+		amountSupplierBalanceBelow60::Float32
 		amountSupplierBalanceBelow80::Float32
 		amountSupplierBalanceAbove95::Float32
 		end
