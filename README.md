@@ -8,7 +8,7 @@
 7. [ ] Code test.
 9. [ ] Save results directly to mem-mapped database.
 11. [ ] Colde wallet recognize and noise-cancelling.
-
+13. [ ] Separate Address service.
 
 99. [ ] Consider real-time update?
 
