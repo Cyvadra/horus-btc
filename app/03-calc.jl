@@ -316,12 +316,13 @@ include("./02-loadmmap.jl")
 		amountRealizedLoss::Float32
 		end
 	function CalcAddressComparative(txs::Vector{TransactionRow})::CellAddressComparative
+		lenUnique = length( unique(map(x->x.addrId, txs)) )
 		ret = CellAddressComparative(
-				length(txs),
+				lenUnique,
 				reduce(+, map(x->abs(x.amount),txs))/2,
-				count(x->x.tagNew, txs),
-				count(x->x.amount<=0, txs),
-				count(x->x.amount>0, txs),
+				count(x->x.tagNew, txs) / length(txs),
+				count(x->x.amount<=0, txs) / length(txs),
+				count(x->x.amount>0, txs) / length(txs),
 			)
 		return ret
 		end
@@ -331,11 +332,13 @@ include("./02-loadmmap.jl")
 		concretePercents = map(x->x.amount, txs[concreteIndexes]) ./ concreteBalances
 		concreteAmounts  = map(x->abs(x.amount), txs[concreteIndexes])
 		tmpIndexes = (
+			cpb10 = map(x-> 0.0 < x <= 0.10, concretePercents),
 			cpb25 = map(x-> 0.0 < x <= 0.25, concretePercents),
-			cpb50 = map(x-> 0.25 < x <= 0.5, concretePercents),
-			cpb80 = map(x-> 0.50 < x <= 0.8, concretePercents),
-			wpb50 = map(x-> -0.5 < x < 0.0, concretePercents),
-			wpa75 = map(x-> -0.9 < x <= -0.75, concretePercents),
+			cpb50 = map(x-> 0.0 < x <= 0.50, concretePercents),
+			cpb80 = map(x-> 0.0 < x <= 0.80, concretePercents),
+			wpb25 = map(x-> -0.25 <= x < 0.0, concretePercents),
+			wpb50 = map(x-> -0.50 <= x < 0.0, concretePercents),
+			wpa80 = map(x-> -0.80 <= x < 0.0, concretePercents),
 			wpa90 = map(x-> -1.1 < x <= -0.90, concretePercents),
 			)
 		newIndexes = map(x->x.tagNew, txs)
@@ -345,7 +348,7 @@ include("./02-loadmmap.jl")
 				sum(tmpIndexes.cpb80),
 				sum(newIndexes),
 				sum(tmpIndexes.wpb50),
-				sum(tmpIndexes.wpa75),
+				sum(tmpIndexes.wpa80),
 				sum(tmpIndexes.wpa90),
 				
 				reduce(+, concreteAmounts[tmpIndexes.cpb25]),
@@ -353,7 +356,7 @@ include("./02-loadmmap.jl")
 				reduce(+, concreteAmounts[tmpIndexes.cpb80]),
 				reduce(+, map(x->abs(x.amount), txs[newIndexes])),
 				reduce(+, concreteAmounts[tmpIndexes.wpb50]),
-				reduce(+, concreteAmounts[tmpIndexes.wpa75]),
+				reduce(+, concreteAmounts[tmpIndexes.wpa80]),
 				reduce(+, concreteAmounts[tmpIndexes.wpa90]),
 			)
 		return ret
@@ -368,6 +371,7 @@ include("./02-loadmmap.jl")
 		tmpIndexes = (
 				wakeupW1 = map(x->tsMax-x > 7seconds.Day, concreteLastPayed),
 				wakeupM1 = map(x->tsMax-x > seconds.Month, concreteLastPayed),
+				# todo
 				contiD1  = map(x->x-tsMin > seconds.Day, concreteLastReceived),
 				contiD3  = map(x->x-tsMin > 3seconds.Day, concreteLastReceived),
 				contiW1  = map(x->x-tsMin > 7seconds.Day, concreteLastReceived),
@@ -578,9 +582,9 @@ include("./02-loadmmap.jl")
 			TxRowsDF[i,:Amount],
 			TxRowsDF[i,:Timestamp],
 			) for i in thisPosStart:thisPosEnd ]
-		res = DoCalculations(Calculations)
+		res = DoCalculations(v)
 	end
-		
+
 
 
 
