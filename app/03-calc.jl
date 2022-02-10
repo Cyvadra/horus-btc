@@ -113,36 +113,13 @@ include("./02-loadmmap.jl")
 		ts::Int32
 		end
 
-# Runtime Address
-	mutable struct AddressStatistics
-		# timestamp
-		TimestampCreated::Int32
-		TimestampLastActive::Int32
-		TimestampLastReceived::Int32
-		TimestampLastPayed::Int32
-		# amount
-		AmountIncomeTotal::Float64
-		AmountExpenseTotal::Float64
-		# statistics
-		NumTxInTotal::Int32
-		NumTxOutTotal::Int32
-		# relevant usdt amount
-		UsdtPayed4Input::Float64
-		UsdtReceived4Output::Float64
-		AveragePurchasePrice::Float32
-		LastSellPrice::Float32
-		# calculated extra
-		UsdtNetRealized::Float64
-		UsdtNetUnrealized::Float64
-		Balance::Float64 # btc
-		end
-	AddressState  = ThreadSafeDict{UInt32,AddressStatistics}()
 	function touch!(tr::TransactionRow)::Nothing
 		coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, tr.ts)
 		coinUsdt  = abs(coinPrice * tr.amount)
 		if tr.tagNew
 			if tr.amount >= 0
-				AddressState[tr.addrId] = AddressStatistics(
+				AddressService.SetAddress(tr.addrId,
+					AddressStatistics(
 						# timestamp
 						tr.ts, # TimestampCreated
 						tr.ts, # TimestampLastActive
@@ -164,9 +141,11 @@ include("./02-loadmmap.jl")
 						0, # UsdtNetUnrealized
 						tr.amount, # Balance
 					)
+				)
 			else
 				# @warn "unexpected address when $(tr.ts)"
-				AddressState[tr.addrId] = AddressStatistics(
+				AddressService.SetAddress(tr.addrId,
+					AddressStatistics(
 					# timestamp
 					tr.ts, # TimestampCreated
 					tr.ts, # TimestampLastActive
@@ -187,11 +166,12 @@ include("./02-loadmmap.jl")
 					coinUsdt, # UsdtNetRealized
 					0, # UsdtNetUnrealized
 					tr.amount, # Balance
+					)
 				)
 			end
 			return nothing
 		end
-		refStat = Ref(AddressState[tr.addrId])
+		refStat = GetStatRef(tr.addrId)
 		if tr.amount < 0
 			refStat[].AmountExpenseTotal -= tr.amount
 			refStat[].NumTxOutTotal      += 1
@@ -215,46 +195,6 @@ include("./02-loadmmap.jl")
 		refStat[].UsdtNetRealized = refStat[].UsdtReceived4Output - refStat[].UsdtPayed4Input
 		refStat[].UsdtNetUnrealized = (coinPrice-refStat[].AveragePurchasePrice) * refStat[].Balance
 		nothing
-		end
-
-# Address Snapshot
-	mutable struct AddressSnapshot
-		# for statistics
-		BalanceVector::Vector{Float64}
-		TsActiveVector::Vector{Int32}
-		# in profit
-		NumInProfitRealized::Int64
-		NumInProfitUnrealized::Int64
-		AmountInProfitRealized::Float64
-		AmountInProfitUnrealized::Float64
-		# in loss
-		NumInLossRealized::Int64
-		NumInLossUnrealized::Int64
-		AmountInLossRealized::Float64
-		AmountInLossUnrealized::Float64
-		end
-	tplAddressSnapshot = AddressSnapshot(Float64[], Int32[], zeros(length(AddressSnapshot.types)-2)...)
-	function TakeSnapshot()::AddressSnapshot
-		ret = deepcopy(tplAddressSnapshot)
-		for p in AddressState
-			push!(ret.BalanceVector, p[2].Balance)
-			push!(ret.TsActiveVector, p[2].TimestampLastActive)
-			if p[2].UsdtNetRealized > 0
-				ret.NumInProfitRealized += 1
-				ret.AmountInProfitRealized += p[2].UsdtNetRealized
-			elseif p[2].UsdtNetRealized < 0
-				ret.NumInLossRealized += 1
-				ret.AmountInLossRealized -= p[2].UsdtNetRealized
-			end
-			if p[2].UsdtNetUnrealized > 0
-				ret.NumInProfitUnrealized += 1
-				ret.AmountInProfitUnrealized += p[2].UsdtNetUnrealized
-			elseif p[2].UsdtNetUnrealized < 0
-				ret.NumInLossUnrealized += 1
-				ret.AmountInLossUnrealized -= p[2].UsdtNetUnrealized
-			end
-		end
-		return ret
 		end
 
 # New Procedure Purpose: CalcUint
@@ -356,7 +296,7 @@ include("./02-loadmmap.jl")
 		end
 	function CalcAddressDirection(txs::Vector{TransactionRow})::CellAddressDirection
 		concreteIndexes  = map(x->!x.tagNew,txs)
-		concreteBalances = map(x->abs(AddressState[x.addrId].Balance), txs[concreteIndexes])
+		concreteBalances = AddressService.GetListAddrBalanceAbs(txs[concreteIndexes])
 		concretePercents = map(x->x.amount, txs[concreteIndexes]) ./ concreteBalances
 		concreteAmounts  = map(x->abs(x.amount), txs[concreteIndexes])
 		tmpIndexes = (
@@ -393,8 +333,8 @@ include("./02-loadmmap.jl")
 		tsMin = min(txs[1].ts, txs[end].ts)
 		tsMax = max(txs[1].ts, txs[end].ts)
 		concreteIndexes  = map(x->!x.tagNew,txs)
-		concreteLastPayed    = map(x->AddressState[x.addrId].TimestampLastPayed, txs[concreteIndexes])
-		concreteLastReceived = map(x->AddressState[x.addrId].TimestampLastReceived, txs[concreteIndexes])
+		concreteLastPayed    = AddressService.GetListTimestampLastPayed(txs[concreteIndexes])
+		concreteLastReceived = AddressService.GetListTimestampLastReceived(txs[concreteIndexes])
 		concreteAmounts      = map(x->abs(x.amount), txs[concreteIndexes])
 		tmpIndexes = (
 				wakeupW1 = map(x->tsMax-x > 7seconds.Day, concreteLastPayed),
@@ -421,7 +361,7 @@ include("./02-loadmmap.jl")
 		end
 	function CalcAddressSupplier(txs::Vector{TransactionRow})::CellAddressSupplier
 		concreteIndexes  = map(x->!x.tagNew && x.amount<0, txs)
-		concreteBalances = map(x->abs(AddressState[x.addrId].Balance), txs[concreteIndexes])
+		concreteBalances = AddressService.GetListAddrBalanceAbs(txs[concreteIndexes])
 		concreteAmounts  = map(x->abs(x.amount), txs[concreteIndexes])
 		sortedBalances = sort(concreteBalances)
 		ret = CellAddressSupplier(
@@ -446,7 +386,7 @@ include("./02-loadmmap.jl")
 		concreteIndexes  = map(x->!x.tagNew && x.amount<0, txs)
 		for r in txs[concreteIndexes]
 			coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, r.ts)
-			boughtPrice = AddressState[r.addrId].AveragePurchasePrice
+			boughtPrice = AddressService.GetAveragePurchasePrice(r.addrId)
 			if coinPrice > boughtPrice
 				ret.numRealizedProfit += 1
 				ret.amountRealizedProfit += (coinPrice-boughtPrice) * abs(r.amount)
@@ -581,15 +521,15 @@ include("./02-loadmmap.jl")
 	# Sum data before, you can save this to a jld2 file
 	# we suggest use the start time of market data, 2017
 	prog = ProgressMeter.Progress(posStart-2)
-	AddressState.enabled = false
+	AddressService.DisableSpinLock()
 	for i in 1:posStart-1
 		addrId, amount, ts = TxRowsDF[i,:]
 		touch!(TransactionRow(
-			addrId, !haskey(AddressState, addrId), amount, ts
+			addrId, AddressService.isNew(addrId), amount, ts
 			))
 		next!(prog)
 	end
-	AddressState.enabled = true
+	AddressService.EnableSpinLock()
 	# now it's time to process real stuff
 
 	prevPosEnd   = posStart - 10
@@ -606,7 +546,7 @@ include("./02-loadmmap.jl")
 		end
 		v = [ TransactionRow(
 			TxRowsDF[i,:AddressId],
-			!haskey(AddressState, TxRowsDF[i,:AddressId]),
+			AddressService.isNew(TxRowsDF[i,:AddressId]),
 			TxRowsDF[i,:Amount],
 			TxRowsDF[i,:Timestamp],
 			) for i in thisPosStart:thisPosEnd ]
