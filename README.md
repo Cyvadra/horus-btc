@@ -2,9 +2,9 @@
 
 ### Todos:
 
-1. [ ] Expand target functions.
-3. [ ] Deal with GC performance issue. (in function touch!)
-5. [ ] Parallel computing.
+1. [x] Expand target functions.
+3. [x] Deal with GC performance issue. (in function touch!)
+5. [x] Parallel computing.
 7. [ ] Code test.
 9. [ ] Save results directly to mem-mapped database.
 11. [ ] Colde wallet recognize and noise-cancelling.

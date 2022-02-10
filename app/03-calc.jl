@@ -435,15 +435,117 @@ include("./02-loadmmap.jl")
 		CellAddressSupplier, CalcAddressSupplier))
 	push!(Calculations, CalcCell(
 		CellAddressUsdtDiff, CalcAddressUsdtDiff))
-
+	struct ResultCalculations
+		# CellAddressComparative
+		numTotalActive::Int32
+		amountTotalTransfer::Float32
+		percentNumNew::Float32
+		percentNumSending::Float32
+		percentNumReceiving::Float32
+		# CellAddressDirection
+		numChargePercentBelow25::Int32
+		numChargePercentBelow50::Int32
+		numChargePercentBelow80::Int32
+		numChargePercentEquals100::Int32
+		numWithdrawPercentBelow50::Int32
+		numWithdrawPercentAbove75::Int32
+		numWithdrawPercentAbove90::Int32
+		amountChargePercentBelow25::Float32
+		amountChargePercentBelow50::Float32
+		amountChargePercentBelow80::Float32
+		amountChargePercentEquals100::Float32
+		amountWithdrawPercentBelow50::Float32
+		amountWithdrawPercentAbove75::Float32
+		amountWithdrawPercentAbove90::Float32
+		# CellAddressAccumulation
+		numWakeupW1Sending::Float32
+		numWakeupM1Sending::Float32
+		numContinuousD1Buying::Float32
+		numContinuousD3Buying::Float32
+		numContinuousW1Buying::Float32
+		amountWakeupW1Sending::Float32
+		amountWakeupM1Sending::Float32
+		amountContinuousD1Buying::Float32
+		amountContinuousD3Buying::Float32
+		amountContinuousW1Buying::Float32
+		# CellAddressSupplier
+		balanceSupplierMean::Float32
+		balanceSupplierStd::Float32
+		balanceSupplierPercent20::Float32
+		balanceSupplierPercent40::Float32
+		balanceSupplierMiddle::Float32
+		balanceSupplierPercent60::Float32
+		balanceSupplierPercent80::Float32
+		amountSupplierBalanceBelow20::Float32
+		amountSupplierBalanceAbove80::Float32
+		# CellAddressUsdtDiff
+		numRealizedProfit::Int32
+		numRealizedLoss::Int32
+		amountRealizedProfit::Float32
+		amountRealizedLoss::Float32
+		end
+	function DoCalculations(txs::Vector{TransactionRow})::ResultCalculations
+		listTask = Vector{Task}(undef,length(Calculations))
+		for i in 1:length(Calculations)
+			listTask[i] = Threads.@spawn Calculations[i].handler(txs)
+		end
+		wait.(listTask)
+		return ResultCalculations(
+			# CellAddressComparative
+			listTask[1].result.numTotalActive,
+			listTask[1].result.amountTotalTransfer,
+			listTask[1].result.percentNumNew,
+			listTask[1].result.percentNumSending,
+			listTask[1].result.percentNumReceiving,
+			# CellAddressDirection
+			listTask[2].result.numChargePercentBelow25,
+			listTask[2].result.numChargePercentBelow50,
+			listTask[2].result.numChargePercentBelow80,
+			listTask[2].result.numChargePercentEquals100,
+			listTask[2].result.numWithdrawPercentBelow50,
+			listTask[2].result.numWithdrawPercentAbove75,
+			listTask[2].result.numWithdrawPercentAbove90,
+			listTask[2].result.amountChargePercentBelow25,
+			listTask[2].result.amountChargePercentBelow50,
+			listTask[2].result.amountChargePercentBelow80,
+			listTask[2].result.amountChargePercentEquals100,
+			listTask[2].result.amountWithdrawPercentBelow50,
+			listTask[2].result.amountWithdrawPercentAbove75,
+			listTask[2].result.amountWithdrawPercentAbove90,
+			# CellAddressAccumulation
+			listTask[3].result.numWakeupW1Sending,
+			listTask[3].result.numWakeupM1Sending,
+			listTask[3].result.numContinuousD1Buying,
+			listTask[3].result.numContinuousD3Buying,
+			listTask[3].result.numContinuousW1Buying,
+			listTask[3].result.amountWakeupW1Sending,
+			listTask[3].result.amountWakeupM1Sending,
+			listTask[3].result.amountContinuousD1Buying,
+			listTask[3].result.amountContinuousD3Buying,
+			listTask[3].result.amountContinuousW1Buying,
+			# CellAddressSupplier
+			listTask[4].result.balanceSupplierMean,
+			listTask[4].result.balanceSupplierStd,
+			listTask[4].result.balanceSupplierPercent20,
+			listTask[4].result.balanceSupplierPercent40,
+			listTask[4].result.balanceSupplierMiddle,
+			listTask[4].result.balanceSupplierPercent60,
+			listTask[4].result.balanceSupplierPercent80,
+			listTask[4].result.amountSupplierBalanceBelow20,
+			listTask[4].result.amountSupplierBalanceAbove80,
+			# CellAddressUsdtDiff
+			listTask[5].result.numRealizedProfit,
+			listTask[5].result.numRealizedLoss,
+			listTask[5].result.amountRealizedProfit,
+			listTask[5].result.amountRealizedLoss,
+		)
+		end
 
 
 # Processing
 	fromDate = DateTime(2018,1, 1, 0, 0, 0)
 	toDate   = DateTime(2021,12,31,23,59,59)
-	period   = SelectPeriod(fromDate, toDate, TxRowsDF.Timestamp)
-	posStart = period[1]
-	posEnd   = period[end]
+	posStart = SelectPeriod(fromDate, toDate, TxRowsDF.Timestamp)[1]
 	# Sum data before, you can save this to a jld2 file
 	# we suggest use the start time of market data, 2017
 	prog = ProgressMeter.Progress(posStart-2)
@@ -458,7 +560,27 @@ include("./02-loadmmap.jl")
 	AddressState.enabled = true
 	# now it's time to process real stuff
 
-
+	prevPosEnd   = posStart - 10
+	thisPosEnd   = posStart - 10
+	thisPosStart = posStart - 10
+	for dt in fromDate:Hour(3):toDate
+		tsStart = dt2unix(dt)
+		thisPosStart = findnext(x->x>=tsStart,
+			TxRowsDF.Timestamp, prevPosEnd)
+		thisPosEnd   = findnext(x->x>=dt2unix(dt+Hour(3)),
+			TxRowsDF.Timestamp, prevPosEnd)
+		if isnothing(thisPosEnd)
+			break
+		end
+		v = [ TransactionRow(
+			TxRowsDF[i,:AddressId],
+			!haskey(AddressState, TxRowsDF[i,:AddressId]),
+			TxRowsDF[i,:Amount],
+			TxRowsDF[i,:Timestamp],
+			) for i in thisPosStart:thisPosEnd ]
+		res = DoCalculations(Calculations)
+	end
+		
 
 
 
