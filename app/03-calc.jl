@@ -462,6 +462,7 @@ include("./02-loadmmap.jl")
 	push!(Calculations, CalcCell(
 		CellAddressUsdtDiff, CalcAddressUsdtDiff))
 	struct ResultCalculations
+		timestamp::Int32
 		# CellAddressComparative
 		numTotalActive::Int32
 		numTotalRows::Int32
@@ -538,13 +539,14 @@ include("./02-loadmmap.jl")
 		amountRealizedProfitBillion::Float64
 		amountRealizedLossBillion::Float64
 		end
-	function DoCalculations(txs::Vector{TransactionRow})::ResultCalculations
+	function DoCalculations(txs::Vector{TransactionRow}, ts::Int32)::ResultCalculations
 		listTask = Vector{Task}(undef,length(Calculations))
 		for i in 1:length(Calculations)
 			listTask[i] = Threads.@spawn Calculations[i].handler(txs)
 		end
 		wait.(listTask)
 		return ResultCalculations(
+				ts,
 			# CellAddressComparative
 				listTask[1].result.numTotalActive,
 				listTask[1].result.numTotalRows,
@@ -645,14 +647,22 @@ include("./02-loadmmap.jl")
 	prevPosEnd   = posStart - 10
 	thisPosEnd   = posStart - 10
 	thisPosStart = posStart - 10
-	for dt in fromDate:Hour(3):toDate
+	resultsLen   = (toDate - fromDate).x / 1000 / seconds.Hour / 3
+	resultsLen   = ceil(Int, resultsLen)
+	results      = Vector{ResultCalculations}(undef,resultsLen)
+	resultCounter= 1
+	for dt in fromDate:Hour(3):fromDate+Day(100)
 		tsStart = dt2unix(dt)
-		thisPosStart = findnext(x->x>=tsStart,
+		thisPosStart = findnext(x-> x >= tsStart,
 			TxRowsDF.Timestamp, prevPosEnd)
-		thisPosEnd   = findnext(x->x>=dt2unix(dt+Hour(3)),
+		thisPosEnd   = findnext(x-> x > tsStart + 3seconds.Hour,
 			TxRowsDF.Timestamp, prevPosEnd)
 		if isnothing(thisPosEnd)
+			@warn "no transaction data in this period"
+			@warn dt
 			break
+		else
+			thisPosEnd = thisPosEnd - 1
 		end
 		v = [ TransactionRow(
 			TxRowsDF[i,:AddressId],
@@ -660,7 +670,8 @@ include("./02-loadmmap.jl")
 			TxRowsDF[i,:Amount],
 			TxRowsDF[i,:Timestamp],
 			) for i in thisPosStart:thisPosEnd ]
-		res = DoCalculations(v)
+		results[resultCounter] = DoCalculations(v, tsStart)
+		resultCounter += 1
 	end
 
 
