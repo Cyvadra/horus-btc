@@ -449,6 +449,13 @@ include("./02-loadmmap.jl")
 		for r in txs[concreteIndexes]
 			coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, r.ts)
 			boughtPrice = AddressService.GetAveragePurchasePrice(r.addrId)
+			if isnan(coinPrice) || isnan(boughtPrice) || isnan(r.amount)
+				@show coinPrice
+				@show boughtPrice
+				@show r.amount
+				@warn r
+				@warn AddressService.GetStatRef(r.addrId)[]
+			end
 			if coinPrice > boughtPrice
 				ret.numRealizedProfit += 1
 				ret.amountRealizedProfitBillion += Float64(coinPrice-boughtPrice) * abs(r.amount) / 1e9
@@ -673,13 +680,16 @@ include("./02-loadmmap.jl")
 			thisPosEnd = thisPosEnd - 1
 		end
 		v = [ TransactionRow(
-			TxRowsDF[i,:AddressId],
-			AddressService.isNew(TxRowsDF[i,:AddressId]),
-			TxRowsDF[i,:Amount],
-			TxRowsDF[i,:Timestamp],
-			) for i in thisPosStart:thisPosEnd ]
+						TxRowsDF[i,:AddressId],
+						AddressService.isNew(TxRowsDF[i,:AddressId]),
+						TxRowsDF[i,:Amount],
+						TxRowsDF[i,:Timestamp],
+					)
+					for i in thisPosStart:thisPosEnd
+				]
 		results[resultCounter] = DoCalculations(v, tsStart)
 		resultCounter += 1
+		prevPosEnd = thisPosEnd
 	end
 
 
