@@ -123,52 +123,42 @@ include("./02-loadmmap.jl")
 			if tr.amount >= 0
 				AddressService.SetAddress(tr.addrId,
 					AddressService.AddressStatistics(
-						# timestamp
-						tr.ts, # TimestampCreated
-						tr.ts, # TimestampLastActive
-						tr.ts, # TimestampLastReceived
-						tr.ts, # TimestampLastPayed
-						# amount
-						tr.amount, # AmountIncomeTotal
-						0, # AmountExpenseTotal
-						# statistics
+						deepcopy(tr.ts), # TimestampCreated
+						deepcopy(tr.ts), # TimestampLastActive
+						deepcopy(tr.ts), # TimestampLastReceived
+						deepcopy(tr.ts), # TimestampLastPayed
+						deepcopy(tr.amount), # AmountIncomeTotal
+						0.0, # AmountExpenseTotal
 						1, # NumTxInTotal
 						0, # NumTxOutTotal
-						# relevant usdt amount
-						coinUsdt, # UsdtPayed4Input
-						0, # UsdtReceived4Output
-						coinPrice, # AveragePurchasePrice
-						coinPrice, # LastSellPrice
-						# calculated extra
-						0, # UsdtNetRealized
-						0, # UsdtNetUnrealized
-						tr.amount, # Balance
+						deepcopy(coinUsdt), # UsdtPayed4Input
+						0.0, # UsdtReceived4Output
+						deepcopy(coinPrice), # AveragePurchasePrice
+						deepcopy(coinPrice), # LastSellPrice
+						0.0, # UsdtNetRealized
+						0.0, # UsdtNetUnrealized
+						deepcopy(tr.amount), # Balance
 					)
 				)
 			else
 				# @warn "unexpected address when $(tr.ts)"
 				AddressService.SetAddress(tr.addrId,
 					AddressService.AddressStatistics(
-					# timestamp
-					tr.ts, # TimestampCreated
-					tr.ts, # TimestampLastActive
-					tr.ts, # TimestampLastReceived
-					tr.ts, # TimestampLastPayed
-					# amount
-					0, # AmountIncomeTotal
-					abs(tr.amount), # AmountExpenseTotal
-					# statistics
+					deepcopy(tr.ts), # TimestampCreated
+					deepcopy(tr.ts), # TimestampLastActive
+					deepcopy(tr.ts), # TimestampLastReceived
+					deepcopy(tr.ts), # TimestampLastPayed
+					0.0, # AmountIncomeTotal
+					deepcopy(abs(tr.amount)), # AmountExpenseTotal
 					0, # NumTxInTotal
 					1, # NumTxOutTotal
-					# relevant usdt amount
-					0, # UsdtPayed4Input
-					coinUsdt, # UsdtReceived4Output
-					coinPrice, # AveragePurchasePrice
-					coinPrice, # LastSellPrice
-					# calculated extra
-					coinUsdt, # UsdtNetRealized
-					0, # UsdtNetUnrealized
-					tr.amount, # Balance
+					0.0, # UsdtPayed4Input
+					deepcopy(coinUsdt), # UsdtReceived4Output
+					deepcopy(coinPrice), # AveragePurchasePrice
+					deepcopy(coinPrice), # LastSellPrice
+					deepcopy(coinUsdt), # UsdtNetRealized
+					0.0, # UsdtNetUnrealized
+					deepcopy(tr.amount), # Balance
 					)
 				)
 			end
@@ -186,9 +176,9 @@ include("./02-loadmmap.jl")
 			refStat[].NumTxInTotal       += 1
 			refStat[].TimestampLastReceived = max(refStat[].TimestampLastReceived, tr.ts)
 			refStat[].UsdtPayed4Input += coinUsdt
-			refStat[].AveragePurchasePrice = Float32(
-				(refStat[].AveragePurchasePrice * refStat[].Balance + coinUsdt) / (refStat[].Balance + tr.amount)
-				)
+			if refStat[].Balance + tr.amount > 1e-9
+				refStat[].AveragePurchasePrice = (coinUsdt + refStat[].AveragePurchasePrice * refStat[].Balance) / (refStat[].Balance + tr.amount)
+			end
 		end
 		if refStat[].Balance < 0
 			refStat[].TimestampCreated = min(refStat[].TimestampCreated, tr.ts)
@@ -450,6 +440,7 @@ include("./02-loadmmap.jl")
 			coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, r.ts)
 			boughtPrice = AddressService.GetAveragePurchasePrice(r.addrId)
 			if isnan(coinPrice) || isnan(boughtPrice) || isnan(r.amount)
+				@warn r.addrId
 				@show coinPrice
 				@show boughtPrice
 				@show r.amount
