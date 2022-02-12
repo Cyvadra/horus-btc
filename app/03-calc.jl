@@ -638,7 +638,7 @@ include("./02-loadmmap.jl")
 	posStart = SelectPeriod(fromDate, toDate, TxRowsDF.Timestamp)[1]
 	# Sum data before, you can save this to a jld2 file
 	# we suggest use the start time of market data, 2017
-	prog = ProgressMeter.Progress(posStart-2)
+	prog = ProgressMeter.Progress(posStart-2; barlen=64, color=:blue)
 	AddressService.DisableSpinLock()
 	for i in 1:posStart-1
 		addrId, amount, ts = TxRowsDF[i,:]
