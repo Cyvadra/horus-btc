@@ -476,7 +476,7 @@ include("./02-loadmmap.jl")
 		CellAddressSupplier, CalcAddressSupplier))
 	push!(Calculations, CalcCell(
 		CellAddressUsdtDiff, CalcAddressUsdtDiff))
-	struct ResultCalculations
+	mutable struct ResultCalculations
 		timestamp::Int32
 		# CellAddressComparative
 		numTotalActive::Int32
