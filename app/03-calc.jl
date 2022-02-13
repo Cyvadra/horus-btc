@@ -119,74 +119,77 @@ include("./02-loadmmap.jl")
 	function touch!(tr::TransactionRow)::Nothing
 		coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, tr.ts)
 		coinUsdt  = abs(coinPrice * tr.amount)
+		pos       = tr.addrId
 		if tr.tagNew
 			if tr.amount >= 0
-				AddressService.SetAddress(tr.addrId,
-					AddressService.AddressStatistics(
-						deepcopy(tr.ts), # TimestampCreated
-						deepcopy(tr.ts), # TimestampLastActive
-						deepcopy(tr.ts), # TimestampLastReceived
-						deepcopy(tr.ts), # TimestampLastPayed
-						deepcopy(tr.amount), # AmountIncomeTotal
-						0.0, # AmountExpenseTotal
-						1, # NumTxInTotal
-						0, # NumTxOutTotal
-						deepcopy(coinUsdt), # UsdtPayed4Input
-						0.0, # UsdtReceived4Output
-						deepcopy(coinPrice), # AveragePurchasePrice
-						deepcopy(coinPrice), # LastSellPrice
-						0.0, # UsdtNetRealized
-						0.0, # UsdtNetUnrealized
-						deepcopy(tr.amount), # Balance
-					)
-				)
+				AddressService.SetField(:TimestampCreated, pos, tr.ts)
+				AddressService.SetField(:TimestampLastActive, pos, tr.ts)
+				AddressService.SetField(:TimestampLastReceived, pos, tr.ts)
+				AddressService.SetField(:TimestampLastPayed, pos, tr.ts)
+				AddressService.SetField(:AmountIncomeTotal, pos, tr.amount)
+				AddressService.SetField(:AmountExpenseTotal, pos, 0.0)
+				AddressService.SetField(:NumTxInTotal, pos, 1)
+				AddressService.SetField(:NumTxOutTotal, pos, 0)
+				AddressService.SetField(:UsdtPayed4Input, pos, coinUsdt)
+				AddressService.SetField(:UsdtReceived4Output, pos, 0.0)
+				AddressService.SetField(:AveragePurchasePrice, pos, coinPrice)
+				AddressService.SetField(:LastSellPrice, pos, coinPrice)
+				AddressService.SetField(:UsdtNetRealized, pos, 0.0)
+				AddressService.SetField(:UsdtNetUnrealized, pos, 0.0)
+				AddressService.SetField(:Balance, pos, tr.amount)
 			else
-				# @warn "unexpected address when $(tr.ts)"
-				AddressService.SetAddress(tr.addrId,
-					AddressService.AddressStatistics(
-					deepcopy(tr.ts), # TimestampCreated
-					deepcopy(tr.ts), # TimestampLastActive
-					deepcopy(tr.ts), # TimestampLastReceived
-					deepcopy(tr.ts), # TimestampLastPayed
-					0.0, # AmountIncomeTotal
-					deepcopy(abs(tr.amount)), # AmountExpenseTotal
-					0, # NumTxInTotal
-					1, # NumTxOutTotal
-					0.0, # UsdtPayed4Input
-					deepcopy(coinUsdt), # UsdtReceived4Output
-					deepcopy(coinPrice), # AveragePurchasePrice
-					deepcopy(coinPrice), # LastSellPrice
-					deepcopy(coinUsdt), # UsdtNetRealized
-					0.0, # UsdtNetUnrealized
-					deepcopy(tr.amount), # Balance
-					)
-				)
+				AddressService.SetField(:TimestampCreated, pos, tr.ts)
+				AddressService.SetField(:TimestampLastActive, pos, tr.ts)
+				AddressService.SetField(:TimestampLastReceived, pos, tr.ts)
+				AddressService.SetField(:TimestampLastPayed, pos, tr.ts)
+				AddressService.SetField(:AmountIncomeTotal, pos, 0.0)
+				AddressService.SetField(:AmountExpenseTotal, pos, abs(tr.amount))
+				AddressService.SetField(:NumTxInTotal, pos, 0)
+				AddressService.SetField(:NumTxOutTotal, pos, 1)
+				AddressService.SetField(:UsdtPayed4Input, pos, 0.0)
+				AddressService.SetField(:UsdtReceived4Output, pos, coinUsdt)
+				AddressService.SetField(:AveragePurchasePrice, pos, coinPrice)
+				AddressService.SetField(:LastSellPrice, pos, coinPrice)
+				AddressService.SetField(:UsdtNetRealized, pos, coinUsdt)
+				AddressService.SetField(:UsdtNetUnrealized, pos, 0.0)
+				AddressService.SetField(:Balance, pos, tr.amount)
 			end
 			return nothing
 		end
-		refStat = AddressService.GetStatRef(tr.addrId)
+		addrRO = AddressService.GetRow(pos)
 		if tr.amount < 0
-			refStat[].AmountExpenseTotal -= tr.amount
-			refStat[].NumTxOutTotal      += 1
-			refStat[].TimestampLastPayed = max(refStat[].TimestampLastPayed, tr.ts)
-			refStat[].UsdtReceived4Output += coinUsdt
-			refStat[].LastSellPrice      = coinPrice
+			AddressService.SetFieldDiff(:AmountExpenseTotal, pos, -tr.amount)
+			AddressService.SetFieldDiff(:NumTxOutTotal, pos, 1)
+			if addrRO.TimestampLastPayed < tr.ts
+				AddressService.SetField(:TimestampLastPayed, pos, tr.ts)
+			end
+			AddressService.SetFieldDiff(:UsdtReceived4Output, pos, coinUsdt)
+			AddressService.SetField(:LastSellPrice, pos, coinPrice)
 		else
-			refStat[].AmountIncomeTotal  += tr.amount
-			refStat[].NumTxInTotal       += 1
-			refStat[].TimestampLastReceived = max(refStat[].TimestampLastReceived, tr.ts)
-			refStat[].UsdtPayed4Input += coinUsdt
-			if refStat[].Balance + tr.amount > 1e-9
-				refStat[].AveragePurchasePrice = (coinUsdt + refStat[].AveragePurchasePrice * refStat[].Balance) / (refStat[].Balance + tr.amount)
+			AddressService.SetFieldDiff(:AmountIncomeTotal, pos, tr.amount)
+			AddressService.SetFieldDiff(:NumTxInTotal, pos, 1)
+			if addrRO.TimestampLastReceived < tr.ts
+				AddressService.SetField(:TimestampLastReceived, pos, tr.ts)
+			end
+			AddressService.SetFieldDiff(:UsdtPayed4Input, pos, coinUsdt)
+			if addrRO.Balance + tr.amount > 1e-9
+				AddressService.SetField(:AveragePurchasePrice, pos,
+					(coinUsdt + addrRO.AveragePurchasePrice * addrRO.Balance) / (addrRO.Balance + tr.amount) )
 			end
 		end
-		if refStat[].Balance < 0
-			refStat[].TimestampCreated = min(refStat[].TimestampCreated, tr.ts)
+		if addrRO.Balance < 0 && addrRO.TimestampCreated > tr.ts
+			AddressService.SetField(:TimestampCreated, pos, tr.ts)
 		end
-		refStat[].TimestampLastActive = max(refStat[].TimestampLastActive, tr.ts)
-		refStat[].Balance += tr.amount
-		refStat[].UsdtNetRealized = refStat[].UsdtReceived4Output - refStat[].UsdtPayed4Input
-		refStat[].UsdtNetUnrealized = (coinPrice-refStat[].AveragePurchasePrice) * refStat[].Balance
+		if addrRO.TimestampLastActive < tr.ts
+			AddressService.SetField(:TimestampLastActive, pos, tr.ts)
+		end
+		AddressService.SetFieldDiff(:Balance, pos, tr.amount)
+		AddressService.SetField(:UsdtNetRealized, pos,
+			 AddressService.GetField(:UsdtReceived4Output,pos) - AddressService.GetField(:UsdtPayed4Input,pos)
+			 )
+		AddressService.SetField(:UsdtNetUnrealized, pos,
+			 (coinPrice-AddressService.GetField(:AveragePurchasePrice,pos)) * AddressService.GetField(:Balance,pos)
+			 )
 		nothing
 		end
 
@@ -293,7 +296,7 @@ include("./02-loadmmap.jl")
 		end
 	function CalcAddressDirection(txs::Vector{TransactionRow})::CellAddressDirection
 		concreteIndexes  = map(x->!x.tagNew,txs)
-		concreteBalances = AddressService.GetListAddrBalanceAbs(
+		concreteBalances = map(id->AddressService.GetField(:Balance,id),
 			map(x->x.addrId, txs[concreteIndexes])
 			)
 		concretePercents = map(x->x.amount, txs[concreteIndexes]) ./ concreteBalances
@@ -343,12 +346,9 @@ include("./02-loadmmap.jl")
 		tsMax = max(txs[1].ts, txs[end].ts)
 		tsMid = round(Int32, (tsMin+tsMax)/2)
 		concreteIndexes  = map(x->!x.tagNew,txs)
-		concreteLastPayed    = AddressService.GetListTimestampLastPayed(
-			map(x->x.addrId, txs[concreteIndexes])
-			)
-		concreteLastReceived = AddressService.GetListTimestampLastReceived(
-			map(x->x.addrId, txs[concreteIndexes])
-			)
+		ids = map(x->x.addrId, txs[concreteIndexes])
+		concreteLastPayed    = map(id->AddressService.GetField(:TimestampLastPayed, id), ids)
+		concreteLastReceived = map(id->AddressService.GetField(:TimestampLastReceived, id), ids)
 		concreteAmounts      = map(x->x.amount, txs[concreteIndexes])
 		concreteAmountsSend  = concreteAmounts .< 0.0
 		concreteAmountsBuy   = concreteAmounts .> 0.0
@@ -401,7 +401,7 @@ include("./02-loadmmap.jl")
 		end
 	function CalcAddressSupplier(txs::Vector{TransactionRow})::CellAddressSupplier
 		concreteIndexes  = map(x->!x.tagNew && x.amount<0, txs)
-		concreteBalances = AddressService.GetListAddrBalanceAbs(
+		concreteBalances = map(id->abs(AddressService.GetField(:Balance,id)),
 			map(x->x.addrId, txs[concreteIndexes])
 			)
 		concreteAmounts  = abs.(map(x->x.amount, txs[concreteIndexes]))
@@ -438,14 +438,14 @@ include("./02-loadmmap.jl")
 		concreteIndexes  = map(x->!x.tagNew && x.amount<0, txs)
 		for r in txs[concreteIndexes]
 			coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, r.ts)
-			boughtPrice = AddressService.GetAveragePurchasePrice(r.addrId)
+			boughtPrice = AddressService.GetField(:AveragePurchasePrice, r.addrId)
 			if isnan(coinPrice) || isnan(boughtPrice) || isnan(r.amount)
 				@warn r.addrId
 				@show coinPrice
 				@show boughtPrice
 				@show r.amount
 				@warn r
-				@warn AddressService.GetStatRef(r.addrId)[]
+				@warn AddressService.GetRow(r.addrId)[]
 			end
 			if coinPrice > boughtPrice
 				ret.numRealizedProfit += 1
@@ -639,7 +639,6 @@ include("./02-loadmmap.jl")
 	# Sum data before, you can save this to a jld2 file
 	# we suggest use the start time of market data, 2017
 	prog = ProgressMeter.Progress(posStart-2; barlen=64, color=:blue)
-	AddressService.DisableSpinLock()
 	for i in 1:posStart-1
 		addrId, amount, ts = TxRowsDF[i,:]
 		touch!(TransactionRow(
@@ -647,7 +646,6 @@ include("./02-loadmmap.jl")
 			))
 		next!(prog)
 	end
-	AddressService.EnableSpinLock()
 	# now it's time to process real stuff
 
 	prevPosEnd   = posStart - 10
