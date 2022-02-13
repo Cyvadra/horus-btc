@@ -12,7 +12,7 @@ resultsCalculated = ResultCalculations[]
 
 # Load market data
 	FinanceDB.SetDataFolder("/mnt/data/mmap")
-	d = FinanceDB.GetDerivative("BTC_USDT");
+	d = FinanceDB.GetDerivativeWindowed("BTC_USDT")["H3"];
 	df = DataFrame(
 		timestamp = d.Timestamps[],
 		open = d.Open[],
