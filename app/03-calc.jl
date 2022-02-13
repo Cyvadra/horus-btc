@@ -550,7 +550,8 @@ AddressService.Open()
 		amountRealizedProfitBillion::Float64
 		amountRealizedLossBillion::Float64
 		end
-	function DoCalculations(txs::Vector{TransactionRow}, ts::Int32)::ResultCalculations
+	function DoCalculations(fromN::Int, toN::Int, ts::Int32)::ResultCalculations
+		txs = VectorTransactionRow[fromN:toN]
 		listTask = Vector{Task}(undef,length(Calculations))
 		for i in 1:length(Calculations)
 			listTask[i] = Threads.@spawn Calculations[i].handler(txs)
@@ -690,16 +691,16 @@ AddressService.Open()
 			VectorTransactionRow, nextPosRef)
 		thisPosEnd   = findnext(x-> x.ts > tsStart + 3seconds.Hour,
 			VectorTransactionRow, nextPosRef) - 1
-		txs = VectorTransactionRow[thisPosStart:thisPosEnd]
-		lenTxs = length(txs)
+		# txs = VectorTransactionRow[thisPosStart:thisPosEnd]
+		lenTxs = thisPosEnd - thisPosStart + 1
 		for i in 1:lenTxs
-			txs[i].tagNew = AddressService.isNew(txs[i].addrId)
+			VectorTransactionRow[thisPosStart+i-1].tagNew = AddressService.isNew(VectorTransactionRow[thisPosStart+i-1].addrId)
 		end
-		results[resultCounter] = DoCalculations(txs, tsStart)
+		results[resultCounter] = DoCalculations(thisPosStart, thisPosEnd, tsStart)
 		resultCounter += 1
 		nextPosRef = thisPosEnd + 1
 		for i in 1:lenTxs
-			touch!(txs[i])
+			touch!(Ref(VectorTransactionRow[thisPosStart+i-1]))
 		end
 		next!(prog)
 	end
