@@ -105,7 +105,20 @@
 		end
 		return ret
 		end
-
+	function results2vector(v::Vector{ResultCalculations})::Vector{Float32}
+		lenUnits = _len - 1
+		ret = Vector{Float32}(undef, length(v)*lenUnits)
+		for i in 1:length(v)
+			for j in 2:_len
+				if j in need_log2
+					ret[(i-1)*lenUnits + j-1] = log2(getfield(v[i],j))
+				else
+					ret[(i-1)*lenUnits + j-1] = getfield(v[i],j)
+				end
+			end
+		end
+		return ret
+		end
 
 
 

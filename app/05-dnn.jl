@@ -1,10 +1,11 @@
 using Flux
 using DataFrames
 using FinanceDB
-
+include("./05-00-loadresults.jl")
+resultsCalculated = ResultCalculations[]
 
 # Params
-	includePrev = 10 # ticks, [current-x+1:current]
+	includePrev = 12 # ticks, [current-x+1:current]
 	stepsNext   = Int[1,2,4,8] # predict next n status
 
 
@@ -74,6 +75,9 @@ using FinanceDB
 #=
 	Previous $includePrev data, auto-configure weight
 =#
+	function GenerateXAtIndexI(i::Int)::Vector{Float32}
+		return results2vector(resultsCalculated[i-includePrev+1:i])
+		end
 
 
 
