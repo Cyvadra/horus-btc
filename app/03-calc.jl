@@ -299,7 +299,7 @@ include("./02-loadmmap.jl")
 		end
 	function CalcAddressDirection(txs::Vector{TransactionRow})::CellAddressDirection
 		concreteIndexes  = map(x->!x.tagNew,txs)
-		concreteBalances = map(id->AddressService.GetField(:Balance,id),
+		concreteBalances = AddressService.GetField(:Balance,
 			map(x->x.addrId, txs[concreteIndexes])
 			)
 		concretePercents = map(x->x.amount, txs[concreteIndexes]) ./ concreteBalances
@@ -350,8 +350,8 @@ include("./02-loadmmap.jl")
 		tsMid = round(Int32, (tsMin+tsMax)/2)
 		concreteIndexes  = map(x->!x.tagNew,txs)
 		ids = map(x->x.addrId, txs[concreteIndexes])
-		concreteLastPayed    = map(id->AddressService.GetField(:TimestampLastPayed, id), ids)
-		concreteLastReceived = map(id->AddressService.GetField(:TimestampLastReceived, id), ids)
+		concreteLastPayed    = AddressService.GetField(:TimestampLastPayed, ids)
+		concreteLastReceived = AddressService.GetField(:TimestampLastReceived, ids)
 		concreteAmounts      = map(x->x.amount, txs[concreteIndexes])
 		concreteAmountsSend  = concreteAmounts .< 0.0
 		concreteAmountsBuy   = concreteAmounts .> 0.0
@@ -404,9 +404,9 @@ include("./02-loadmmap.jl")
 		end
 	function CalcAddressSupplier(txs::Vector{TransactionRow})::CellAddressSupplier
 		concreteIndexes  = map(x->!x.tagNew && x.amount<0, txs)
-		concreteBalances = map(id->abs(AddressService.GetField(:Balance,id)),
+		concreteBalances = abs.(AddressService.GetField(:Balance,
 			map(x->x.addrId, txs[concreteIndexes])
-			)
+			))
 		concreteAmounts  = abs.(map(x->x.amount, txs[concreteIndexes]))
 		sortedBalances = sort(concreteBalances)[1:floor(Int, 0.99*end)]
 		ret = CellAddressSupplier(
