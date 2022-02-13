@@ -116,7 +116,8 @@ include("./02-loadmmap.jl")
 		ts::Int32
 		end
 
-	function touch!(tr::TransactionRow)::Nothing
+	function touch!(r::Base.RefValue{TransactionRow})::Nothing
+		tr = r[]
 		coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, tr.ts)
 		coinUsdt  = abs(coinPrice * tr.amount)
 		pos       = tr.addrId
@@ -677,6 +678,8 @@ include("./02-loadmmap.jl")
 	empty!(TxRowsDF)
 	GC.gc()
 	# go
+	@show now()
+	AddressService.Open()
 	for dt in fromDate:Hour(3):toDate
 		tsStart = dt2unix(dt)
 		thisPosStart = findnext(x-> x.ts >= tsStart,
@@ -684,15 +687,15 @@ include("./02-loadmmap.jl")
 		thisPosEnd   = findnext(x-> x.ts > tsStart + 3seconds.Hour,
 			VectorTransactionRow, nextPosRef) - 1
 		txs = VectorTransactionRow[thisPosStart:thisPosEnd]
-		tmpNewTags   = AddressService.isNew(map(x->x.addrId, txs))
-		for i in 1:length(txs)
-			txs[i].tagNew = tmpNewTags[i]
+		lenTxs = length(txs)
+		for i in 1:lenTxs
+			txs[i].tagNew = AddressService.isNew(txs[i].addrId)
 		end
 		results[resultCounter] = DoCalculations(txs, tsStart)
 		resultCounter += 1
 		nextPosRef = thisPosEnd + 1
-		for tr in txs
-			touch!(tr)
+		for i in 1:lenTxs
+			touch!(txs[i])
 		end
 		next!(prog)
 	end
