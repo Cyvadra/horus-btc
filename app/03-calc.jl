@@ -659,8 +659,7 @@ include("./02-loadmmap.jl")
 	results      = Vector{ResultCalculations}(undef,resultsLen)
 	resultCounter= 1
 	prog = ProgressMeter.Progress(resultsLen; barlen=49, color=:blue)
-	flagTest     = true
-	for dt in fromDate:Hour(3):fromDate+Day(100)
+	for dt in fromDate:Hour(3):toDate
 		tsStart = dt2unix(dt)
 		thisPosStart = findnext(x-> x >= tsStart,
 			TxRowsDF.Timestamp, nextPosRef)
@@ -677,10 +676,8 @@ include("./02-loadmmap.jl")
 		results[resultCounter] = DoCalculations(v, tsStart)
 		resultCounter += 1
 		nextPosRef = thisPosEnd + 1
-		if !flagTest
-			for tr in v
-				touch!(tr)
-			end
+		for tr in v
+			touch!(tr)
 		end
 		next!(prog)
 	end
