@@ -1,6 +1,7 @@
 using Flux
 using DataFrames
 using FinanceDB
+using Dates
 include("./05-00-loadresults.jl")
 resultsCalculated = ResultCalculations[]
 
@@ -78,6 +79,30 @@ resultsCalculated = ResultCalculations[]
 	function GenerateXAtIndexI(i::Int)::Vector{Float32}
 		return results2vector(resultsCalculated[i-includePrev+1:i])
 		end
+
+
+# Timezone
+	function dt2unix(dt::DateTime)::Int32
+		return round(Int32, datetime2unix(dt - Hour(8)))
+		end
+	function unix2dt(ts::Int32)::DateTime
+		return unix2datetime(ts) + Hour(8)
+		end
+
+# DateTime alignment
+	originalfromDate = DateTime(2018,1, 1, 0, 0, 0)
+	originaltoDate   = DateTime(2021,5,31,23,59,59)
+	fromDate = originalfromDate + Hour(3*includePrev)
+	toDate   = originaltoDate - Hour(3*includePrev)
+	tsFromDate   = dt2unix(fromDate)
+	tsToDate     = dt2unix(toDate)
+	y_base_index = findfirst(x->x>tsFromDate, df.timestamp)-1
+	x_base_index = findfirst(x->x.timestamp>tsFromDate, resultsCalculated)-1
+	@assert df[y_base_index, :timestamp] == resultsCalculated[x_base_index].timestamp == tsFromDate
+	y_last_index = findlast(x->x<=tsToDate, df.timestamp)
+	x_last_index = findlast(x->x.timestamp<=tsToDate, resultsCalculated)
+	@assert df[y_last_index, :timestamp] == resultsCalculated[x_last_index].timestamp == tsToDate
+	@assert y_last_index - y_base_index == x_last_index - x_base_index
 
 
 
