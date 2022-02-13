@@ -644,28 +644,16 @@ AddressService.Open()
 	posStart = SelectPeriod(fromDate, toDate, TxRowsDF.Timestamp)[1]
 	# Sum data before, you can save this to a jld2 file
 	# we suggest use the start time of market data, 2017
-	prog = ProgressMeter.Progress(posStart-2; barlen=64, color=:blue)
-	for i in 1:posStart-1
-		addrId, amount, ts = TxRowsDF[i,:]
-		touch!(Ref(TransactionRow(
-			addrId, AddressService.isNew(addrId), amount, ts
-			)))
-		next!(prog)
-	end
+	# prog = ProgressMeter.Progress(posStart-2; barlen=64, color=:blue)
+	# for i in 1:posStart-1
+	# 	addrId, amount, ts = TxRowsDF[i,:]
+	# 	touch!(Ref(TransactionRow(
+	# 		addrId, AddressService.isNew(addrId), amount, ts
+	# 		)))
+	# 	next!(prog)
+	# end
 	# now it's time to process real stuff
 
-
-
-	# predef
-		nextPosRef   = 1
-		thisPosEnd   = posStart - 10
-		thisPosStart = posStart - 10
-		resultsLen   = (toDate - fromDate).value / 1000 / seconds.Hour / 3
-		resultsLen   = ceil(Int, resultsLen)
-		results      = Vector{ResultCalculations}(undef,resultsLen)
-		resultCounter= 1
-		prog = ProgressMeter.Progress(resultsLen; barlen=49, color=:blue)
-	# new version of code
 	tmpLen = nrow(TxRowsDF)
 	# pre alloc mem
 	VectorTransactionRow = Vector{TransactionRow}()
@@ -682,9 +670,18 @@ AddressService.Open()
 	@show now()
 	@info "collecting varinfo"
 	@show varinfo()
-	# go
 	@show now()
 	@info "varinfo done"
+
+	# go
+	nextPosRef   = 1
+	thisPosEnd   = posStart - 10
+	thisPosStart = posStart - 10
+	resultsLen   = (toDate - fromDate).value / 1000 / seconds.Hour / 3
+	resultsLen   = ceil(Int, resultsLen)
+	results      = Vector{ResultCalculations}(undef,resultsLen)
+	resultCounter= 1
+	prog = ProgressMeter.Progress(resultsLen; barlen=49, color=:blue)
 	for dt in fromDate:Hour(3):toDate
 		tsStart = dt2unix(dt)
 		thisPosStart = findnext(x-> x.ts >= tsStart,
