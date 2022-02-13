@@ -651,6 +651,58 @@ include("./02-loadmmap.jl")
 	end
 	# now it's time to process real stuff
 
+
+
+	# predef
+		nextPosRef   = 1
+		thisPosEnd   = posStart - 10
+		thisPosStart = posStart - 10
+		resultsLen   = (toDate - fromDate).value / 1000 / seconds.Hour / 3
+		resultsLen   = ceil(Int, resultsLen)
+		results      = Vector{ResultCalculations}(undef,resultsLen)
+		resultCounter= 1
+		prog = ProgressMeter.Progress(resultsLen; barlen=49, color=:blue)
+	# new version of code
+	tmpLen = nrow(TxRowsDF)
+	# pre alloc mem
+	VectorTransactionRow = Vector{TransactionRow}()
+	@showprogress for i in posStart:tmpLen
+		push!(VectorTransactionRow, TransactionRow(
+			TxRowsDF[i, :AddressId],
+			true,
+			TxRowsDF[i, :Amount],
+			TxRowsDF[i, :Timestamp],
+			))
+	end
+	empty!(TxRowsDF)
+	GC.gc()
+	# go
+	for dt in fromDate:Hour(3):toDate
+		tsStart = dt2unix(dt)
+		thisPosStart = findnext(x-> x.ts >= tsStart,
+			VectorTransactionRow, nextPosRef)
+		thisPosEnd   = findnext(x-> x.ts > tsStart + 3seconds.Hour,
+			VectorTransactionRow, nextPosRef) - 1
+		txs = VectorTransactionRow[thisPosStart:thisPosEnd]
+		tmpNewTags   = AddressService.isNew(map(x->x.addrId, txs))
+		for i in 1:length(txs)
+			txs[i].tagNew = tmpNewTags[i]
+		end
+		results[resultCounter] = DoCalculations(txs, tsStart)
+		resultCounter += 1
+		nextPosRef = thisPosEnd + 1
+		for tr in txs
+			touch!(tr)
+		end
+		next!(prog)
+	end
+
+
+
+
+
+# previous version
+
 	nextPosRef   = posStart - 10
 	thisPosEnd   = posStart - 10
 	thisPosStart = posStart - 10
@@ -659,6 +711,7 @@ include("./02-loadmmap.jl")
 	results      = Vector{ResultCalculations}(undef,resultsLen)
 	resultCounter= 1
 	prog = ProgressMeter.Progress(resultsLen; barlen=49, color=:blue)
+
 	for dt in fromDate:Hour(3):toDate
 		tsStart = dt2unix(dt)
 		thisPosStart = findnext(x-> x >= tsStart,
