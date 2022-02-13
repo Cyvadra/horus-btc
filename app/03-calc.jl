@@ -651,26 +651,21 @@ include("./02-loadmmap.jl")
 	end
 	# now it's time to process real stuff
 
-	prevPosEnd   = posStart - 10
+	nextPosRef   = posStart - 10
 	thisPosEnd   = posStart - 10
 	thisPosStart = posStart - 10
 	resultsLen   = (toDate - fromDate).value / 1000 / seconds.Hour / 3
 	resultsLen   = ceil(Int, resultsLen)
 	results      = Vector{ResultCalculations}(undef,resultsLen)
 	resultCounter= 1
+	prog = ProgressMeter.Progress(resultsLen; barlen=49, color=:blue)
+	flagTest     = true
 	for dt in fromDate:Hour(3):fromDate+Day(100)
 		tsStart = dt2unix(dt)
 		thisPosStart = findnext(x-> x >= tsStart,
-			TxRowsDF.Timestamp, prevPosEnd)
+			TxRowsDF.Timestamp, nextPosRef)
 		thisPosEnd   = findnext(x-> x > tsStart + 3seconds.Hour,
-			TxRowsDF.Timestamp, prevPosEnd)
-		if isnothing(thisPosEnd)
-			@warn "no transaction data in this period"
-			@warn dt
-			break
-		else
-			thisPosEnd = thisPosEnd - 1
-		end
+			TxRowsDF.Timestamp, nextPosRef) - 1
 		v = [ TransactionRow(
 						TxRowsDF[i,:AddressId],
 						AddressService.isNew(TxRowsDF[i,:AddressId]),
@@ -681,7 +676,13 @@ include("./02-loadmmap.jl")
 				]
 		results[resultCounter] = DoCalculations(v, tsStart)
 		resultCounter += 1
-		prevPosEnd = thisPosEnd
+		nextPosRef = thisPosEnd + 1
+		if !flagTest
+			for tr in v
+				touch!(tr)
+			end
+		end
+		next!(prog)
 	end
 
 
