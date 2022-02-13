@@ -8,6 +8,7 @@ using AddressService
 
 @show Threads.nthreads()
 include("./02-loadmmap.jl")
+AddressService.Open()
 
 # Config
 	FinanceDB.SetDataFolder("/mnt/data/mmap")
@@ -645,9 +646,9 @@ include("./02-loadmmap.jl")
 	prog = ProgressMeter.Progress(posStart-2; barlen=64, color=:blue)
 	for i in 1:posStart-1
 		addrId, amount, ts = TxRowsDF[i,:]
-		touch!(TransactionRow(
+		touch!(Ref(TransactionRow(
 			addrId, AddressService.isNew(addrId), amount, ts
-			))
+			)))
 		next!(prog)
 	end
 	# now it's time to process real stuff
@@ -675,11 +676,14 @@ include("./02-loadmmap.jl")
 			TxRowsDF[i, :Timestamp],
 			))
 	end
-	empty!(TxRowsDF)
-	GC.gc()
+	TxRowsDF = nothing
+	GC.gc(true)
+	@show now()
+	@info "collecting varinfo"
+	@show varinfo()
 	# go
 	@show now()
-	AddressService.Open()
+	@info "varinfo done"
 	for dt in fromDate:Hour(3):toDate
 		tsStart = dt2unix(dt)
 		thisPosStart = findnext(x-> x.ts >= tsStart,
@@ -701,42 +705,6 @@ include("./02-loadmmap.jl")
 	end
 
 
-
-
-
-# previous version
-
-	nextPosRef   = posStart - 10
-	thisPosEnd   = posStart - 10
-	thisPosStart = posStart - 10
-	resultsLen   = (toDate - fromDate).value / 1000 / seconds.Hour / 3
-	resultsLen   = ceil(Int, resultsLen)
-	results      = Vector{ResultCalculations}(undef,resultsLen)
-	resultCounter= 1
-	prog = ProgressMeter.Progress(resultsLen; barlen=49, color=:blue)
-
-	for dt in fromDate:Hour(3):toDate
-		tsStart = dt2unix(dt)
-		thisPosStart = findnext(x-> x >= tsStart,
-			TxRowsDF.Timestamp, nextPosRef)
-		thisPosEnd   = findnext(x-> x > tsStart + 3seconds.Hour,
-			TxRowsDF.Timestamp, nextPosRef) - 1
-		v = [ TransactionRow(
-						TxRowsDF[i,:AddressId],
-						AddressService.isNew(TxRowsDF[i,:AddressId]),
-						TxRowsDF[i,:Amount],
-						TxRowsDF[i,:Timestamp],
-					)
-					for i in thisPosStart:thisPosEnd
-				]
-		results[resultCounter] = DoCalculations(v, tsStart)
-		resultCounter += 1
-		nextPosRef = thisPosEnd + 1
-		for tr in v
-			touch!(tr)
-		end
-		next!(prog)
-	end
 
 
 
