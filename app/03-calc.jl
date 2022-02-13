@@ -288,7 +288,10 @@ include("./02-loadmmap.jl")
 				length(txs),
 				estAmount,
 				biasAmount / estAmount,
-				count(x->x.tagNew, txs) / length(txs),
+				length(unique(
+					map(x->x.addrId,
+						txs[map(x->x.tagNew, txs)])
+					)) / length(txs),
 				count(x->x.amount<=0, txs) / length(txs),
 				count(x->x.amount>0, txs) / length(txs),
 			)
