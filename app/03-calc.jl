@@ -109,17 +109,17 @@ AddressService.Open()
 		)
 	=#
 
-	function touch!(i::Int)::Nothing
-		coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, sumTs[i])
-		coinUsdt  = abs(coinPrice * sumAmount[i])
-		pos       = sumAddrId[i]
-		if sumTagNew[i]
-			if sumAmount[i] >= 0
-				AddressService.SetField(:TimestampCreated, pos, sumTs[i])
-				AddressService.SetField(:TimestampLastActive, pos, sumTs[i])
-				AddressService.SetField(:TimestampLastReceived, pos, sumTs[i])
-				AddressService.SetField(:TimestampLastPayed, pos, sumTs[i])
-				AddressService.SetField(:AmountIncomeTotal, pos, sumAmount[i])
+	function touch!(unitAddrId::UInt32, unitTagNew::Bool, unitAmount::Float64, unitTs::Int32)::Nothing
+		coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, unitTs)
+		coinUsdt  = abs(coinPrice * unitAmount)
+		pos       = unitAddrId
+		if unitTagNew
+			if unitAmount >= 0
+				AddressService.SetField(:TimestampCreated, pos, unitTs)
+				AddressService.SetField(:TimestampLastActive, pos, unitTs)
+				AddressService.SetField(:TimestampLastReceived, pos, unitTs)
+				AddressService.SetField(:TimestampLastPayed, pos, unitTs)
+				AddressService.SetField(:AmountIncomeTotal, pos, unitAmount)
 				AddressService.SetField(:AmountExpenseTotal, pos, 0.0)
 				AddressService.SetField(:NumTxInTotal, pos, 1)
 				AddressService.SetField(:NumTxOutTotal, pos, 0)
@@ -129,14 +129,14 @@ AddressService.Open()
 				AddressService.SetField(:LastSellPrice, pos, coinPrice)
 				AddressService.SetField(:UsdtNetRealized, pos, 0.0)
 				AddressService.SetField(:UsdtNetUnrealized, pos, 0.0)
-				AddressService.SetField(:Balance, pos, sumAmount[i])
+				AddressService.SetField(:Balance, pos, unitAmount)
 			else
-				AddressService.SetField(:TimestampCreated, pos, sumTs[i])
-				AddressService.SetField(:TimestampLastActive, pos, sumTs[i])
-				AddressService.SetField(:TimestampLastReceived, pos, sumTs[i])
-				AddressService.SetField(:TimestampLastPayed, pos, sumTs[i])
+				AddressService.SetField(:TimestampCreated, pos, unitTs)
+				AddressService.SetField(:TimestampLastActive, pos, unitTs)
+				AddressService.SetField(:TimestampLastReceived, pos, unitTs)
+				AddressService.SetField(:TimestampLastPayed, pos, unitTs)
 				AddressService.SetField(:AmountIncomeTotal, pos, 0.0)
-				AddressService.SetField(:AmountExpenseTotal, pos, abs(sumAmount[i]))
+				AddressService.SetField(:AmountExpenseTotal, pos, abs(unitAmount))
 				AddressService.SetField(:NumTxInTotal, pos, 0)
 				AddressService.SetField(:NumTxOutTotal, pos, 1)
 				AddressService.SetField(:UsdtPayed4Input, pos, 0.0)
@@ -145,38 +145,38 @@ AddressService.Open()
 				AddressService.SetField(:LastSellPrice, pos, coinPrice)
 				AddressService.SetField(:UsdtNetRealized, pos, coinUsdt)
 				AddressService.SetField(:UsdtNetUnrealized, pos, 0.0)
-				AddressService.SetField(:Balance, pos, sumAmount[i])
+				AddressService.SetField(:Balance, pos, unitAmount)
 			end
 			return nothing
 		end
 		addrRO = AddressService.GetRow(pos)
-		if sumAmount[i] < 0
-			AddressService.SetFieldDiff(:AmountExpenseTotal, pos, -sumAmount[i])
+		if unitAmount < 0
+			AddressService.SetFieldDiff(:AmountExpenseTotal, pos, -unitAmount)
 			AddressService.SetFieldDiff(:NumTxOutTotal, pos, 1)
-			if addrRO.TimestampLastPayed < sumTs[i]
-				AddressService.SetField(:TimestampLastPayed, pos, sumTs[i])
+			if addrRO.TimestampLastPayed < unitTs
+				AddressService.SetField(:TimestampLastPayed, pos, unitTs)
 			end
 			AddressService.SetFieldDiff(:UsdtReceived4Output, pos, coinUsdt)
 			AddressService.SetField(:LastSellPrice, pos, coinPrice)
 		else
-			AddressService.SetFieldDiff(:AmountIncomeTotal, pos, sumAmount[i])
+			AddressService.SetFieldDiff(:AmountIncomeTotal, pos, unitAmount)
 			AddressService.SetFieldDiff(:NumTxInTotal, pos, 1)
-			if addrRO.TimestampLastReceived < sumTs[i]
-				AddressService.SetField(:TimestampLastReceived, pos, sumTs[i])
+			if addrRO.TimestampLastReceived < unitTs
+				AddressService.SetField(:TimestampLastReceived, pos, unitTs)
 			end
 			AddressService.SetFieldDiff(:UsdtPayed4Input, pos, coinUsdt)
-			if addrRO.Balance + sumAmount[i] > 1e-9
+			if addrRO.Balance + unitAmount > 1e-9
 				AddressService.SetField(:AveragePurchasePrice, pos,
-					(coinUsdt + addrRO.AveragePurchasePrice * addrRO.Balance) / (addrRO.Balance + sumAmount[i]) )
+					(coinUsdt + addrRO.AveragePurchasePrice * addrRO.Balance) / (addrRO.Balance + unitAmount) )
 			end
 		end
-		if addrRO.Balance < 0 && addrRO.TimestampCreated > sumTs[i]
-			AddressService.SetField(:TimestampCreated, pos, sumTs[i])
+		if addrRO.Balance < 0 && addrRO.TimestampCreated > unitTs
+			AddressService.SetField(:TimestampCreated, pos, unitTs)
 		end
-		if addrRO.TimestampLastActive < sumTs[i]
-			AddressService.SetField(:TimestampLastActive, pos, sumTs[i])
+		if addrRO.TimestampLastActive < unitTs
+			AddressService.SetField(:TimestampLastActive, pos, unitTs)
 		end
-		AddressService.SetFieldDiff(:Balance, pos, sumAmount[i])
+		AddressService.SetFieldDiff(:Balance, pos, unitAmount)
 		AddressService.SetField(:UsdtNetRealized, pos,
 			 AddressService.GetField(:UsdtReceived4Output,pos) - AddressService.GetField(:UsdtPayed4Input,pos)
 			 )
@@ -673,19 +673,23 @@ AddressService.Open()
 	prog = ProgressMeter.Progress(resultsLen; barlen=49, color=:blue)
 	for dt in fromDate:Hour(3):toDate
 		tsStart = dt2unix(dt)
-		thisPosStart = findnext(x-> x >= tsStart,
-			sumTs, nextPosRef)
-		thisPosEnd   = findnext(x-> x > tsStart + 3seconds.Hour,
-			sumTs, nextPosRef) - 1
+		thisPosStart = findnext(x-> x >= tsStart, sumTs, nextPosRef)
+		thisPosEnd   = findnext(x-> x > tsStart + 3seconds.Hour, sumTs, nextPosRef) - 1
 		lenTxs = thisPosEnd - thisPosStart + 1
 		for i in 1:lenTxs
-			sumTagNew[thisPosStart+i-1] = AddressService.isNew(sumAddrId[thisPosStart+i-1])
+			_ind = thisPosStart+i-1
+			sumTagNew[_ind] = AddressService.isNew(sumAddrId[_ind])
 		end
 		results[resultCounter] = DoCalculations(thisPosStart, thisPosEnd, tsStart)
 		resultCounter += 1
 		nextPosRef = thisPosEnd + 1
 		for i in 1:lenTxs
-			touch!(thisPosStart+i-1)
+			_ind = thisPosStart+i-1
+			touch!( sumAddrId[_ind],
+							sumTagNew[_ind],
+							sumAmount[_ind],
+							sumTs[_ind]
+				)
 		end
 		next!(prog)
 	end
