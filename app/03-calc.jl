@@ -666,12 +666,16 @@ AddressService.Open()
 			))
 	end
 	TxRowsDF = nothing
-	GC.gc(true)
+	@show now()
+	@info "TxRowsDF transferred"
+	# GC.gc(true)
 	@show now()
 	@info "collecting varinfo"
-	@show varinfo()
+	@show varinfo("Tx")
 	@show now()
 	@info "varinfo done"
+	GC.gc()
+	@show now()
 
 	# go
 	nextPosRef   = 1
