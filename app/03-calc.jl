@@ -328,7 +328,7 @@ AddressService.Open()
 				reduce(+, concreteAmounts[tmpIndexes.cpb50]),
 				reduce(+, concreteAmounts[tmpIndexes.cpb80]),
 				reduce(+, concreteAmounts[tmpIndexes.cpb95]),
-				reduce(+, cacheAmount[][ cacheTagNew[] ])),
+				reduce(+, cacheAmount[][ cacheTagNew[] ]),
 				reduce(+, concreteAmounts[tmpIndexes.wpb10]),
 				reduce(+, concreteAmounts[tmpIndexes.wpb25]),
 				reduce(+, concreteAmounts[tmpIndexes.wpb50]),
