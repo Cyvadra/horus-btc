@@ -281,38 +281,38 @@ AddressService.Open()
 		amountRealizedProfitBillion::Float64
 		amountRealizedLossBillion::Float64
 		end
-	function CalcAddressComparative(txs::Vector{TransactionRow})::CellAddressComparative
-		lenUnique  = length( unique(map(x->x.addrId, txs)) )
-		biasAmount = reduce(+, map(x->x.amount,txs))
-		estAmount  = (reduce(+, map(x->abs(x.amount),txs)) - biasAmount) / 2
+	function CalcAddressComparative(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressComparative
+		_len = length(cacheTs[])
+		biasAmount = sum(cacheAmount[])
+		estAmount  = (sum(abs.(cacheAmount[])) - biasAmount) / 2
+		numOutput  = sum(cacheAmount[] .< 0)
+		numInput   = _len - numOutput
 		ret = CellAddressComparative(
-				lenUnique,
-				length(txs),
+				length( unique(cacheAddrId[]) ),
+				_len,
 				estAmount,
 				biasAmount / estAmount,
 				length(unique(
-					map(x->x.addrId,
-						txs[map(x->x.tagNew, txs)])
-					)) / length(txs),
-				count(x->x.amount<=0, txs) / length(txs),
-				count(x->x.amount>0, txs) / length(txs),
+						cacheAddrId[][ cacheTagNew[] ]
+					)) / _len,
+				numOutput / _len,
+				numInput / _len,
 			)
 		return ret
 		end
-	function CalcAddressDirection(txs::Vector{TransactionRow})::CellAddressDirection
-		concreteIndexes  = map(x->!x.tagNew,txs)
+	function CalcAddressDirection(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressDirection
+		concreteIndexes  = map(x->!x, cacheTagNew[])
 		concreteBalances = AddressService.GetField(:Balance,
-			map(x->x.addrId, txs[concreteIndexes])
+				cacheAddrId[][ concreteIndexes ]
 			)
-		concretePercents = map(x->x.amount, txs[concreteIndexes]) ./ concreteBalances
-		concreteAmounts  = abs.(map(x->x.amount, txs[concreteIndexes]))
+		concretePercents = cacheAmount[][ concreteIndexes ] ./ concreteBalances
+		concreteAmounts  = abs.( cacheAmount[][ concreteIndexes ] )
 		tmpIndexes = (
 			cpb10 = map(x-> 0.00 < x <= 0.10, concretePercents),
 			cpb25 = map(x-> 0.10 < x <= 0.25, concretePercents),
 			cpb50 = map(x-> 0.25 < x <= 0.50, concretePercents),
 			cpb80 = map(x-> 0.50 < x <= 0.80, concretePercents),
 			cpb95 = map(x-> 0.80 < x <= 0.95, concretePercents),
-			cpe100= map(x->x.tagNew, txs),
 			wpb10 = map(x-> -0.10 <= x < 0.0, concretePercents),
 			wpb25 = map(x-> -0.25 <= x < 0.10, concretePercents),
 			wpb50 = map(x-> -0.50 <= x < 0.25, concretePercents),
@@ -337,7 +337,7 @@ AddressService.Open()
 				reduce(+, concreteAmounts[tmpIndexes.cpb50]),
 				reduce(+, concreteAmounts[tmpIndexes.cpb80]),
 				reduce(+, concreteAmounts[tmpIndexes.cpb95]),
-				reduce(+, map(x->x.amount,txs[tmpIndexes.cpe100])),
+				reduce(+, cacheAmount[][ cacheTagNew[] ])),
 				reduce(+, concreteAmounts[tmpIndexes.wpb10]),
 				reduce(+, concreteAmounts[tmpIndexes.wpb25]),
 				reduce(+, concreteAmounts[tmpIndexes.wpb50]),
@@ -346,15 +346,15 @@ AddressService.Open()
 			)
 		return ret
 		end
-	function CalcAddressAccumulation(txs::Vector{TransactionRow})::CellAddressAccumulation
-		tsMin = min(txs[1].ts, txs[end].ts)
-		tsMax = max(txs[1].ts, txs[end].ts)
+	function CalcAddressAccumulation(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressAccumulation
+		tsMin = min( cacheTs[1], cacheTs[end] )
+		tsMax = max( cacheTs[1], cacheTs[end] )
 		tsMid = round(Int32, (tsMin+tsMax)/2)
-		concreteIndexes  = map(x->!x.tagNew,txs)
-		ids = map(x->x.addrId, txs[concreteIndexes])
+		concreteIndexes  = map(x->!x, cacheTagNew[])
+		ids = cacheAddrId[][concreteIndexes]
 		concreteLastPayed    = AddressService.GetField(:TimestampLastPayed, ids)
 		concreteLastReceived = AddressService.GetField(:TimestampLastReceived, ids)
-		concreteAmounts      = map(x->x.amount, txs[concreteIndexes])
+		concreteAmounts      = cacheAmount[][concreteIndexes]
 		concreteAmountsSend  = concreteAmounts .< 0.0
 		concreteAmountsBuy   = concreteAmounts .> 0.0
 		tmpIndexes = (
@@ -404,12 +404,13 @@ AddressService.Open()
 			)
 		return ret
 		end
-	function CalcAddressSupplier(txs::Vector{TransactionRow})::CellAddressSupplier
-		concreteIndexes  = map(x->!x.tagNew && x.amount<0, txs)
+	function CalcAddressSupplier(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressSupplier
+		concreteIndexes  = map(x->!x, cacheTagNew[])
+		concreteIndexes  = concreteIndexes .&& (cacheAmount[] .< 0.0)
 		concreteBalances = abs.(AddressService.GetField(:Balance,
-			map(x->x.addrId, txs[concreteIndexes])
+			cacheAddrId[][ concreteIndexes ]
 			))
-		concreteAmounts  = abs.(map(x->x.amount, txs[concreteIndexes]))
+		concreteAmounts  = abs.(cacheAmount[][ concreteIndexes ])
 		sortedBalances = sort(concreteBalances)[1:floor(Int, 0.99*end)]
 		ret = CellAddressSupplier(
 				sum(sortedBalances) / length(sortedBalances),
@@ -438,26 +439,20 @@ AddressService.Open()
 			)
 		return ret
 		end
-	function CalcAddressUsdtDiff(txs::Vector{TransactionRow})::CellAddressUsdtDiff
+	function CalcAddressUsdtDiff(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressUsdtDiff
 		ret = CellAddressUsdtDiff(zeros(length(CellAddressUsdtDiff.types))...)
-		concreteIndexes  = map(x->!x.tagNew && x.amount<0, txs)
-		for r in txs[concreteIndexes]
-			coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, r.ts)
-			boughtPrice = AddressService.GetField(:AveragePurchasePrice, r.addrId)
-			if isnan(coinPrice) || isnan(boughtPrice) || isnan(r.amount)
-				@warn r.addrId
-				@show coinPrice
-				@show boughtPrice
-				@show r.amount
-				@warn r
-				@warn AddressService.GetRow(r.addrId)[]
-			end
+		concreteIndexes  = map(x->!x, cacheTagNew[])
+		concreteIndexes  = concreteIndexes .&& (cacheAmount[] .< 0.0)
+		_indexes = collect(1:length(concreteIndexes))[concreteIndexes]
+		for i in _indexes
+			coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, cacheTs[][i])
+			boughtPrice = AddressService.GetField(:AveragePurchasePrice, cacheAddrId[][i])
 			if coinPrice > boughtPrice
 				ret.numRealizedProfit += 1
-				ret.amountRealizedProfitBillion += Float64(coinPrice-boughtPrice) * abs(r.amount) / 1e9
+				ret.amountRealizedProfitBillion += Float64(coinPrice-boughtPrice) * abs(cacheAmount[][i]) / 1e9
 			else
 				ret.numRealizedLoss += 1
-				ret.amountRealizedLossBillion += Float64(boughtPrice-coinPrice) * abs(r.amount) / 1e9
+				ret.amountRealizedLossBillion += Float64(boughtPrice-coinPrice) * abs(cacheAmount[][i]) / 1e9
 			end
 		end
 		return ret
@@ -551,10 +546,18 @@ AddressService.Open()
 		amountRealizedLossBillion::Float64
 		end
 	function DoCalculations(fromN::Int, toN::Int, ts::Int32)::ResultCalculations
-		txs = VectorTransactionRow[fromN:toN]
+		cacheAddrId = sumAddrId[fromN:toN]
+		cacheTagNew = sumTagNew[fromN:toN]
+		cacheAmount = sumAmount[fromN:toN]
+		cacheTs     = sumTs[fromN:toN]
 		listTask = Vector{Task}(undef,length(Calculations))
 		for i in 1:length(Calculations)
-			listTask[i] = Threads.@spawn Calculations[i].handler(txs)
+			listTask[i] = Threads.@spawn Calculations[i].handler(
+					Ref(cacheAddrId),
+					Ref(cacheTagNew),
+					Ref(cacheAmount),
+					Ref(cacheTs),
+				)
 		end
 		wait.(listTask)
 		return ResultCalculations(
@@ -657,25 +660,20 @@ AddressService.Open()
 	tmpLen = nrow(TxRowsDF)
 	# pre alloc mem
 	VectorTransactionRow = Vector{TransactionRow}()
-	@showprogress for i in posStart:tmpLen
-		push!(VectorTransactionRow, TransactionRow(
-			TxRowsDF[i, :AddressId],
-			true,
-			TxRowsDF[i, :Amount],
-			TxRowsDF[i, :Timestamp],
-			))
-	end
+	sumAddrId = deepcopy(TxRowsDF[posStart:tmpLen, :AddressId])
+	sumTagNew = fill(true, tmpLen - posStart + 1)
+	sumAmount = deepcopy(TxRowsDF[posStart:tmpLen, :Amount])
+	sumTs     = deepcopy(TxRowsDF[posStart:tmpLen, :Timestamp])
+
 	TxRowsDF = nothing
 	@show now()
-	@info "TxRowsDF transferred"
-	# GC.gc(true)
-	@show now()
 	@info "collecting varinfo"
-	@show varinfo(r"Tx")
+	@show varinfo(r"TxRows")
 	@show now()
-	@info "varinfo done"
+	@info "varinfo done, now doing gc"
 	GC.gc()
 	@show now()
+	@info "gc complete"
 
 	# go
 	nextPosRef   = 1
