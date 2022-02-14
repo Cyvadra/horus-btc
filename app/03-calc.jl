@@ -109,26 +109,17 @@ AddressService.Open()
 		)
 	=#
 
-# Runtime Vars
-	mutable struct TransactionRow
-		addrId::UInt32
-		tagNew::Bool
-		amount::Float32
-		ts::Int32
-		end
-
-	function touch!(r::Base.RefValue{TransactionRow})::Nothing
-		tr = r[]
-		coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, tr.ts)
-		coinUsdt  = abs(coinPrice * tr.amount)
-		pos       = tr.addrId
-		if tr.tagNew
-			if tr.amount >= 0
-				AddressService.SetField(:TimestampCreated, pos, tr.ts)
-				AddressService.SetField(:TimestampLastActive, pos, tr.ts)
-				AddressService.SetField(:TimestampLastReceived, pos, tr.ts)
-				AddressService.SetField(:TimestampLastPayed, pos, tr.ts)
-				AddressService.SetField(:AmountIncomeTotal, pos, tr.amount)
+	function touch!(i::Int)::Nothing
+		coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, sumTs[][i])
+		coinUsdt  = abs(coinPrice * sumAmount[][i])
+		pos       = sumAddrId[][i]
+		if sumTagNew[][i]
+			if sumAmount[][i] >= 0
+				AddressService.SetField(:TimestampCreated, pos, sumTs[][i])
+				AddressService.SetField(:TimestampLastActive, pos, sumTs[][i])
+				AddressService.SetField(:TimestampLastReceived, pos, sumTs[][i])
+				AddressService.SetField(:TimestampLastPayed, pos, sumTs[][i])
+				AddressService.SetField(:AmountIncomeTotal, pos, sumAmount[][i])
 				AddressService.SetField(:AmountExpenseTotal, pos, 0.0)
 				AddressService.SetField(:NumTxInTotal, pos, 1)
 				AddressService.SetField(:NumTxOutTotal, pos, 0)
@@ -138,14 +129,14 @@ AddressService.Open()
 				AddressService.SetField(:LastSellPrice, pos, coinPrice)
 				AddressService.SetField(:UsdtNetRealized, pos, 0.0)
 				AddressService.SetField(:UsdtNetUnrealized, pos, 0.0)
-				AddressService.SetField(:Balance, pos, tr.amount)
+				AddressService.SetField(:Balance, pos, sumAmount[][i])
 			else
-				AddressService.SetField(:TimestampCreated, pos, tr.ts)
-				AddressService.SetField(:TimestampLastActive, pos, tr.ts)
-				AddressService.SetField(:TimestampLastReceived, pos, tr.ts)
-				AddressService.SetField(:TimestampLastPayed, pos, tr.ts)
+				AddressService.SetField(:TimestampCreated, pos, sumTs[][i])
+				AddressService.SetField(:TimestampLastActive, pos, sumTs[][i])
+				AddressService.SetField(:TimestampLastReceived, pos, sumTs[][i])
+				AddressService.SetField(:TimestampLastPayed, pos, sumTs[][i])
 				AddressService.SetField(:AmountIncomeTotal, pos, 0.0)
-				AddressService.SetField(:AmountExpenseTotal, pos, abs(tr.amount))
+				AddressService.SetField(:AmountExpenseTotal, pos, abs(sumAmount[][i]))
 				AddressService.SetField(:NumTxInTotal, pos, 0)
 				AddressService.SetField(:NumTxOutTotal, pos, 1)
 				AddressService.SetField(:UsdtPayed4Input, pos, 0.0)
@@ -154,38 +145,38 @@ AddressService.Open()
 				AddressService.SetField(:LastSellPrice, pos, coinPrice)
 				AddressService.SetField(:UsdtNetRealized, pos, coinUsdt)
 				AddressService.SetField(:UsdtNetUnrealized, pos, 0.0)
-				AddressService.SetField(:Balance, pos, tr.amount)
+				AddressService.SetField(:Balance, pos, sumAmount[][i])
 			end
 			return nothing
 		end
 		addrRO = AddressService.GetRow(pos)
-		if tr.amount < 0
-			AddressService.SetFieldDiff(:AmountExpenseTotal, pos, -tr.amount)
+		if sumAmount[][i] < 0
+			AddressService.SetFieldDiff(:AmountExpenseTotal, pos, -sumAmount[][i])
 			AddressService.SetFieldDiff(:NumTxOutTotal, pos, 1)
-			if addrRO.TimestampLastPayed < tr.ts
-				AddressService.SetField(:TimestampLastPayed, pos, tr.ts)
+			if addrRO.TimestampLastPayed < sumTs[][i]
+				AddressService.SetField(:TimestampLastPayed, pos, sumTs[][i])
 			end
 			AddressService.SetFieldDiff(:UsdtReceived4Output, pos, coinUsdt)
 			AddressService.SetField(:LastSellPrice, pos, coinPrice)
 		else
-			AddressService.SetFieldDiff(:AmountIncomeTotal, pos, tr.amount)
+			AddressService.SetFieldDiff(:AmountIncomeTotal, pos, sumAmount[][i])
 			AddressService.SetFieldDiff(:NumTxInTotal, pos, 1)
-			if addrRO.TimestampLastReceived < tr.ts
-				AddressService.SetField(:TimestampLastReceived, pos, tr.ts)
+			if addrRO.TimestampLastReceived < sumTs[][i]
+				AddressService.SetField(:TimestampLastReceived, pos, sumTs[][i])
 			end
 			AddressService.SetFieldDiff(:UsdtPayed4Input, pos, coinUsdt)
-			if addrRO.Balance + tr.amount > 1e-9
+			if addrRO.Balance + sumAmount[][i] > 1e-9
 				AddressService.SetField(:AveragePurchasePrice, pos,
-					(coinUsdt + addrRO.AveragePurchasePrice * addrRO.Balance) / (addrRO.Balance + tr.amount) )
+					(coinUsdt + addrRO.AveragePurchasePrice * addrRO.Balance) / (addrRO.Balance + sumAmount[][i]) )
 			end
 		end
-		if addrRO.Balance < 0 && addrRO.TimestampCreated > tr.ts
-			AddressService.SetField(:TimestampCreated, pos, tr.ts)
+		if addrRO.Balance < 0 && addrRO.TimestampCreated > sumTs[][i]
+			AddressService.SetField(:TimestampCreated, pos, sumTs[][i])
 		end
-		if addrRO.TimestampLastActive < tr.ts
-			AddressService.SetField(:TimestampLastActive, pos, tr.ts)
+		if addrRO.TimestampLastActive < sumTs[][i]
+			AddressService.SetField(:TimestampLastActive, pos, sumTs[][i])
 		end
-		AddressService.SetFieldDiff(:Balance, pos, tr.amount)
+		AddressService.SetFieldDiff(:Balance, pos, sumAmount[][i])
 		AddressService.SetField(:UsdtNetRealized, pos,
 			 AddressService.GetField(:UsdtReceived4Output,pos) - AddressService.GetField(:UsdtPayed4Input,pos)
 			 )
@@ -659,7 +650,6 @@ AddressService.Open()
 
 	tmpLen = nrow(TxRowsDF)
 	# pre alloc mem
-	VectorTransactionRow = Vector{TransactionRow}()
 	sumAddrId = deepcopy(TxRowsDF[posStart:tmpLen, :AddressId])
 	sumTagNew = fill(true, tmpLen - posStart + 1)
 	sumAmount = deepcopy(TxRowsDF[posStart:tmpLen, :Amount])
