@@ -671,7 +671,7 @@ AddressService.Open()
 	# GC.gc(true)
 	@show now()
 	@info "collecting varinfo"
-	@show varinfo("Tx")
+	@show varinfo(r"Tx")
 	@show now()
 	@info "varinfo done"
 	GC.gc()
