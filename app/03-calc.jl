@@ -316,7 +316,7 @@ AddressService.Open()
 				sum(tmpIndexes.cpb50),
 				sum(tmpIndexes.cpb80),
 				sum(tmpIndexes.cpb95),
-				sum(tmpIndexes.cpe100),
+				sum(cacheTagNew[]),
 				sum(tmpIndexes.wpb10),
 				sum(tmpIndexes.wpb25),
 				sum(tmpIndexes.wpb50),
@@ -338,8 +338,8 @@ AddressService.Open()
 		return ret
 		end
 	function CalcAddressAccumulation(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressAccumulation
-		tsMin = min( cacheTs[1], cacheTs[end] )
-		tsMax = max( cacheTs[1], cacheTs[end] )
+		tsMin = min( cacheTs[][1], cacheTs[][end] )
+		tsMax = max( cacheTs[][1], cacheTs[][end] )
 		tsMid = round(Int32, (tsMin+tsMax)/2)
 		concreteIndexes  = map(x->!x, cacheTagNew[])
 		ids = cacheAddrId[][concreteIndexes]
@@ -660,9 +660,6 @@ AddressService.Open()
 	@info "collecting varinfo"
 	@show varinfo(r"TxRows")
 	@show now()
-	@info "varinfo done, now doing gc"
-	GC.gc()
-	@show now()
 	@info "gc complete"
 
 	# go
@@ -682,7 +679,7 @@ AddressService.Open()
 			sumTs, nextPosRef) - 1
 		lenTxs = thisPosEnd - thisPosStart + 1
 		for i in 1:lenTxs
-			sumTagNew[thisPosStart+i-1] = AddressService.isNew(sumTagNew[thisPosStart+i-1].addrId)
+			sumTagNew[thisPosStart+i-1] = AddressService.isNew(sumAddrId[thisPosStart+i-1])
 		end
 		results[resultCounter] = DoCalculations(thisPosStart, thisPosEnd, tsStart)
 		resultCounter += 1
