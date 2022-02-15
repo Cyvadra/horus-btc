@@ -678,7 +678,7 @@ AddressService.Open()
 	resultsLen   = ceil(Int, resultsLen)
 	results      = Vector{ResultCalculations}()
 	prog = ProgressMeter.Progress(resultsLen; barlen=36, color=:blue)
-	for dt in fromDate:Hour(3):(fromDate+Month(1))
+	for dt in fromDate:Hour(3):toDate
 		tsStart = dt2unix(dt)
 		thisPosStart = findnext(x-> x >= tsStart, sumTs, nextPosRef)
 		thisPosEnd   = findnext(x-> x > tsStart + 3seconds.Hour, sumTs, nextPosRef) - 1
