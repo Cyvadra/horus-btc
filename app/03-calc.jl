@@ -109,81 +109,89 @@ AddressService.Open()
 		)
 	=#
 
-	function touch!(unitAddrId::UInt32, unitTagNew::Bool, unitAmount::Float64, unitTs::Int32)::Nothing
-		coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, unitTs)
-		coinUsdt  = abs(coinPrice * unitAmount)
-		pos       = unitAddrId
-		if unitTagNew
-			if unitAmount >= 0
-				AddressService.SetFieldTimestampCreated(pos, unitTs)
-				AddressService.SetFieldTimestampLastActive(pos, unitTs)
-				AddressService.SetFieldTimestampLastReceived(pos, unitTs)
-				AddressService.SetFieldTimestampLastPayed(pos, unitTs)
-				AddressService.SetFieldAmountIncomeTotal(pos, unitAmount)
-				AddressService.SetFieldAmountExpenseTotal(pos, 0.0)
-				AddressService.SetFieldNumTxInTotal(pos, 1)
-				AddressService.SetFieldNumTxOutTotal(pos, 0)
-				AddressService.SetFieldUsdtPayed4Input(pos, coinUsdt)
-				AddressService.SetFieldUsdtReceived4Output(pos, 0.0)
-				AddressService.SetFieldAveragePurchasePrice(pos, coinPrice)
+	function touch!(fromI::Int, toI::Int)::Nothing
+		inds = collect(fromI:toI)
+		for _ind in inds
+			coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, sumTs[_ind])
+			coinUsdt  = abs(coinPrice * sumAmount[_ind])
+			pos       = sumAddrId[_ind]
+			if sumTagNew[_ind]
+				if sumAmount[_ind] >= 0
+					AddressService.SetFieldTimestampCreated(pos, sumTs[_ind])
+					AddressService.SetFieldTimestampLastActive(pos, sumTs[_ind])
+					AddressService.SetFieldTimestampLastReceived(pos, sumTs[_ind])
+					AddressService.SetFieldTimestampLastPayed(pos, sumTs[_ind])
+					AddressService.SetFieldAmountIncomeTotal(pos, sumAmount[_ind])
+					AddressService.SetFieldAmountExpenseTotal(pos, 0.0)
+					AddressService.SetFieldNumTxInTotal(pos, 1)
+					AddressService.SetFieldNumTxOutTotal(pos, 0)
+					AddressService.SetFieldUsdtPayed4Input(pos, coinUsdt)
+					AddressService.SetFieldUsdtReceived4Output(pos, 0.0)
+					AddressService.SetFieldAveragePurchasePrice(pos, coinPrice)
+					AddressService.SetFieldLastSellPrice(pos, coinPrice)
+					AddressService.SetFieldUsdtNetRealized(pos, 0.0)
+					AddressService.SetFieldUsdtNetUnrealized(pos, 0.0)
+					AddressService.SetFieldBalance(pos, sumAmount[_ind])
+				else
+					AddressService.SetFieldTimestampCreated(pos, sumTs[_ind])
+					AddressService.SetFieldTimestampLastActive(pos, sumTs[_ind])
+					AddressService.SetFieldTimestampLastReceived(pos, sumTs[_ind])
+					AddressService.SetFieldTimestampLastPayed(pos, sumTs[_ind])
+					AddressService.SetFieldAmountIncomeTotal(pos, 0.0)
+					AddressService.SetFieldAmountExpenseTotal(pos, abs(sumAmount[_ind]))
+					AddressService.SetFieldNumTxInTotal(pos, 0)
+					AddressService.SetFieldNumTxOutTotal(pos, 1)
+					AddressService.SetFieldUsdtPayed4Input(pos, 0.0)
+					AddressService.SetFieldUsdtReceived4Output(pos, coinUsdt)
+					AddressService.SetFieldAveragePurchasePrice(pos, coinPrice)
+					AddressService.SetFieldLastSellPrice(pos, coinPrice)
+					AddressService.SetFieldUsdtNetRealized(pos, coinUsdt)
+					AddressService.SetFieldUsdtNetUnrealized(pos, 0.0)
+					AddressService.SetFieldBalance(pos, sumAmount[_ind])
+				end
+				continue
+			end
+			tmpTimestampLastPayed = AddressService.GetFieldTimestampLastPayed(pos)
+			tmpTimestampLastReceived = AddressService.GetFieldTimestampLastReceived(pos)
+			tmpAveragePurchasePrice = AddressService.GetFieldAveragePurchasePrice(pos)
+			tmpBalance = AddressService.GetFieldBalance(pos)
+			tmpTimestampCreated = AddressService.GetFieldTimestampCreated(pos)
+			tmpTimestampLastActive = AddressService.GetFieldTimestampLastActive(pos)
+			if sumAmount[_ind] < 0
+				AddressService.SetFieldDiffAmountExpenseTotal(pos, -sumAmount[_ind])
+				AddressService.SetFieldDiffNumTxOutTotal(pos, 1)
+				if tmpTimestampLastPayed < sumTs[_ind]
+					AddressService.SetFieldTimestampLastPayed(pos, sumTs[_ind])
+				end
+				AddressService.SetFieldDiffUsdtReceived4Output(pos, coinUsdt)
 				AddressService.SetFieldLastSellPrice(pos, coinPrice)
-				AddressService.SetFieldUsdtNetRealized(pos, 0.0)
-				AddressService.SetFieldUsdtNetUnrealized(pos, 0.0)
-				AddressService.SetFieldBalance(pos, unitAmount)
 			else
-				AddressService.SetFieldTimestampCreated(pos, unitTs)
-				AddressService.SetFieldTimestampLastActive(pos, unitTs)
-				AddressService.SetFieldTimestampLastReceived(pos, unitTs)
-				AddressService.SetFieldTimestampLastPayed(pos, unitTs)
-				AddressService.SetFieldAmountIncomeTotal(pos, 0.0)
-				AddressService.SetFieldAmountExpenseTotal(pos, abs(unitAmount))
-				AddressService.SetFieldNumTxInTotal(pos, 0)
-				AddressService.SetFieldNumTxOutTotal(pos, 1)
-				AddressService.SetFieldUsdtPayed4Input(pos, 0.0)
-				AddressService.SetFieldUsdtReceived4Output(pos, coinUsdt)
-				AddressService.SetFieldAveragePurchasePrice(pos, coinPrice)
-				AddressService.SetFieldLastSellPrice(pos, coinPrice)
-				AddressService.SetFieldUsdtNetRealized(pos, coinUsdt)
-				AddressService.SetFieldUsdtNetUnrealized(pos, 0.0)
-				AddressService.SetFieldBalance(pos, unitAmount)
+				AddressService.SetFieldDiffAmountIncomeTotal(pos, sumAmount[_ind])
+				AddressService.SetFieldDiffNumTxInTotal(pos, 1)
+				if tmpTimestampLastReceived < sumTs[_ind]
+					AddressService.SetFieldTimestampLastReceived(pos, sumTs[_ind])
+				end
+				AddressService.SetFieldDiffUsdtPayed4Input(pos, coinUsdt)
+				if tmpBalance + sumAmount[_ind] > 1e-9
+					AddressService.SetFieldAveragePurchasePrice(pos,
+						(coinUsdt + tmpAveragePurchasePrice * tmpBalance) / (tmpBalance + sumAmount[_ind]) )
+				end
 			end
-			return nothing
-		end
-		addrRO = AddressService.GetRow(pos)
-		if unitAmount < 0
-			AddressService.SetFieldDiffAmountExpenseTotal(pos, -unitAmount)
-			AddressService.SetFieldDiffNumTxOutTotal(pos, 1)
-			if addrRO.TimestampLastPayed < unitTs
-				AddressService.SetFieldTimestampLastPayed(pos, unitTs)
+			if tmpBalance < 0 && tmpTimestampCreated > sumTs[_ind]
+				AddressService.SetFieldTimestampCreated(pos, sumTs[_ind])
 			end
-			AddressService.SetFieldDiffUsdtReceived4Output(pos, coinUsdt)
-			AddressService.SetFieldLastSellPrice(pos, coinPrice)
-		else
-			AddressService.SetFieldDiffAmountIncomeTotal(pos, unitAmount)
-			AddressService.SetFieldDiffNumTxInTotal(pos, 1)
-			if addrRO.TimestampLastReceived < unitTs
-				AddressService.SetFieldTimestampLastReceived(pos, unitTs)
+			if tmpTimestampLastActive < sumTs[_ind]
+				AddressService.SetFieldTimestampLastActive(pos, sumTs[_ind])
 			end
-			AddressService.SetFieldDiffUsdtPayed4Input(pos, coinUsdt)
-			if addrRO.Balance + unitAmount > 1e-9
-				AddressService.SetFieldAveragePurchasePrice(pos,
-					(coinUsdt + addrRO.AveragePurchasePrice * addrRO.Balance) / (addrRO.Balance + unitAmount) )
-			end
+			AddressService.SetFieldDiffBalance(pos, sumAmount[_ind])
+			AddressService.SetFieldUsdtNetRealized(pos,
+				 AddressService.GetFieldUsdtReceived4Output(os) - AddressService.GetFieldUsdtPayed4Input(os)
+				 )
+			AddressService.SetFieldUsdtNetUnrealized(pos,
+				 (coinPrice-AddressService.GetFieldAveragePurchasePrice(os)) * AddressService.GetFieldBalance(os)
+				 )
 		end
-		if addrRO.Balance < 0 && addrRO.TimestampCreated > unitTs
-			AddressService.SetFieldTimestampCreated(pos, unitTs)
-		end
-		if addrRO.TimestampLastActive < unitTs
-			AddressService.SetFieldTimestampLastActive(pos, unitTs)
-		end
-		AddressService.SetFieldDiffBalance(pos, unitAmount)
-		AddressService.SetFieldUsdtNetRealized(pos,
-			 AddressService.GetFieldUsdtReceived4Output(os) - AddressService.GetFieldUsdtPayed4Input(os)
-			 )
-		AddressService.SetFieldUsdtNetUnrealized(pos,
-			 (coinPrice-AddressService.GetFieldAveragePurchasePrice(os)) * AddressService.GetFieldBalance(os)
-			 )
-		nothing
+		return nothing
 		end
 
 # New Procedure Purpose: CalcUint
@@ -683,14 +691,7 @@ AddressService.Open()
 		results[resultCounter] = DoCalculations(thisPosStart, thisPosEnd, tsStart)
 		resultCounter += 1
 		nextPosRef = thisPosEnd + 1
-		for i in 1:lenTxs
-			_ind = thisPosStart+i-1
-			touch!( sumAddrId[_ind],
-							sumTagNew[_ind],
-							sumAmount[_ind],
-							sumTs[_ind]
-				)
-		end
+		touch!(thisPosStart, thisPosEnd)
 		next!(prog)
 	end
 
