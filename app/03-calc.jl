@@ -185,10 +185,10 @@ AddressService.Open()
 			end
 			AddressService.SetFieldDiffBalance(pos, sumAmount[_ind])
 			AddressService.SetFieldUsdtNetRealized(pos,
-				 AddressService.GetFieldUsdtReceived4Output(os) - AddressService.GetFieldUsdtPayed4Input(os)
+				 AddressService.GetFieldUsdtReceived4Output(pos) - AddressService.GetFieldUsdtPayed4Input(pos)
 				 )
 			AddressService.SetFieldUsdtNetUnrealized(pos,
-				 (coinPrice-AddressService.GetFieldAveragePurchasePrice(os)) * AddressService.GetFieldBalance(os)
+				 (coinPrice-AddressService.GetFieldAveragePurchasePrice(pos)) * AddressService.GetFieldBalance(pos)
 				 )
 		end
 		return nothing
@@ -672,14 +672,13 @@ AddressService.Open()
 
 	# go
 	nextPosRef   = 1
-	thisPosEnd   = posStart - 10
-	thisPosStart = posStart - 10
+	thisPosStart = 1
+	thisPosEnd   = 1
 	resultsLen   = (toDate - fromDate).value / 1000 / seconds.Hour / 3
 	resultsLen   = ceil(Int, resultsLen)
-	results      = Vector{ResultCalculations}(undef,resultsLen)
-	resultCounter= 1
-	prog = ProgressMeter.Progress(resultsLen; barlen=49, color=:blue)
-	for dt in fromDate:Hour(3):toDate
+	results      = Vector{ResultCalculations}()
+	prog = ProgressMeter.Progress(resultsLen; barlen=36, color=:blue)
+	for dt in fromDate:Hour(3):(fromDate+Month(1))
 		tsStart = dt2unix(dt)
 		thisPosStart = findnext(x-> x >= tsStart, sumTs, nextPosRef)
 		thisPosEnd   = findnext(x-> x > tsStart + 3seconds.Hour, sumTs, nextPosRef) - 1
@@ -688,10 +687,13 @@ AddressService.Open()
 			_ind = thisPosStart+i-1
 			sumTagNew[_ind] = AddressService.isNew(sumAddrId[_ind])
 		end
-		results[resultCounter] = DoCalculations(thisPosStart, thisPosEnd, tsStart)
-		resultCounter += 1
+		push!(results, DoCalculations(thisPosStart, thisPosEnd, tsStart))
 		nextPosRef = thisPosEnd + 1
 		touch!(thisPosStart, thisPosEnd)
+		if hour(dt) == 0
+			JLD2.save("/mnt/data/tmp/results.jld2", "results", results)
+			@info "Savepoint at $dt"
+		end
 		next!(prog)
 	end
 
