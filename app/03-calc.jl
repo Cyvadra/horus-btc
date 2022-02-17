@@ -667,8 +667,7 @@ AddressService.Open()
 	nextPosRef   = 1
 	thisPosStart = 1
 	thisPosEnd   = 1
-	resultsLen   = (toDate - fromDate).value / 1000 / seconds.Hour / 3
-	resultsLen   = ceil(Int, resultsLen)
+	resultsLen   = findlast(x->x<=dt2unix(toDate), sumTs) - findfirst(x->x>=dt2unix(fromDate), sumTs) + 1
 	results      = Vector{ResultCalculations}()
 	prog = ProgressMeter.Progress(resultsLen; barlen=36, color=:blue)
 	for dt in fromDate:Hour(3):toDate
@@ -709,7 +708,7 @@ AddressService.Open()
 			JLD2.save("/mnt/data/tmp/results.jld2", "results", results)
 			@info "Savepoint at $dt"
 		end
-		next!(prog)
+		next!( prog; step=(thisPosEnd - thisPosStart + 1) )
 	end
 
 
