@@ -28,14 +28,14 @@ function pretreat(v::Vector)
 	return x ./ m
 	end
 
-function PlotDF(df::DataFrame, xName::String="timestamp")::Plots.Plot{Plots.PlotlyBackend}
+function PlotDF(df::DataFrame, xName::String="timestamp")
 	xrow     = df[:,xName]
 	colNames = string.(collect(keys(copy(df[1,:]))))
 	filter!(x->x!==xName, colNames)
 	# Plots.plot( xrow, log2.(df[:,1].+1); label=colNames[1] )
-	Plots.plot( xrow, log2.(df[:,1].+1); color="blue", alpha=0.2 );
+	Plots.plot( xrow, normalize(df[:,1].+1); color="blue", alpha=0.2 );
 	for n in colNames[2:end]
-		Plots.plot!( xrow, log2.(df[:,n].+1); color="blue", alpha=0.2 )
+		Plots.plot!( xrow, normalize(df[:,n].+1); color="blue", alpha=0.2 )
 	end
 	end
 
@@ -45,10 +45,14 @@ Plots.plot!( d.Timestamps[][1:2:end],
 
 marketData = load("./btc_usdt.market.jld2")
 
+tsFirst = df[1, :timestamp]
+tsLast  = df[end, :timestamp]
+
 numRows = nrow(df)
-xs = marketData["D1"].Timestamps.x[1:numRows]
-ys = marketData["D1"].Close.x[1:numRows]
-Plots.plot!(xs, pretreat(ys); label="market", color="green")
+tmpInds = findfirst(x->x>=tsFirst, marketData["H3"].Timestamps.x):findlast(x->x<=tsLast, marketData["H3"].Timestamps.x)
+xs = marketData["H3"].Timestamps.x[tmpInds]
+ys = marketData["H3"].Close.x[tmpInds]
+Plots.plot!(xs, normalize(ys); label="market", color="green")
 
 
 
