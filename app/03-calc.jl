@@ -544,7 +544,7 @@ AddressService.Open()
 		amountRealizedProfitBillion::Float64
 		amountRealizedLossBillion::Float64
 		end
-	function DoCalculations(fromN::Int, toN::Int, ts::Int32)::ResultCalculations
+	function DoCalculations!(fromN::Int, toN::Int, tpl::Base.RefValue{ResultCalculations})::Nothing
 		cacheAddrId = sumAddrId[fromN:toN]
 		cacheTagNew = sumTagNew[fromN:toN]
 		cacheAmount = sumAmount[fromN:toN]
@@ -559,84 +559,77 @@ AddressService.Open()
 				)
 		end
 		wait.(listTask)
-		return ResultCalculations(
-				ts,
-			# CellAddressComparative
-				listTask[1].result.numTotalActive,
-				listTask[1].result.numTotalRows,
-				listTask[1].result.amountTotalTransfer,
-				listTask[1].result.percentBiasReference,
-				listTask[1].result.percentNumNew,
-				listTask[1].result.percentNumSending,
-				listTask[1].result.percentNumReceiving,
-			# CellAddressDirection
-				listTask[2].result.numChargePercentBelow10,
-				listTask[2].result.numChargePercentBelow25,
-				listTask[2].result.numChargePercentBelow50,
-				listTask[2].result.numChargePercentBelow80,
-				listTask[2].result.numChargePercentBelow95,
-				listTask[2].result.numChargePercentEquals100,
-				listTask[2].result.numWithdrawPercentBelow10,
-				listTask[2].result.numWithdrawPercentBelow25,
-				listTask[2].result.numWithdrawPercentBelow50,
-				listTask[2].result.numWithdrawPercentAbove80,
-				listTask[2].result.numWithdrawPercentAbove95,
-				listTask[2].result.amountChargePercentBelow10,
-				listTask[2].result.amountChargePercentBelow25,
-				listTask[2].result.amountChargePercentBelow50,
-				listTask[2].result.amountChargePercentBelow80,
-				listTask[2].result.amountChargePercentBelow95,
-				listTask[2].result.amountChargePercentEquals100,
-				listTask[2].result.amountWithdrawPercentBelow10,
-				listTask[2].result.amountWithdrawPercentBelow25,
-				listTask[2].result.amountWithdrawPercentBelow50,
-				listTask[2].result.amountWithdrawPercentAbove80,
-				listTask[2].result.amountWithdrawPercentAbove95,
-			# CellAddressAccumulation
-				listTask[3].result.numRecentD3Sending,
-				listTask[3].result.numWakeupW1Sending,
-				listTask[3].result.numWakeupM1Sending,
-				listTask[3].result.numRecentD3Buying,
-				listTask[3].result.numWakeupW1Buying,
-				listTask[3].result.numWakeupM1Buying,
-				listTask[3].result.numContinuousD1Sending,
-				listTask[3].result.numContinuousD3Sending,
-				listTask[3].result.numContinuousW1Sending,
-				listTask[3].result.numContinuousD1Buying,
-				listTask[3].result.numContinuousD3Buying,
-				listTask[3].result.numContinuousW1Buying,
-				listTask[3].result.amountRecentD3Sending,
-				listTask[3].result.amountWakeupW1Sending,
-				listTask[3].result.amountWakeupM1Sending,
-				listTask[3].result.amountRecentD3Buying,
-				listTask[3].result.amountWakeupW1Buying,
-				listTask[3].result.amountWakeupM1Buying,
-				listTask[3].result.amountContinuousD1Sending,
-				listTask[3].result.amountContinuousD3Sending,
-				listTask[3].result.amountContinuousW1Sending,
-				listTask[3].result.amountContinuousD1Buying,
-				listTask[3].result.amountContinuousD3Buying,
-				listTask[3].result.amountContinuousW1Buying,
-			# CellAddressSupplier
-				listTask[4].result.balanceSupplierMean,
-				listTask[4].result.balanceSupplierStd,
-				listTask[4].result.balanceSupplierPercent20,
-				listTask[4].result.balanceSupplierPercent40,
-				listTask[4].result.balanceSupplierMiddle,
-				listTask[4].result.balanceSupplierPercent60,
-				listTask[4].result.balanceSupplierPercent80,
-				listTask[4].result.balanceSupplierPercent95,
-				listTask[4].result.amountSupplierBalanceBelow20,
-				listTask[4].result.amountSupplierBalanceBelow40,
-				listTask[4].result.amountSupplierBalanceBelow60,
-				listTask[4].result.amountSupplierBalanceBelow80,
-				listTask[4].result.amountSupplierBalanceAbove95,
-			# CellAddressUsdtDiff
-				listTask[5].result.numRealizedProfit,
-				listTask[5].result.numRealizedLoss,
-				listTask[5].result.amountRealizedProfitBillion,
-				listTask[5].result.amountRealizedLossBillion,
-		)
+		tpl.x.numTotalActive += listTask[1].result.numTotalActive
+		tpl.x.numTotalRows += listTask[1].result.numTotalRows
+		tpl.x.amountTotalTransfer += listTask[1].result.amountTotalTransfer
+		tpl.x.percentBiasReference += listTask[1].result.percentBiasReference
+		tpl.x.percentNumNew += listTask[1].result.percentNumNew
+		tpl.x.percentNumSending += listTask[1].result.percentNumSending
+		tpl.x.percentNumReceiving += listTask[1].result.percentNumReceiving
+		tpl.x.numChargePercentBelow10 += listTask[2].result.numChargePercentBelow10
+		tpl.x.numChargePercentBelow25 += listTask[2].result.numChargePercentBelow25
+		tpl.x.numChargePercentBelow50 += listTask[2].result.numChargePercentBelow50
+		tpl.x.numChargePercentBelow80 += listTask[2].result.numChargePercentBelow80
+		tpl.x.numChargePercentBelow95 += listTask[2].result.numChargePercentBelow95
+		tpl.x.numChargePercentEquals100 += listTask[2].result.numChargePercentEquals100
+		tpl.x.numWithdrawPercentBelow10 += listTask[2].result.numWithdrawPercentBelow10
+		tpl.x.numWithdrawPercentBelow25 += listTask[2].result.numWithdrawPercentBelow25
+		tpl.x.numWithdrawPercentBelow50 += listTask[2].result.numWithdrawPercentBelow50
+		tpl.x.numWithdrawPercentAbove80 += listTask[2].result.numWithdrawPercentAbove80
+		tpl.x.numWithdrawPercentAbove95 += listTask[2].result.numWithdrawPercentAbove95
+		tpl.x.amountChargePercentBelow10 += listTask[2].result.amountChargePercentBelow10
+		tpl.x.amountChargePercentBelow25 += listTask[2].result.amountChargePercentBelow25
+		tpl.x.amountChargePercentBelow50 += listTask[2].result.amountChargePercentBelow50
+		tpl.x.amountChargePercentBelow80 += listTask[2].result.amountChargePercentBelow80
+		tpl.x.amountChargePercentBelow95 += listTask[2].result.amountChargePercentBelow95
+		tpl.x.amountChargePercentEquals100 += listTask[2].result.amountChargePercentEquals100
+		tpl.x.amountWithdrawPercentBelow10 += listTask[2].result.amountWithdrawPercentBelow10
+		tpl.x.amountWithdrawPercentBelow25 += listTask[2].result.amountWithdrawPercentBelow25
+		tpl.x.amountWithdrawPercentBelow50 += listTask[2].result.amountWithdrawPercentBelow50
+		tpl.x.amountWithdrawPercentAbove80 += listTask[2].result.amountWithdrawPercentAbove80
+		tpl.x.amountWithdrawPercentAbove95 += listTask[2].result.amountWithdrawPercentAbove95
+		tpl.x.numRecentD3Sending += listTask[3].result.numRecentD3Sending
+		tpl.x.numWakeupW1Sending += listTask[3].result.numWakeupW1Sending
+		tpl.x.numWakeupM1Sending += listTask[3].result.numWakeupM1Sending
+		tpl.x.numRecentD3Buying += listTask[3].result.numRecentD3Buying
+		tpl.x.numWakeupW1Buying += listTask[3].result.numWakeupW1Buying
+		tpl.x.numWakeupM1Buying += listTask[3].result.numWakeupM1Buying
+		tpl.x.numContinuousD1Sending += listTask[3].result.numContinuousD1Sending
+		tpl.x.numContinuousD3Sending += listTask[3].result.numContinuousD3Sending
+		tpl.x.numContinuousW1Sending += listTask[3].result.numContinuousW1Sending
+		tpl.x.numContinuousD1Buying += listTask[3].result.numContinuousD1Buying
+		tpl.x.numContinuousD3Buying += listTask[3].result.numContinuousD3Buying
+		tpl.x.numContinuousW1Buying += listTask[3].result.numContinuousW1Buying
+		tpl.x.amountRecentD3Sending += listTask[3].result.amountRecentD3Sending
+		tpl.x.amountWakeupW1Sending += listTask[3].result.amountWakeupW1Sending
+		tpl.x.amountWakeupM1Sending += listTask[3].result.amountWakeupM1Sending
+		tpl.x.amountRecentD3Buying += listTask[3].result.amountRecentD3Buying
+		tpl.x.amountWakeupW1Buying += listTask[3].result.amountWakeupW1Buying
+		tpl.x.amountWakeupM1Buying += listTask[3].result.amountWakeupM1Buying
+		tpl.x.amountContinuousD1Sending += listTask[3].result.amountContinuousD1Sending
+		tpl.x.amountContinuousD3Sending += listTask[3].result.amountContinuousD3Sending
+		tpl.x.amountContinuousW1Sending += listTask[3].result.amountContinuousW1Sending
+		tpl.x.amountContinuousD1Buying += listTask[3].result.amountContinuousD1Buying
+		tpl.x.amountContinuousD3Buying += listTask[3].result.amountContinuousD3Buying
+		tpl.x.amountContinuousW1Buying += listTask[3].result.amountContinuousW1Buying
+		tpl.x.balanceSupplierMean += listTask[4].result.balanceSupplierMean
+		tpl.x.balanceSupplierStd += listTask[4].result.balanceSupplierStd
+		tpl.x.balanceSupplierPercent20 += listTask[4].result.balanceSupplierPercent20
+		tpl.x.balanceSupplierPercent40 += listTask[4].result.balanceSupplierPercent40
+		tpl.x.balanceSupplierMiddle += listTask[4].result.balanceSupplierMiddle
+		tpl.x.balanceSupplierPercent60 += listTask[4].result.balanceSupplierPercent60
+		tpl.x.balanceSupplierPercent80 += listTask[4].result.balanceSupplierPercent80
+		tpl.x.balanceSupplierPercent95 += listTask[4].result.balanceSupplierPercent95
+		tpl.x.amountSupplierBalanceBelow20 += listTask[4].result.amountSupplierBalanceBelow20
+		tpl.x.amountSupplierBalanceBelow40 += listTask[4].result.amountSupplierBalanceBelow40
+		tpl.x.amountSupplierBalanceBelow60 += listTask[4].result.amountSupplierBalanceBelow60
+		tpl.x.amountSupplierBalanceBelow80 += listTask[4].result.amountSupplierBalanceBelow80
+		tpl.x.amountSupplierBalanceAbove95 += listTask[4].result.amountSupplierBalanceAbove95
+		tpl.x.numRealizedProfit += listTask[5].result.numRealizedProfit
+		tpl.x.numRealizedLoss += listTask[5].result.numRealizedLoss
+		tpl.x.amountRealizedProfitBillion += listTask[5].result.amountRealizedProfitBillion
+		tpl.x.amountRealizedLossBillion += listTask[5].result.amountRealizedLossBillion
+		return nothing
 		end
 
 
@@ -687,10 +680,32 @@ AddressService.Open()
 			_ind = thisPosStart+i-1
 			sumTagNew[_ind] = AddressService.isNew(sumAddrId[_ind])
 		end
-		push!(results, DoCalculations(thisPosStart, thisPosEnd, tsStart))
+		resultTpl = ResultCalculations(zeros(length(ResultCalculations.types))...)
+		resultTpl.timestamp = tsStart
+		lastI = 0
+		# calc loop, in bach
+		for i in thisPosStart:10:thisPosEnd
+			lastI = i+9
+			DoCalculations!(i, lastI, Ref(resultTpl))
+			touch!(i, lastI)
+		end
+		for i in (lastI+1):thisPosEnd
+			DoCalculations!(i, i, Ref(resultTpl))
+			touch!(i, i)
+		end
+		# debug
+		if isinf(resultTpl.amountRealizedProfitBillion)
+			@warn "inf detected"
+			@show fromDate
+			@show toDate
+			@show thisPosStart
+			@show thisPosEnd
+			break
+		end
+		push!(results, resultTpl)
 		nextPosRef = thisPosEnd + 1
-		touch!(thisPosStart, thisPosEnd)
-		if hour(dt) == 0
+		# auto save
+		if day(dt) == 1 && hour(dt) == 0
 			JLD2.save("/mnt/data/tmp/results.jld2", "results", results)
 			@info "Savepoint at $dt"
 		end
