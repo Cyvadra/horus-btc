@@ -706,7 +706,9 @@ AddressService.Open()
 		# auto save
 		if day(dt) == 1 && hour(dt) == 0
 			JLD2.save("/mnt/data/tmp/results.jld2", "results", results)
+			println()
 			@info "Savepoint at $dt"
+			println()
 		end
 		next!( prog; step=(thisPosEnd - thisPosStart + 1) )
 	end
