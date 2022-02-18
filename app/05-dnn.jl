@@ -77,7 +77,8 @@ resultsCalculated = ResultCalculations[]
 	Previous $includePrev data, auto-configure weight
 =#
 	function GenerateXAtIndexI(i::Int)::Vector{Float32}
-		return results2vector(resultsCalculated[i-includePrev+1:i])
+		# return results2vector(resultsCalculated[i-includePrev+1:i])
+		return result2vector(resultsCalculated[i])
 		end
 
 
@@ -91,7 +92,7 @@ resultsCalculated = ResultCalculations[]
 
 # DateTime alignment
 	originalfromDate = DateTime(2018,1, 1, 0, 0, 0)
-	originaltoDate   = DateTime(2021,5,31,23,59,59)
+	originaltoDate   = DateTime(2021,5,31,23,00,00)
 	fromDate = originalfromDate + Hour(3*includePrev)
 	toDate   = originaltoDate - Hour(3*includePrev)
 	tsFromDate   = dt2unix(fromDate)
@@ -99,27 +100,48 @@ resultsCalculated = ResultCalculations[]
 	y_base_index = findfirst(x->x>tsFromDate, df.timestamp)-1
 	x_base_index = findfirst(x->x.timestamp>tsFromDate, resultsCalculated)-1
 	@assert df[y_base_index, :timestamp] == resultsCalculated[x_base_index].timestamp == tsFromDate
-	y_last_index = findlast(x->x<=tsToDate, df.timestamp)
-	x_last_index = findlast(x->x.timestamp<=tsToDate, resultsCalculated)
-	@assert df[y_last_index, :timestamp] == resultsCalculated[x_last_index].timestamp == tsToDate
+	x_last_index = findlast(x->0<x.timestamp<=tsToDate, resultsCalculated)
+	y_last_index = findlast(x->0<x<=resultsCalculated[x_last_index].timestamp, df.timestamp)
+	@assert df[y_last_index, :timestamp] == resultsCalculated[x_last_index].timestamp <= tsToDate
 	@assert y_last_index - y_base_index == x_last_index - x_base_index
 
+	X = GenerateXAtIndexI.(collect(x_base_index:x_last_index))
+	Y = GenerateYAtRowI.(collect(y_base_index:y_last_index))
 
-
-modelWidth    = 512
 yLength       = 16
+inputSize     = length(X[1])
+modelWidth    = 256
+data          = zip(X,Y)
+nEpoch        = 30
+nThrottle     = 10
 
-model = Chain(
-		Parallel(vcat, Dense(inputSize, inputSize), log2),
-		Dense(2inputSize, 2inputSize),
-		Dense(2inputSize, modelWidth),
+m = Chain(
+		Dense(inputSize, modelWidth),
 		Dense(modelWidth, modelWidth),
 		Dense(modelWidth, yLength),
 	)
+ps = params(m)
+for i in [1,3,5]
+	ps[i] ./= 1e17
+end
+for i in [2,4,6]
+	ps[i] .= 1e-3
+end
 
 
+opt        = ADAM(1e-18)
+tx, ty     = (X[5], Y[5])
+evalcb     = () -> @show loss(tx, ty)
+loss(x, y) = Flux.Losses.crossentropy(m(x), y)
+
+Flux.train!(loss, ps, data, opt)
+@show loss(tx, ty)
 
 
+for epoch = 1:nEpoch
+	@info "Epoch $(epoch) / $nEpoch"
+	Flux.train!(loss, ps, data, opt, cb = Flux.throttle(evalcb, nThrottle))
+	end
 
 
 

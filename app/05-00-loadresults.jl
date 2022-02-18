@@ -97,11 +97,11 @@
 	function result2vector(res::ResultCalculations)::Vector{Float32}
 		ret = Vector{Float32}(undef, _len-1)
 		for i in 2:_len
-			if i in need_log2
-				ret[i-1] = log2(getfield(res,i))
-			else
+			# if i in need_log2
+			# 	ret[i-1] = log2(getfield(res,i))
+			# else
 				ret[i-1] = getfield(res,i)
-			end
+			# end
 		end
 		return ret
 		end
