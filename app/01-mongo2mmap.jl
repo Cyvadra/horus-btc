@@ -109,6 +109,9 @@ function GetCoinsInputByTxid(txid::String)::Vector{Mongoc.BSON}
 function GetCoinsOutputByTxid(txid::String)::Vector{Mongoc.BSON}
 	collect( Mongoc.find(MongoCollection("coins"), Mongoc.BSON("{\"mintTxid\":\"$txid\"}")) )
 	end
+function GetCoinsByAddress(addr::String)::Vector{Mongoc.BSON}
+	collect( Mongoc.find(MongoCollection("coins"), Mongoc.BSON("{\"address\":\"$addr\"}")) )
+	end
 
 # Basic: Global result procedure
 function addr2id(addr::String)::UInt32
