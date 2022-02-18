@@ -172,9 +172,11 @@ AddressService.Open()
 					AddressService.SetFieldTimestampLastReceived(pos, sumTs[_ind])
 				end
 				AddressService.SetFieldDiffUsdtPayed4Input(pos, coinUsdt)
-				if tmpBalance + sumAmount[_ind] > 1e-9
+				if tmpBalance > 1e-9
 					AddressService.SetFieldAveragePurchasePrice(pos,
 						(coinUsdt + tmpAveragePurchasePrice * tmpBalance) / (tmpBalance + sumAmount[_ind]) )
+				else
+					AddressService.SetFieldAveragePurchasePrice(pos, coinPrice)
 				end
 			end
 			if tmpBalance < 0 && tmpTimestampCreated > sumTs[_ind]
@@ -188,7 +190,8 @@ AddressService.Open()
 				 AddressService.GetFieldUsdtReceived4Output(pos) - AddressService.GetFieldUsdtPayed4Input(pos)
 				 )
 			AddressService.SetFieldUsdtNetUnrealized(pos,
-				 (coinPrice-AddressService.GetFieldAveragePurchasePrice(pos)) * AddressService.GetFieldBalance(pos)
+				 ( coinPrice - AddressService.GetFieldAveragePurchasePrice(pos) )
+				 * AddressService.GetFieldBalance(pos)
 				 )
 		end
 		return nothing
