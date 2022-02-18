@@ -10,6 +10,8 @@
 9. [ ] Consider real-time update.
 
 
+19. [ ] Bugfix: tx record order.
+
 
 
 
