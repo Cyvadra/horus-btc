@@ -663,9 +663,9 @@ AddressService.Open()
 	nextPosRef   = 1
 	thisPosStart = 1
 	thisPosEnd   = 1
-	resultsLen   = findlast(x->x<=dt2unix(toDate), sumTs) - findfirst(x->x>=dt2unix(fromDate), sumTs) + 1
+	barLen   = findlast(x->x<=dt2unix(toDate), sumTs) - findfirst(x->x>=dt2unix(fromDate), sumTs) + 1
 	results      = Vector{ResultCalculations}()
-	prog = ProgressMeter.Progress(resultsLen; barlen=36, color=:blue)
+	prog = ProgressMeter.Progress(barLen; barlen=36, color=:blue)
 	for dt in fromDate:Hour(3):toDate
 		tsStart = dt2unix(dt)
 		thisPosStart = findnext(x-> x >= tsStart, sumTs, nextPosRef)
@@ -679,15 +679,8 @@ AddressService.Open()
 		resultTpl.timestamp = tsStart
 		lastI = 0
 		# calc loop, in bach
-		for i in thisPosStart:10:thisPosEnd
-			lastI = i+9
-			DoCalculations!(i, lastI, Ref(resultTpl))
-			touch!(i, lastI)
-		end
-		for i in (lastI+1):thisPosEnd
-			DoCalculations!(i, i, Ref(resultTpl))
-			touch!(i, i)
-		end
+		DoCalculations!(thisPosStart, thisPosEnd, Ref(resultTpl))
+		touch!(thisPosStart, thisPosEnd)
 		# debug
 		if isinf(resultTpl.amountRealizedProfitBillion)
 			@warn "inf detected"
