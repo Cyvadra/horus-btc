@@ -643,15 +643,8 @@ AddressService.Open()
 	# Sum data before, you can save this to a jld2 file
 	# we suggest use the start time of market data, 2017
 	# prog = ProgressMeter.Progress(posStart-2; barlen=64, color=:blue)
-	# for i in 1:posStart-1
-	# 	addrId, amount, ts = TxRowsDF[i,:]
-	# 	touch!(Ref(TransactionRow(
-	# 		addrId, AddressService.isNew(addrId), amount, ts
-	# 		)))
-	# 	next!(prog)
-	# end
-	# now it's time to process real stuff
 
+	# now it's time to process real stuff
 	tmpLen = nrow(TxRowsDF)
 	# pre alloc mem
 	sumAddrId = deepcopy(TxRowsDF[posStart:tmpLen, :AddressId])
