@@ -120,20 +120,14 @@ m = Chain(
 		Dense(modelWidth, modelWidth),
 		Dense(modelWidth, yLength),
 	)
-ps = params(m)
-for i in [1,3,5]
-	ps[i] ./= 1e17
-end
-for i in [2,4,6]
-	ps[i] .= 1e-3
-end
+ps = params(m);
 
 
-opt        = ADAM(1e-18)
+opt        = ADAM()
 tx, ty     = (X[5], Y[5])
 evalcb     = () -> @show loss(tx, ty)
-loss(x, y) = Flux.Losses.crossentropy(m(x), y)
-
+loss(x, y) = Flux.Losses.mae(m(x), y)
+@show loss(tx, ty)
 Flux.train!(loss, ps, data, opt)
 @show loss(tx, ty)
 
