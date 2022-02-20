@@ -2,8 +2,10 @@ using Flux
 using DataFrames
 using FinanceDB
 using Dates
+using JLD2
 include("./05-00-loadresults.jl")
 resultsCalculated = ResultCalculations[]
+resultsCalculated = JLD2.load("/mnt/data/tmp/results.jld2", "results")
 
 # Params
 	includePrev = 12 # ticks, [current-x+1:current]
