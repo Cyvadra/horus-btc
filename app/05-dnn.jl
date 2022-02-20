@@ -110,12 +110,22 @@ resultsCalculated = JLD2.load("/mnt/data/tmp/results.jld2", "results")
 	X = GenerateXAtIndexI.(collect(x_base_index:x_last_index))
 	Y = GenerateYAtRowI.(collect(y_base_index:y_last_index))
 
-yLength       = 16
-inputSize     = length(X[1])
-modelWidth    = 256
-data          = zip(X,Y)
+	tmpMidN = round(Int, length(X)*0.8)
+	tmpIndexes = sortperm!(rand(tmpMidN))
+	training_x = X[tmpIndexes]
+	training_y = X[tmpIndexes]
+	test_x = X[tmpMidN+1:end]
+	test_y = Y[tmpMidN+1:end]
+
+modelWidth    = 512
 nEpoch        = 30
 nThrottle     = 10
+
+
+
+yLength   = round(Int, length(GonnaHappen.types)*length(stepsNext))
+inputSize = length(X[1])
+data      = zip(training_x, training_y)
 
 m = Chain(
 		Dense(inputSize, modelWidth),
@@ -126,13 +136,12 @@ ps = params(m);
 
 
 opt        = ADAM()
-tx, ty     = (X[5], Y[5])
+tx, ty     = (test_x[5], test_y[5])
 evalcb     = () -> @show loss(tx, ty)
 loss(x, y) = Flux.Losses.mae(m(x), y)
 @show loss(tx, ty)
 Flux.train!(loss, ps, data, opt)
 @show loss(tx, ty)
-
 
 for epoch = 1:nEpoch
 	@info "Epoch $(epoch) / $nEpoch"
