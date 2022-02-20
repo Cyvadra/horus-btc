@@ -98,7 +98,7 @@
 		ret = Vector{Float32}(undef, _len-1)
 		for i in 2:_len
 			if i in need_log2
-				ret[i-1] = log2(getfield(res,i))
+				ret[i-1] = log2(getfield(res,i)+1)
 			else
 				ret[i-1] = getfield(res,i)
 			end
@@ -111,7 +111,7 @@
 		for i in 1:length(v)
 			for j in 2:_len
 				if j in need_log2
-					ret[(i-1)*lenUnits + j-1] = log2(getfield(v[i],j))
+					ret[(i-1)*lenUnits + j-1] = log2(getfield(v[i],j)+1)
 				else
 					ret[(i-1)*lenUnits + j-1] = getfield(v[i],j)
 				end

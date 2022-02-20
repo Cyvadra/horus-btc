@@ -112,10 +112,10 @@ resultsCalculated = JLD2.load("/mnt/data/tmp/results.jld2", "results")
 
 	tmpMidN = round(Int, length(X)*0.8)
 	tmpIndexes = sortperm(rand(tmpMidN))
-	training_x = X[tmpIndexes]
-	training_y = Y[tmpIndexes]
-	test_x = X[tmpMidN+1:end]
-	test_y = Y[tmpMidN+1:end]
+	training_x = deepcopy(X[tmpIndexes])
+	training_y = deepcopy(Y[tmpIndexes])
+	test_x = deepcopy(X[tmpMidN+1:end])
+	test_y = deepcopy(Y[tmpMidN+1:end])
 
 modelWidth    = 512
 nEpoch        = 30
@@ -136,7 +136,7 @@ ps = params(m);
 
 
 opt        = ADAM()
-tx, ty     = (test_x[5], test_y[5])
+tx, ty     = (training_x[5], training_y[5])
 evalcb     = () -> @show loss(tx, ty)
 loss(x, y) = Flux.Losses.mse(m(x), y)
 @show loss(tx, ty)
