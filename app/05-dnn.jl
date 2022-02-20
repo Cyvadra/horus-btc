@@ -130,6 +130,8 @@ data      = zip(training_x, training_y)
 m = Chain(
 		Dense(inputSize, modelWidth),
 		Dense(modelWidth, modelWidth),
+		Dense(modelWidth, modelWidth, tanh_fast),
+		Dense(modelWidth, modelWidth),
 		Dense(modelWidth, yLength),
 	)
 ps = params(m);
