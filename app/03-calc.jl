@@ -676,8 +676,12 @@ AddressService.Open()
 		resultTpl.timestamp = tsStart
 		lastI = 0
 		# calc loop, in bach
-		DoCalculations!(thisPosStart, thisPosEnd, Ref(resultTpl))
-		touch!(thisPosStart, thisPosEnd)
+		t = @timed DoCalculations!(thisPosStart, thisPosEnd, Ref(resultTpl))
+		println()
+		@info "Calculation Time: $(Float16(t.time))s, gc $(Float16(t.gctime)), $(Float16(t.bytes / 1024))KB"
+		t = @timed touch!(thisPosStart, thisPosEnd)
+		@info "Calculation Time: $(Float16(t.time))s, gc $(Float16(t.gctime)), $(Float16(t.bytes / 1024))KB"
+		println()
 		# debug
 		if isinf(resultTpl.amountRealizedProfitBillion)
 			@warn "inf detected"
