@@ -15,6 +15,7 @@ shuffleRng   = Random.MersenneTwister(10086)
 exNumTxRows  = round(Int64, 100e8)
 exNumTx      = round(Int64, 60e8)
 fMode        = "w+"
+flagRebuild  = false
 
 # Var
 GlobalStat   = ThreadSafeDict{String,Int64}()
