@@ -1,0 +1,165 @@
+> db.getCollectionInfos()
+[
+        {
+                "name" : "blocks",
+                "type" : "collection",
+                "options" : {
+
+                },
+                "info" : {
+                        "readOnly" : false,
+                        "uuid" : UUID("6522480b-00e1-41a3-8a63-6f6fc4369dbf")
+                },
+                "idIndex" : {
+                        "v" : 2,
+                        "key" : {
+                                "_id" : 1
+                        },
+                        "name" : "_id_"
+                }
+        },
+        {
+                "name" : "cache",
+                "type" : "collection",
+                "options" : {
+  
+                },
+                "info" : {
+                        "readOnly" : false,
+                        "uuid" : UUID("7c958a33-60fc-45b0-9556-b539e486fedd")
+                },
+                "idIndex" : {
+                        "v" : 2,
+                        "key" : {
+                                "_id" : 1
+                        },
+                        "name" : "_id_"
+                }
+        },
+        {
+                "name" : "coins",
+                "type" : "collection",
+                "options" : {
+  
+                },
+                "info" : {
+                        "readOnly" : false,
+                        "uuid" : UUID("815fe2cb-62e8-4eb3-86b9-38e19c59f0ee")
+                },
+                "idIndex" : {
+                        "v" : 2,
+                        "key" : {
+                                "_id" : 1
+                        },
+                        "name" : "_id_"
+                }
+        },
+        {
+                "name" : "events",
+                "type" : "collection",
+                "options" : {
+  
+                },
+                "info" : {
+                        "readOnly" : false,
+                        "uuid" : UUID("c4a58a65-5a8b-4081-9b8b-f64a5f997e6b")
+                },
+                "idIndex" : {
+                        "v" : 2,
+                        "key" : {
+                                "_id" : 1
+                        },
+                        "name" : "_id_"
+                }
+        },
+        {
+                "name" : "ratelimits",
+                "type" : "collection",
+                "options" : {
+  
+                },
+                "info" : {
+                        "readOnly" : false,
+                        "uuid" : UUID("13fca301-4275-4e6d-b3e5-5aeead113e53")
+                },
+                "idIndex" : {
+                        "v" : 2,
+                        "key" : {
+                                "_id" : 1
+                        },
+                        "name" : "_id_"
+                }
+        },
+        {
+                "name" : "state",
+                "type" : "collection",
+                "options" : {
+  
+                },
+                "info" : {
+                        "readOnly" : false,
+                        "uuid" : UUID("14c4a5c9-332d-48ca-971c-c34cb978e341")
+                },
+                "idIndex" : {
+                        "v" : 2,
+                        "key" : {
+                                "_id" : 1
+                        },
+                        "name" : "_id_"
+                }
+        },
+        {
+                "name" : "transactions",
+                "type" : "collection",
+                "options" : {
+  
+                },
+                "info" : {
+                        "readOnly" : false,
+                        "uuid" : UUID("16628ce9-fb95-4d8f-8c81-6c8803c3750d")
+                },
+                "idIndex" : {
+                        "v" : 2,
+                        "key" : {
+                                "_id" : 1
+                        },
+                        "name" : "_id_"
+                }
+        },
+        {
+                "name" : "walletaddresses",
+                "type" : "collection",
+                "options" : {
+  
+                },
+                "info" : {
+                        "readOnly" : false,
+                        "uuid" : UUID("3fe3af47-9a36-4871-b7fd-7344c828ed6b")
+                },
+                "idIndex" : {
+                        "v" : 2,
+                        "key" : {
+                                "_id" : 1
+                        },
+                        "name" : "_id_"
+                }
+        },
+        {
+                "name" : "wallets",
+                "type" : "collection",
+                "options" : {
+
+                },
+                "info" : {
+                        "readOnly" : false,
+                        "uuid" : UUID("57e4a01d-7e0e-4103-99f1-6ac1a3cd93dc")
+                },
+                "idIndex" : {
+                        "v" : 2,
+                        "key" : {
+                                "_id" : 1
+                        },
+                        "name" : "_id_"
+                }
+        }
+]
