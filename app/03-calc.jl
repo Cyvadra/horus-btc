@@ -678,12 +678,12 @@ AddressService.Open()
 		# calc loop, in bach
 		t = @timed DoCalculations!(thisPosStart, thisPosEnd, Ref(resultTpl))
 		println()
-		@info "Calculation Time: $(Float16(t.time))s, gc $(Float16(t.gctime)), $(Float16(t.bytes / 1024))KB"
+		@info "Calculation Time: $(Float16(t.time))s, gc $(Float16(t.gctime)), $(Float32(t.bytes / 1024^3))GB"
 		t = @timed touch!(thisPosStart, thisPosEnd)
-		@info "Calculation Time: $(Float16(t.time))s, gc $(Float16(t.gctime)), $(Float16(t.bytes / 1024))KB"
+		@info "Calculation Time: $(Float16(t.time))s, gc $(Float16(t.gctime)), $(Float32(t.bytes / 1024^3))GB"
 		println()
 		# debug
-		if isinf(resultTpl.amountRealizedProfitBillion)
+		if isinf(resultTpl.amountRealizedProfitBillion) || isnan(resultTpl.amountRealizedProfitBillion)
 			@warn "inf detected"
 			@show fromDate
 			@show toDate
