@@ -1,12 +1,11 @@
 using BSON, Mongoc
 using Dates
 using ProgressMeter
-using Redis
-using UnixMmap; using UnixMmap: mmap, msync!
 using ThreadSafeDicts
 using Random
 using JSON
 using JLD2
+using MmapDB
 
 # Config
 dataFolder   = "/mnt/data/bitcore/"
@@ -24,53 +23,6 @@ BlockTimestamps = JLD2.load(tsFile)["BlockTimestamps"]
 GlobalStat["PointerTxRows"] = tmpDict["PointerTxRows"]
 GlobalStat["PointerTx"]     = tmpDict["PointerTx"]
 GlobalStat["lastUndoneBlk"] = tmpDict["lastUndoneBlk"]
-
-# Structure
-Address2ID = ThreadSafeDict{String,UInt32}()
-FailedBlockNums = Vector{Int64}()
-struct TransactionStat
-	inputCount::UInt16
-	outputCount::UInt16
-	fee::Float32
-	value::Float32
-	timestamp::Int32
-	end
-
-# Set Mmap
-_TxStatList      = open(dataFolder*"TxStatList.mmap", fMode)
-_TxAddressIdList = open(dataFolder*"TxAddressIdList.mmap", fMode)
-_TxAmountList    = open(dataFolder*"TxAmountList.mmap", fMode)
-_TxTimestampList = open(dataFolder*"TxTimestampList.mmap", fMode)
-TxStatList       = mmap(_TxStatList, 
-	Vector{TransactionStat}, round(Int64, exNumTx); grow=false
-	);
-TxAddressIdList  = mmap(_TxAddressIdList,
-	Vector{UInt32}, round(Int64, exNumTxRows); grow=false
-	);
-TxAmountList     = mmap(_TxAmountList,
-	Vector{Float64}, round(Int64, exNumTxRows); grow=false
-	);
-TxTimestampList  = mmap(_TxTimestampList,
-	Vector{Int32}, round(Int64, exNumTxRows); grow=false
-	);
-function saveMmap()
-	UnixMmap.msync!(TxStatList)
-	UnixMmap.msync!(TxAddressIdList)
-	UnixMmap.msync!(TxAmountList)
-	UnixMmap.msync!(TxTimestampList)
-	write(counterFile, JSON.json(GlobalStat))
-	end
-function closeFunc()
-	saveMmap()
-	flush(_TxStatList); close(_TxStatList)
-	flush(_TxAddressIdList); close(_TxAddressIdList)
-	flush(_TxAmountList); close(_TxAmountList)
-	flush(_TxTimestampList); close(_TxTimestampList)
-	end
-atexit(closeFunc)
-
-
-# todo: load Address2ID from txt?
 
 # Init Mongo
 client = Mongoc.Client("mongodb://localhost:27017")
@@ -113,18 +65,6 @@ function GetCoinsByAddress(addr::String)::Vector{Mongoc.BSON}
 	end
 
 # Basic: Global result procedure
-function addr2id(addr::String)::UInt32
-	if !haskey(Address2ID, addr)
-		Address2ID[addr] = length(Address2ID)+1
-	end
-	return Address2ID[addr]
-	end
-function addr2idSafe(addr::String)::UInt32
-	if !haskey(Address2ID, addr)
-		throw(addr*" not exist!")
-	end
-	return Address2ID[addr]
-	end
 function bitcoreInt2Float64(i)::Float64
 	Float64(i) / 1e8
 	end
@@ -142,15 +82,10 @@ struct cacheTx
 	timestamp::Int32
 	end
 # Union: Update Results
-struct procRet
-	TxRows::Vector{cacheTx}
-	TxStats::Vector{TransactionStat}
-	end
-function ProcessBlockN(height::Int)::procRet
+function ProcessBlockN(height::Int)::Vector{cacheTx}
 	txs           = GetBlockTransactions(height)
 	timeStamp     = datetime2unix(txs[1]["blockTime"])
 	cacheList     = Vector{cacheTx}()
-	cacheStat     = Vector{TransactionStat}()
 	for tx in txs
 		inputs  = GetCoinsInputByTxid(string(tx["txid"]))
 		outputs = GetCoinsOutputByTxid(string(tx["txid"]))
@@ -169,20 +104,10 @@ function ProcessBlockN(height::Int)::procRet
 				timeStamp
 				))
 		end
-		push!(cacheStat, TransactionStat(
-				UInt16(tx["inputCount"]),
-				UInt16(tx["outputCount"]),
-				bitcoreInt2Float32(tx["fee"]),
-				bitcoreInt2Float32(tx["value"]),
-				Int32(timeStamp),
-			))
 		Random.shuffle!(shuffleRng, minList)
 		append!(cacheList, minList)
 	end
-	return procRet(
-			cacheList,
-			cacheStat,
-		)
+	return cacheList
 	end
 
 function SyncBlocks(endWhen::Int=720000)
@@ -211,16 +136,14 @@ function SyncBlocks(endWhen::Int=720000)
 		# switch flag to read previous result
 		flagFlip = !flagFlip
 		for i in copy(tmpRanges[flagFlip])
-			for c in resCache[i].TxRows
+			for c in resCache[i]
 				j = GlobalStat["PointerTxRows"]
 				TxAddressIdList[j] = c.addressId
 				TxAmountList[j] = c.amount
 				TxTimestampList[j] = c.timestamp
 				GlobalStat["PointerTxRows"] = j+1
 			end
-			j = GlobalStat["PointerTx"]
-			TxStatList[j:j+length(resCache[i].TxStats)-1] = resCache[i].TxStats
-			GlobalStat["PointerTx"] = j+length(resCache[i].TxStats)
+			GlobalStat["PointerTx"] += length(resCache[i])
 		end
 		GlobalStat["lastUndoneBlk"] = lastDone + 1
 		print("$lastDone \t")
@@ -247,58 +170,6 @@ function GetBlockCoins(height::Int)::Vector{Mongoc.BSON}
 	end
 	return tmpList
 	end
-
-
-# Save addr
-function SaveAddr()
-	f = open(addrDictPath, "w")
-	@showprogress for p in Address2ID
-		write(f, p[1])
-		write(f, '\t')
-		write(f, string(p[2]))
-		write(f, '\n')
-		if rand() < 0.001
-		flush(f)
-		end
-		end
-	flush(f)
-	close(f)
-	end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Redis
-# dbIndexRedis    = 1
-# redisPool = [ RedisConnection(;db=dbIndexRedis) for i in 1:Threads.nthreads()]
-# function SetRedisAddress(addr::String, val::UInt32)::Bool
-# 	Redis.set(redisPool[Threads.threadid()], addr, string(val))
-# 	end
-# function GetRedisAddress(addr::String)::UInt32
-# 	parse(UInt32, Redis.get(redisPool[Threads.threadid()], addr))
-# 	end
-# function AddressIdMax()::UInt32
-# 	parse(UInt32, Redis.get(redisPool[Threads.threadid()], "AddressIdMax"))
-# 	end
-# function AddressIdMaxUpdate(v::UInt32)::Bool
-# 	Redis.set(redisPool[Threads.threadid()], "AddressIdMax", string(v))
-# 	end
-
 
 
 
