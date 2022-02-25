@@ -111,10 +111,9 @@ struct cacheTx
 	end
 # Union: Update Results
 function ProcessBlockN(height::Int)::Vector{cacheTx}
-	timeStamp = round(Int, datetime2unix(GetBlockInfo(height)["time"]))
-	# NOTICE: future transactions are included
-	coins     = GetBlockCoins(height)
-	cacheList = Vector{cacheTx}()
+	txs           = GetBlockTransactions(height)
+	timeStamp     = round(Int, datetime2unix(txs[1]["blockTime"]))
+	retList     = Vector{cacheTx}()
 	for tx in txs
 		inputs  = GetCoinsInputByTxid(string(tx["txid"]))
 		outputs = GetCoinsOutputByTxid(string(tx["txid"]))
@@ -134,9 +133,9 @@ function ProcessBlockN(height::Int)::Vector{cacheTx}
 				))
 		end
 		Random.shuffle!(shuffleRng, minList)
-		append!(cacheList, minList)
+		append!(retList, minList)
 	end
-	return cacheList
+	return retList
 	end
 
 
