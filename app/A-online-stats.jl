@@ -7,6 +7,9 @@ using JSON
 using JLD2
 using MmapDB
 
+# load address service
+include("./service-address2id.jl");
+
 # Config
 dataFolder   = "/mnt/data/bitcore/"
 counterFile  = "/mnt/data/bitcore/counter"
@@ -29,7 +32,7 @@ client = Mongoc.Client("mongodb://localhost:27017")
 @show Mongoc.ping(client)
 db     = client["bitcore"]
 
-# Init Pool
+# Mongo Connection Pool
 mongoClients = [ Mongoc.Client("mongodb://localhost:27017") for i in 1:Threads.nthreads() ]
 mongoDBs    = map(x->x["bitcore"], mongoClients)
 @show collect(Mongoc.find_collections(db))
@@ -37,7 +40,7 @@ function MongoCollection(key::String)::Mongoc.Collection
 	return mongoDBs[Threads.threadid()][key]
 	end
 
-# Methods: Get data from mongodb
+# Middlewares: Get data from mongodb
 function GetBlockInfo(height::Int)::Mongoc.BSON
 	return Mongoc.find_one(MongoCollection("blocks"),  Mongoc.BSON("{\"height\":$height}"))
 	end
@@ -76,7 +79,7 @@ function str2unixtime(str::String)::Int64
 	return round(Int64, datetime2unix(dt))
 	end
 
-# Experimental
+# Union
 function GetAddressCoins(addr::String)::Vector{Mongoc.BSON}
 	tmpBson = Mongoc.BSON("""{
 		"chain":"BTC", "network":"mainnet", "address":"$addr"
