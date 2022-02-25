@@ -98,7 +98,7 @@ function GetBlockCoins(height::Int)::Vector{Mongoc.BSON}
 	tmpList = Vector{Mongoc.BSON}()
 	for tx in txs
 		inputs  = GetCoinsInputByTxid(string(tx["txid"]))
-		outputs = GetCoinsOutputByTxid(string(tx["txid"]))
+		outputs = GetCoinsOutputByTxid(string(tx["txid"]), height)
 		append!(tmpList, inputs)
 		append!(tmpList, outputs)
 		Random.shuffle!(shuffleRng, tmpList)
@@ -118,27 +118,28 @@ struct cacheTx
 function ProcessBlockN(height::Int)::Vector{cacheTx}
 	txs           = GetBlockTransactions(height)
 	timeStamp     = round(Int, datetime2unix(txs[1]["blockTime"]))
-	retList     = Vector{cacheTx}()
+	retList   = Vector{cacheTx}()
+	tmpList   = Vector{cacheTx}()
 	for tx in txs
 		inputs  = GetCoinsInputByTxid(string(tx["txid"]))
-		outputs = GetCoinsOutputByTxid(string(tx["txid"]))
-		minList = Vector{cacheTx}()
+		outputs = GetCoinsOutputByTxid(string(tx["txid"]), height)
 		for c in inputs
 			push!(minList, cacheTx(
-				addr2id(string(c["address"])),
+				String2IDSafe(string(c["address"])),
 				-bitcoreInt2Float64(c["value"]),
 				timeStamp
 				))
 		end
 		for c in outputs
-			push!(minList, cacheTx(
-				addr2id(string(c["address"])),
+			push!(tmpList, cacheTx(
+				String2IDSafe(string(c["address"])),
 				bitcoreInt2Float64(c["value"]),
 				timeStamp
 				))
 		end
-		Random.shuffle!(shuffleRng, minList)
-		append!(retList, minList)
+		Random.shuffle!(shuffleRng, tmpList)
+		append!(retList, tmpList)
+		empty!(tmpList)
 	end
 	return retList
 	end
