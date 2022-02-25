@@ -58,11 +58,14 @@ function GetCoinsByTxid(txid::String)::Vector{Mongoc.BSON}
 	append!(a, collect( Mongoc.find(MongoCollection("coins"), Mongoc.BSON("{\"spentTxid\":\"$txid\"}")) ) )
 	end
 function GetCoinsInputByTxid(txid::String)::Vector{Mongoc.BSON}
-	collect( Mongoc.find(MongoCollection("coins"), Mongoc.BSON("{\"spentTxid\":\"$txid\"}")) )
+	filter!(
+		x->x["value"] > 0,
+		collect( Mongoc.find(MongoCollection("coins"), Mongoc.BSON("{\"spentTxid\":\"$txid\"}")) )
+		)
 	end
 function GetCoinsOutputByTxid(txid::String, height::Int)::Vector{Mongoc.BSON}
 	filter!(
-		x->x["spentHeight"] <= height,
+		x->x["spentHeight"] <= height && x["value"] > 0,
 		collect(
 			Mongoc.find(MongoCollection("coins"), Mongoc.BSON("{\"mintTxid\":\"$txid\"}"))
 			)
@@ -124,7 +127,7 @@ function ProcessBlockN(height::Int)::Vector{cacheTx}
 		inputs  = GetCoinsInputByTxid(string(tx["txid"]))
 		outputs = GetCoinsOutputByTxid(string(tx["txid"]), height)
 		for c in inputs
-			push!(minList, cacheTx(
+			push!(tmpList, cacheTx(
 				String2IDSafe(string(c["address"])),
 				-bitcoreInt2Float64(c["value"]),
 				timeStamp
