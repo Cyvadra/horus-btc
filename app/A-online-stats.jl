@@ -89,14 +89,18 @@ function GetAddressCoins(addr::String)::Vector{Mongoc.BSON}
 function GetBlockCoins(height::Int)::Vector{Mongoc.BSON}
 	txs       = GetBlockTransactions(height)
 	# timeStamp = datetime2unix(txs[1]["blockTime"])
-	tmpList   = Vector{Mongoc.BSON}()
+	retList   = Vector{Mongoc.BSON}()
+	tmpList = Vector{Mongoc.BSON}()
 	for tx in txs
 		inputs  = GetCoinsInputByTxid(string(tx["txid"]))
 		outputs = GetCoinsOutputByTxid(string(tx["txid"]))
 		append!(tmpList, inputs)
 		append!(tmpList, outputs)
+		Random.shuffle!(shuffleRng, tmpList)
+		append!(retList, tmpList)
+		empty!(tmpList)
 	end
-	return tmpList
+	return retList
 	end
 
 
@@ -107,9 +111,10 @@ struct cacheTx
 	end
 # Union: Update Results
 function ProcessBlockN(height::Int)::Vector{cacheTx}
-	txs           = GetBlockTransactions(height)
-	timeStamp     = datetime2unix(txs[1]["blockTime"])
-	cacheList     = Vector{cacheTx}()
+	timeStamp = round(Int, datetime2unix(GetBlockInfo(height)["time"]))
+	# NOTICE: future transactions are included
+	coins     = GetBlockCoins(height)
+	cacheList = Vector{cacheTx}()
 	for tx in txs
 		inputs  = GetCoinsInputByTxid(string(tx["txid"]))
 		outputs = GetCoinsOutputByTxid(string(tx["txid"]))
