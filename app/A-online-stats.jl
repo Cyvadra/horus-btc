@@ -60,8 +60,13 @@ function GetCoinsByTxid(txid::String)::Vector{Mongoc.BSON}
 function GetCoinsInputByTxid(txid::String)::Vector{Mongoc.BSON}
 	collect( Mongoc.find(MongoCollection("coins"), Mongoc.BSON("{\"spentTxid\":\"$txid\"}")) )
 	end
-function GetCoinsOutputByTxid(txid::String)::Vector{Mongoc.BSON}
-	collect( Mongoc.find(MongoCollection("coins"), Mongoc.BSON("{\"mintTxid\":\"$txid\"}")) )
+function GetCoinsOutputByTxid(txid::String, height::Int)::Vector{Mongoc.BSON}
+	filter!(
+		x->x["spentHeight"] <= height,
+		collect(
+			Mongoc.find(MongoCollection("coins"), Mongoc.BSON("{\"mintTxid\":\"$txid\"}"))
+			)
+		)
 	end
 function GetCoinsByAddress(addr::String)::Vector{Mongoc.BSON}
 	collect( Mongoc.find(MongoCollection("coins"), Mongoc.BSON("{\"address\":\"$addr\"}")) )
