@@ -91,6 +91,9 @@ function MongoCollection(key::String)::Mongoc.Collection
 	end
 
 # Methods: Get data from mongodb
+function GetBlockInfo(height::Int)::Mongoc.BSON
+	return Mongoc.find_one(MongoCollection("blocks"),  Mongoc.BSON("{\"height\":$height}"))
+	end
 function GetBlockTransactions(height::Int)::Vector{Mongoc.BSON}
 	block     = Mongoc.find_one(MongoCollection("blocks"),  Mongoc.BSON("{\"height\":$height}"))
 	blockHash = block["hash"]
