@@ -76,6 +76,27 @@ function str2unixtime(str::String)::Int64
 	return round(Int64, datetime2unix(dt))
 	end
 
+# Experimental
+function GetAddressCoins(addr::String)::Vector{Mongoc.BSON}
+	tmpBson = Mongoc.BSON("""{
+		"chain":"BTC", "network":"mainnet", "address":"$addr"
+		}""")
+	collect(Mongoc.find(db["coins"], tmpBson))
+	end
+function GetBlockCoins(height::Int)::Vector{Mongoc.BSON}
+	txs       = GetBlockTransactions(height)
+	# timeStamp = datetime2unix(txs[1]["blockTime"])
+	tmpList   = Vector{Mongoc.BSON}()
+	for tx in txs
+		inputs  = GetCoinsInputByTxid(string(tx["txid"]))
+		outputs = GetCoinsOutputByTxid(string(tx["txid"]))
+		append!(tmpList, inputs)
+		append!(tmpList, outputs)
+	end
+	return tmpList
+	end
+
+
 struct cacheTx
 	addressId::UInt32
 	amount::Float64
@@ -109,68 +130,6 @@ function ProcessBlockN(height::Int)::Vector{cacheTx}
 	end
 	return cacheList
 	end
-
-function SyncBlocks(endWhen::Int=720000)
-	batchSize  = Threads.nthreads() * 2
-	lastDone   = GlobalStat["lastUndoneBlk"] - 1
-	@show now()
-	@info "Starting from Block: $(GlobalStat["lastUndoneBlk"])"
-	resCache = Vector{Any}(undef, batchSize*2)
-	flagFlip = false
-	tmpRanges= Dict{Bool,UnitRange{Int64}}(
-		false => 1:batchSize,
-		true  => batchSize+1:2*batchSize,
-		)
-	prvTask  = @async Threads.@threads for i in copy(tmpRanges[flagFlip])
-			resCache[i] = ProcessBlockN(lastDone+i)
-		end
-	flagFlip = !flagFlip
-	while lastDone < endWhen
-		# wait previous task result
-		wait(prvTask)
-		lastDone = lastDone + batchSize
-		# new task
-		prvTask  = @async Threads.@threads for i in copy(tmpRanges[flagFlip])
-			resCache[i] = ProcessBlockN(lastDone+i)
-		end
-		# switch flag to read previous result
-		flagFlip = !flagFlip
-		for i in copy(tmpRanges[flagFlip])
-			for c in resCache[i]
-				j = GlobalStat["PointerTxRows"]
-				TxAddressIdList[j] = c.addressId
-				TxAmountList[j] = c.amount
-				TxTimestampList[j] = c.timestamp
-				GlobalStat["PointerTxRows"] = j+1
-			end
-			GlobalStat["PointerTx"] += length(resCache[i])
-		end
-		GlobalStat["lastUndoneBlk"] = lastDone + 1
-		print("$lastDone \t")
-		# keep flagFlip for next turn input
-	end
-	end
-
-# Experimental
-function GetAddressCoins(addr::String)::Vector{Mongoc.BSON}
-	tmpBson = Mongoc.BSON("""{
-		"chain":"BTC", "network":"mainnet", "address":"$addr"
-		}""")
-	collect(Mongoc.find(db["coins"], tmpBson))
-	end
-function GetBlockCoins(height::Int)::Vector{Mongoc.BSON}
-	txs       = GetBlockTransactions(height)
-	# timeStamp = datetime2unix(txs[1]["blockTime"])
-	tmpList   = Vector{Mongoc.BSON}()
-	for tx in txs
-		inputs  = GetCoinsInputByTxid(string(tx["txid"]))
-		outputs = GetCoinsOutputByTxid(string(tx["txid"]))
-		append!(tmpList, inputs)
-		append!(tmpList, outputs)
-	end
-	return tmpList
-	end
-
 
 
 
