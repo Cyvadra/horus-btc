@@ -37,14 +37,18 @@ function String2ID(addr::String)::UInt32
 	end
 	filePath = StringFolders[tagVersion] * addrPrefix * "sum"
 	if isfile(filePath)
-		l = read(pipeline(
-				`cat $filePath`,
-				`grep $addrBody`,
-			))
-		if length(l) > 0
-			s = String(l)
-			s = s[findfirst('\t',s)+1:findfirst('\n',s)-1]
-			return parse(UInt32, s)
+		try
+			l = read(pipeline(
+					`cat $filePath`,
+					`grep $addrBody`,
+				))
+			if length(l) > 0
+				s = String(l)
+				s = s[findfirst('\t',s)+1:findfirst('\n',s)-1]
+				return parse(UInt32, s)
+			end
+		catch
+			nothing
 		end
 	else
 		touch(filePath)
