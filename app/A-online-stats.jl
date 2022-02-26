@@ -187,25 +187,42 @@ mutable struct AddressStatistics
 	end
 function Address2State(addr::String, blockNum::Int)
 	coins     = GetCoinsByAddress(addr)
-	mintNums  = filter!(x->x>0, map(x->x["mintHeight"], coins))
-	spentNums = filter!(x->x>0, map(x->x["spentHeight"], coins))
+	mintRange = map(x-> 0 < x["mintHeight"] <= blockNum, coins)
+	spentRange= map(x-> 0 < x["spentHeight"] <= blockNum, coins)
+	mintNums  = map(x->x["mintHeight"], coins[mintRange])
+	spentNums = map(x->x["spentHeight"], coins[spentRange])
 	blockNums = sort!(vcat(mintNums, spentNums))
 	ret   = AddressStatistics(
 		blockNums[1], # TimestampCreated Int32
 		blockNums[end], # TimestampLastActive Int32
 		findlast(x->x<=blockNum, mintNums) |> BlockNum2Timestamp, # TimestampLastReceived Int32
 		findlast(x->x<=blockNum, spentNums) |> BlockNum2Timestamp, # TimestampLastPayed Int32
-		0, # AmountIncomeTotal Float64
-		0, # AmountExpenseTotal Float64
-		0, # NumTxInTotal Int32
-		0, # NumTxOutTotal Int32
+		map(x->x["value"],
+			coins[mintRange]
+		) |> sum |> bitcoreInt2Float64, # AmountIncomeTotal Float64
+		map(x->x["value"],
+			coins[spentRange]
+		) |> sum |> bitcoreInt2Float64, # AmountExpenseTotal Float64
+		sum(mintRange), # NumTxInTotal Int32
+		sum(spentRange), # NumTxOutTotal Int32
 		0, # UsdtPayed4Input Float64
 		0, # UsdtReceived4Output Float64
 		0, # AveragePurchasePrice Float32
 		0, # LastSellPrice Float32
 		0, # UsdtNetRealized Float64
 		0, # UsdtNetUnrealized Float64
-		0, # Balance Float64
+		0 , # Balance Float64
+	)
+	tmpList = map(x->x["value"],
+			filter(
+				x->0 < x["mintHeight"] < blockNum && x["spentHeight"] <= 0,
+				coins
+			)
 		)
+	if length(tmpList) > 0
+		ret.Balance = tmpList |> sum |> bitcoreInt2Float64
+	end
+	return ret
+	end
 
 
