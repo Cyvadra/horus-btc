@@ -185,10 +185,21 @@ mutable struct AddressStatistics
 	UsdtNetUnrealized::Float64
 	Balance::Float64
 	end
+tplAddressStatistics = AddressStatistics(zeros(length(AddressStatistics.types))...)
 function Address2State(addr::String, blockNum::Int)
-	coins     = GetCoinsByAddress(addr)
-	mintRange = map(x-> 0 < x["mintHeight"] <= blockNum, coins)
-	spentRange= map(x-> 0 < x["spentHeight"] <= blockNum, coins)
+	blockNum += 1
+	coins = Mongoc.find(
+		MongoCollection("coins"),
+		Mongoc.BSON(
+			"""{
+				"address":"$addr",
+				"mintHeight": {"\$lt":$blockNum}
+			}"""
+		)
+	) |> collect
+	blockNum -= 1
+	mintRange = map(x->x["mintHeight"] > 0, coins)
+	spentRange= map(x->0 < x["spentHeight"] < blockNum, coins)
 	mintNums  = map(x->x["mintHeight"], coins[mintRange])
 	spentNums = map(x->x["spentHeight"], coins[spentRange])
 	blockNums = sort!(vcat(mintNums, spentNums))
