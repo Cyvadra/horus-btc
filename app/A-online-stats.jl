@@ -185,13 +185,16 @@ mutable struct AddressStatistics
 	UsdtNetUnrealized::Float64
 	Balance::Float64
 	end
-function Address2State(addr::String)
-	coins = GetCoinsByAddress(addr)
+function Address2State(addr::String, blockNum::Int)
+	coins     = GetCoinsByAddress(addr)
+	mintNums  = filter!(x->x>0, map(x->x["mintHeight"], coins))
+	spentNums = filter!(x->x>0, map(x->x["spentHeight"], coins))
+	blockNums = sort!(vcat(mintNums, spentNums))
 	ret   = AddressStatistics(
-		0, # TimestampCreated Int32
-		0, # TimestampLastActive Int32
-		0, # TimestampLastReceived Int32
-		0, # TimestampLastPayed Int32
+		blockNums[1], # TimestampCreated Int32
+		blockNums[end], # TimestampLastActive Int32
+		findlast(x->x<=blockNum, mintNums) |> BlockNum2Timestamp, # TimestampLastReceived Int32
+		findlast(x->x<=blockNum, spentNums) |> BlockNum2Timestamp, # TimestampLastPayed Int32
 		0, # AmountIncomeTotal Float64
 		0, # AmountExpenseTotal Float64
 		0, # NumTxInTotal Int32
