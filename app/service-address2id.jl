@@ -1,6 +1,6 @@
 
 
-strFolder = "/mnt/data/AddressServiceString/"
+strFolder = "/media/jason89757/gloway/AddressServiceString"
 isdir(strFolder) || mkdir(strFolder)
 previousMaxN = parse(UInt32, readline(strFolder*"counter"))
 
@@ -15,40 +15,40 @@ StringFolders = String[
 	strFolder * "P2PKH/", # 1...
 	strFolder * "P2SH/", # 3...
 	strFolder * "Bech32/", # bc1q..
+	strFolder * "Other/", # unexpected
 ]
 
 function String2ID(addr::String)::UInt32
 	tagVersion = 1
-	addrPrefix = addr[2:3] * "/"
-	addrBody = addr[4:end]
+	addrPrefix = addr[2:4] * "/"
+	addrBody = addr[5:end]
 	if addr[1] == '1'
 		tagVersion = 1
 	elseif addr[1] == 'b'
 		tagVersion = 3
-		addrPrefix = addr[5:6] * "/"
-		addrBody = addr[7:end]
+		addrPrefix = addr[5:7] * "/"
+		addrBody = addr[8:end]
 	elseif addr[1] == '3'
 		tagVersion = 2
 	else
-		throw("error parsing $addr")
+		tagVersion = 4
+		addrPrefix = addr[1:2] * "/"
+		addrBody = addr[3:end]
 	end
-	if !isdir(StringFolders[tagVersion] * addrPrefix)
-		mkdir(StringFolders[tagVersion] * addrPrefix)
+	dirPath = StringFolders[tagVersion] * addrPrefix
+	if !isdir(dirPath)
+		mkdir(dirPath)
 	end
-	filePath = StringFolders[tagVersion] * addrPrefix * "sum"
+	filePath = dirPath * "sum"
 	if isfile(filePath)
-		try
-			l = read(pipeline(
-					`cat $filePath`,
-					`grep $addrBody`,
-				))
-			if length(l) > 0
-				s = String(l)
-				s = s[findfirst('\t',s)+1:findfirst('\n',s)-1]
-				return parse(UInt32, s)
-			end
-		catch
-			nothing
+		l = read(pipeline(
+				`cat $filePath`,
+				Cmd(`grep $addrBody`; ignorestatus=true),
+			))
+		if length(l) > 0
+			s = String(l)
+			s = s[findfirst('\t',s)+1:findfirst('\n',s)-1]
+			return parse(UInt32, s)
 		end
 	else
 		touch(filePath)
@@ -57,7 +57,7 @@ function String2ID(addr::String)::UInt32
 		lock(MaxAddressNumber.dlock)
 		n = MaxAddressNumber.id + 1
 		f = open(filePath, "a")
-		write(f, "$addrBody\t$id\n")
+		write(f, "$addrBody\t$n\n")
 		close(f)
 		MaxAddressNumber.id = n
 		unlock(MaxAddressNumber.dlock)
@@ -66,27 +66,30 @@ function String2ID(addr::String)::UInt32
 
 function String2IDSafe(addr::String)::UInt32
 	tagVersion = 1
-	addrPrefix = addr[2:3] * "/"
-	addrBody = addr[4:end]
+	addrPrefix = addr[2:4] * "/"
+	addrBody = addr[5:end]
 	if addr[1] == '1'
 		tagVersion = 1
 	elseif addr[1] == 'b'
 		tagVersion = 3
-		addrPrefix = addr[5:6] * "/"
-		addrBody = addr[7:end]
+		addrPrefix = addr[5:7] * "/"
+		addrBody = addr[8:end]
 	elseif addr[1] == '3'
 		tagVersion = 2
 	else
-		throw("error parsing $addr")
+		tagVersion = 4
+		addrPrefix = addr[1:2] * "/"
+		addrBody = addr[3:end]
 	end
-	if !isdir(StringFolders[tagVersion] * addrPrefix)
-		mkdir(StringFolders[tagVersion] * addrPrefix)
+	dirPath = StringFolders[tagVersion] * addrPrefix
+	if !isdir(dirPath)
+		mkdir(dirPath)
 	end
-	filePath = StringFolders[tagVersion] * addrPrefix * "sum"
+	filePath = dirPath * "sum"
 	if isfile(filePath)
 		l = read(pipeline(
 				`cat $filePath`,
-				`grep $addrBody`,
+				Cmd(`grep $addrBody`; ignorestatus=true),
 			))
 		if length(l) > 0
 			s = String(l)
@@ -94,70 +97,34 @@ function String2IDSafe(addr::String)::UInt32
 			return parse(UInt32, s)
 		end
 	end
-	throw("$addr not found")
+	return UInt32(0)
 	end
 
-function UpsertAddrID(addr::String, id)::Nothing
+function SetID(addr::String, id)
 	tagVersion = 1
-	addrPrefix = addr[2:3] * "/"
-	addrBody = addr[4:end]
+	addrPrefix = addr[2:4] * "/"
+	addrBody = addr[5:end]
 	if addr[1] == '1'
 		tagVersion = 1
 	elseif addr[1] == 'b'
 		tagVersion = 3
-		addrPrefix = addr[5:6] * "/"
-		addrBody = addr[7:end]
+		addrPrefix = addr[5:7] * "/"
+		addrBody = addr[8:end]
 	elseif addr[1] == '3'
 		tagVersion = 2
 	else
-		throw("error parsing $addr")
+		tagVersion = 4
+		addrPrefix = addr[1:2] * "/"
+		addrBody = addr[3:end]
 	end
-	if !isdir(StringFolders[tagVersion] * addrPrefix)
-		mkdir(StringFolders[tagVersion] * addrPrefix)
+	dirPath = StringFolders[tagVersion] * addrPrefix
+	if !isdir(dirPath)
+		mkdir(dirPath)
 	end
-	filePath = StringFolders[tagVersion] * addrPrefix * "sum"
-	if isfile(filePath)
-		l = read(pipeline(
-				`cat $filePath`,
-				`grep $addrBody`,
-			))
-		if length(l) > 0
-			s = String(l)
-			s = s[findfirst('\t',s)+1:findfirst('\n',s)-1]
-			return parse(UInt32, s)
-		end
-	else
+	filePath = dirPath * "sum"
+	if !isfile(filePath)
 		touch(filePath)
 	end
-	f = open(filePath, "a")
-	write(f, "$addrBody\t$id\n")
-	close(f)
-	if id > MaxAddressNumber.id
-		MaxAddressNumber.id = id
-	end
-	return n
-	end
-
-function SetID(addr::String, id)::Nothing
-	tagVersion = 1
-	addrPrefix = addr[2:3] * "/"
-	addrBody = addr[4:end]
-	if addr[1] == '1'
-		tagVersion = 1
-	elseif addr[1] == 'b'
-		tagVersion = 3
-		addrPrefix = addr[5:6] * "/"
-		addrBody = addr[7:end]
-	elseif addr[1] == '3'
-		tagVersion = 2
-	else
-		@warn "error parsing $addr"
-		return nothing
-	end
-	if !isdir(StringFolders[tagVersion] * addrPrefix)
-		mkdir(StringFolders[tagVersion] * addrPrefix)
-	end
-	filePath = StringFolders[tagVersion] * addrPrefix * "sum"
 	f = open(filePath, "a")
 	write(f, "$addrBody\t$id\n")
 	close(f)
