@@ -1,6 +1,6 @@
 
 
-strFolder = "/media/jason89757/gloway/AddressServiceString"
+strFolder = "/media/jason89757/gloway/AddressServiceString/"
 isdir(strFolder) || mkdir(strFolder)
 previousMaxN = parse(UInt32, readline(strFolder*"counter"))
 
@@ -100,7 +100,7 @@ function String2IDSafe(addr::String)::UInt32
 	return UInt32(0)
 	end
 
-function SetID(addr::String, id)
+function SetID(addr, id)
 	tagVersion = 1
 	addrPrefix = addr[2:4] * "/"
 	addrBody = addr[5:end]
@@ -128,6 +128,7 @@ function SetID(addr::String, id)
 	f = open(filePath, "a")
 	write(f, "$addrBody\t$id\n")
 	close(f)
+	id = parse(Int, id)
 	if id > MaxAddressNumber.id
 		MaxAddressNumber.id = id
 	end
