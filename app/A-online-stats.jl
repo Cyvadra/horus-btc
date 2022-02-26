@@ -123,19 +123,26 @@ function ProcessBlockN(height::Int)::Vector{cacheTx}
 	timeStamp     = round(Int, datetime2unix(txs[1]["blockTime"]))
 	retList   = Vector{cacheTx}()
 	tmpList   = Vector{cacheTx}()
+	tmpDict   = Dict{String,UInt32}()
 	for tx in txs
 		inputs  = GetCoinsInputByTxid(string(tx["txid"]))
 		outputs = GetCoinsOutputByTxid(string(tx["txid"]), height)
+		addrs   = unique(map(x->x["address"], vcat(inputs, outputs)))
+		for addr in addrs
+			if !haskey(tmpDict, addr)
+				tmpDict[addr] = String2ID(addr)
+			end
+		end
 		for c in inputs
 			push!(tmpList, cacheTx(
-				String2IDSafe(string(c["address"])),
+				tmpDict[c["address"]],
 				-bitcoreInt2Float64(c["value"]),
 				timeStamp
 				))
 		end
 		for c in outputs
 			push!(tmpList, cacheTx(
-				String2IDSafe(string(c["address"])),
+				tmpDict[c["address"]],
 				bitcoreInt2Float64(c["value"]),
 				timeStamp
 				))
@@ -144,6 +151,7 @@ function ProcessBlockN(height::Int)::Vector{cacheTx}
 		append!(retList, tmpList)
 		empty!(tmpList)
 	end
+	empty!(tmpDict)
 	return retList
 	end
 
