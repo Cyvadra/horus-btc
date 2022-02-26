@@ -11,21 +11,8 @@ using MmapDB
 include("./service-address2id.jl");
 
 # Config
-dataFolder   = "/mnt/data/bitcore/"
-counterFile  = "/mnt/data/bitcore/counter"
-tsFile       = "/mnt/data/bitcore/BlockTimestamps.dict.jld2"
+dataFolder   = "/mnt/data/cacheTx/"
 shuffleRng   = Random.MersenneTwister(10086)
-exNumTxRows  = round(Int64, 100e8)
-exNumTx      = round(Int64, 60e8)
-fMode        = "w+"
-
-# Var
-GlobalStat   = ThreadSafeDict{String,Int64}()
-tmpDict = JSON.Parser.parse(readline(counterFile))
-BlockTimestamps = JLD2.load(tsFile)["BlockTimestamps"]
-GlobalStat["PointerTxRows"] = tmpDict["PointerTxRows"]
-GlobalStat["PointerTx"]     = tmpDict["PointerTx"]
-GlobalStat["lastUndoneBlk"] = tmpDict["lastUndoneBlk"]
 
 # Init Mongo
 client = Mongoc.Client("mongodb://localhost:27017")
@@ -152,6 +139,7 @@ function ProcessBlockN(height::Int)::Vector{cacheTx}
 		empty!(tmpList)
 	end
 	empty!(tmpDict)
+	JLD2.save(dataFolder * "$height.jld2", "txList", retList)
 	return retList
 	end
 
