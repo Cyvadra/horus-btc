@@ -245,17 +245,23 @@ function Address2State(addr::String, blockNum::Int)::AddressStatistics
 		else
 			ret.LastSellPrice = firstPrice
 		end
+	# Usdt Preload coin price
+		tmpList = unique(blockNums)
+		tmpDict = Dict{Int32,Float64}()
+		for h in tmpList
+			tmpDict[h] = FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(h))
+		end
 	# Usdt
 		ret.UsdtPayed4Input = map(
-			x->bitcoreInt2Float64(x["value"]) * FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(x["mintHeight"])),
+			x->bitcoreInt2Float64(x["value"]) * tmpDict[x["mintHeight"]],
 			coins[mintRange]
 		) |> sum
 		ret.UsdtReceived4Output = map(
-			x->bitcoreInt2Float64(x["value"]) * FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(x["spentHeight"])),
+			x->bitcoreInt2Float64(x["value"]) * tmpDict[x["spentHeight"]],
 			coins[spentRange]
 		) |> sum
 		if ret.Balance > 0.00
-			ret.AveragePurchasePrice = ret.UsdtPayed4Input / ret.Balance
+			ret.AveragePurchasePrice = ret.UsdtPayed4Input / ret.AmountIncomeTotal
 		else
 			ret.AveragePurchasePrice = firstPrice
 		end
