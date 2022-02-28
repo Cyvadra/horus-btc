@@ -9,6 +9,7 @@ using AddressService
 @show Threads.nthreads()
 include("./02-loadmmap.jl")
 AddressService.Open()
+MmapDB.Init("/mnt/data/tmp")
 
 # Config
 	FinanceDB.SetDataFolder("/mnt/data/mmap")
@@ -718,7 +719,7 @@ AddressService.Open()
 
 # Processing
 	fromDate = DateTime(2018,1, 1, 0, 0, 0)
-	toDate   = DateTime(2021,12,31,23,59,59)
+	toDate   = DateTime(2021,12,24,23,59,59)
 	posStart = SelectPeriod(fromDate, toDate, TxRowsDF.Timestamp)[1]
 	# Sum data before, you can save this to a jld2 file
 	# we suggest use the start time of market data, 2017
@@ -743,10 +744,17 @@ AddressService.Open()
 	nextPosRef   = 1
 	thisPosStart = 1
 	thisPosEnd   = 1
+	resLen       = ceil(Int, (toDate - fromDate).value / 1000 / 3600 / 3)
+	TableResultCalculations = MmapDB.GenerateCode(ResultCalculations)
+	TableResultCalculations.Create!(resLen)
+	resCounter = 1
 	barLen   = findlast(x->x<=dt2unix(toDate), sumTs) - findfirst(x->x>=dt2unix(fromDate), sumTs) + 1
-	results      = Vector{ResultCalculations}()
-	prog = ProgressMeter.Progress(barLen; barlen=36, color=:blue)
+	prog     = ProgressMeter.Progress(barLen; barlen=36, color=:blue)
 	for dt in fromDate:Hour(3):toDate
+		if isfile("/tmp/JULIA_EMERGENCY_STOP")
+			@show dt
+			break
+		end
 		tsStart = dt2unix(dt)
 		thisPosStart = findnext(x-> x >= tsStart, sumTs, nextPosRef)
 		thisPosEnd   = findnext(x-> x > tsStart + 3seconds.Hour, sumTs, nextPosRef) - 1
@@ -774,15 +782,9 @@ AddressService.Open()
 			@show thisPosEnd
 			break
 		end
-		push!(results, resultTpl)
+		TableResultCalculations.SetRow(resCounter, resultTpl)
+		resCounter += 1
 		nextPosRef = thisPosEnd + 1
-		# auto save
-		if day(dt) == 1 && hour(dt) == 0
-			JLD2.save("/mnt/data/tmp/results.jld2", "results", results)
-			println()
-			@info "Savepoint at $dt"
-			println()
-		end
 		next!( prog; step=(thisPosEnd - thisPosStart + 1) )
 	end
 
