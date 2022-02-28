@@ -149,8 +149,11 @@ function ProcessBlockN(height::Int)::Vector{cacheTx}
 	return retList
 	end
 
-# BlockNum 2 Timestamp
+# BlockNum 2 Timestamp ( Dict{Int32, Int32} )
+# [!!!NOTICE!!!] Preload all of transaction data!
+# to avoid parallel-computing trouble
 BlockTimestamps = JLD2.load(tsFile)["BlockTimestamps"]
+BlockPairs = sort!(collect(BlockTimestamps), by=x->x[2])
 function BlockNum2Timestamp(height)::Int32
 	if haskey(BlockTimestamps, height)
 		return BlockTimestamps[height]
@@ -161,6 +164,14 @@ function BlockNum2Timestamp(height)::Int32
 		)
 	)
 	return BlockTimestamps[height]
+	end
+function ResyncBlockPairs()::Nothing
+	BlockPairs = sort!(collect(BlockTimestamps), by=x->x[2])
+	return nothing
+	end
+function Timestamp2LastBlockN(ts)::Int32
+	i = findlast(x->x<=ts, map(x->x[2], BlockPairs))
+	return BlockPairs[i][1]
 	end
 function SyncBlockTimestamps()
 	JLD2.save(tsFile, "BlockTimestamps", BlockTimestamps)
