@@ -19,6 +19,7 @@ pairName     = "BTC_USDT"
 dataFolder   = "/mnt/data/cacheTx/"
 shuffleRng   = Random.MersenneTwister(10086)
 tsFile       = "/mnt/data/bitcore/BlockTimestamps.dict.jld2"
+BlockPriceDict = Dict{Int32,Float64}()
 
 # Init Mongo
 client = Mongoc.Client("mongodb://localhost:27017")
@@ -167,6 +168,20 @@ function SyncBlockTimestamps()
 	end
 atexit(SyncBlockTimestamps)
 
+# Prepare: blockNum => coinPrice
+function SyncBlockPriceDict(fromN, toN)::Nothing
+	for h in fromN:toN
+		BlockPriceDict[h] = FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(h))
+	end
+	return nothing
+	end
+function GetPriceAtBlockN(height)::Float64
+	if !haskey(BlockPriceDict, height)
+		BlockPriceDict[height] = FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(height))
+	end
+	return BlockPriceDict[height]
+	end
+
 # Realtime Address Service
 mutable struct AddressStatistics
 	# timestamp
@@ -245,19 +260,13 @@ function Address2State(addr::String, blockNum::Int)::AddressStatistics
 		else
 			ret.LastSellPrice = firstPrice
 		end
-	# Usdt Preload coin price
-		tmpList = unique(blockNums)
-		tmpDict = Dict{Int32,Float64}()
-		for h in tmpList
-			tmpDict[h] = FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(h))
-		end
 	# Usdt
 		ret.UsdtPayed4Input = map(
-			x->bitcoreInt2Float64(x["value"]) * tmpDict[x["mintHeight"]],
+			x->bitcoreInt2Float64(x["value"]) * GetPriceAtBlockN(x["mintHeight"]),
 			coins[mintRange]
 		) |> sum
 		ret.UsdtReceived4Output = map(
-			x->bitcoreInt2Float64(x["value"]) * tmpDict[x["spentHeight"]],
+			x->bitcoreInt2Float64(x["value"]) * GetPriceAtBlockN(x["spentHeight"]),
 			coins[spentRange]
 		) |> sum
 		if ret.Balance > 0.00
