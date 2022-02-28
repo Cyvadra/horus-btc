@@ -47,6 +47,14 @@ module AddressService
 		end
 		return nothing
 		end
+	function Create(numRows::Int=Config["dataLength"])::Nothing
+		for i in 1:length(_types)
+			AddressStatisticsDict[_syms[i]] = Vector{_types[i]}(undef, numRows)
+			AddressStatisticsDict[_syms[i]] .= 0.0
+			close(f)
+		end
+		return nothing
+		end
 	function SyncToDisk!(dataFolder::String=Config["dataFolder"])::Nothing
 		# check params
 		dataFolder[end] !== '/' ? dataFolder = dataFolder*"/" : nothing
@@ -54,7 +62,7 @@ module AddressService
 		numRows = length(AddressStatisticsDict[_syms[1]])
 		for i in 1:length(_types)
 			f = open(dataFolder*string(_syms[i])*".bin", "w+")
-			m = mmap( f, Vector{_types[i]}, numRows; grow=true ))
+			m = mmap( f, Vector{_types[i]}, numRows; grow=true )
 			for j in 1:numRows
 				m[j] = AddressStatisticsDict[_syms[i]][j]
 			end
