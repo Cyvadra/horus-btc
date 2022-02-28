@@ -186,7 +186,7 @@ mutable struct AddressStatistics
 	Balance::Float64
 	end
 tplAddressStatistics = AddressStatistics(zeros(length(AddressStatistics.types))...)
-function Address2State(addr::String, blockNum::Int)
+function Address2State(addr::String, blockNum::Int)::AddressStatistics
 	blockNum += 1
 	coins = Mongoc.find(
 		MongoCollection("coins"),
@@ -204,8 +204,8 @@ function Address2State(addr::String, blockNum::Int)
 	spentNums = map(x->x["spentHeight"], coins[spentRange])
 	blockNums = sort!(vcat(mintNums, spentNums))
 	ret   = AddressStatistics(
-		blockNums[1], # TimestampCreated Int32
-		blockNums[end], # TimestampLastActive Int32
+		blockNums[1] |> BlockNum2Timestamp, # TimestampCreated Int32
+		blockNums[end] |> BlockNum2Timestamp, # TimestampLastActive Int32
 		findlast(x->x<=blockNum, mintNums) |> BlockNum2Timestamp, # TimestampLastReceived Int32
 		findlast(x->x<=blockNum, spentNums) |> BlockNum2Timestamp, # TimestampLastPayed Int32
 		map(x->x["value"],
@@ -214,8 +214,8 @@ function Address2State(addr::String, blockNum::Int)
 		map(x->x["value"],
 			coins[spentRange]
 		) |> sum |> bitcoreInt2Float64, # AmountExpenseTotal Float64
-		sum(mintRange), # NumTxInTotal Int32
-		sum(spentRange), # NumTxOutTotal Int32
+		length(mintNums), # NumTxInTotal Int32
+		length(spentNums), # NumTxOutTotal Int32
 		0, # UsdtPayed4Input Float64
 		0, # UsdtReceived4Output Float64
 		0, # AveragePurchasePrice Float32
@@ -224,14 +224,9 @@ function Address2State(addr::String, blockNum::Int)
 		0, # UsdtNetUnrealized Float64
 		0 , # Balance Float64
 	)
-	tmpList = map(x->x["value"],
-			filter(
-				x->0 < x["mintHeight"] < blockNum && x["spentHeight"] <= 0,
-				coins
-			)
-		)
-	if length(tmpList) > 0
-		ret.Balance = tmpList |> sum |> bitcoreInt2Float64
+	ret.Balance = ret.AmountIncomeTotal - ret.AmountExpenseTotal
+	if length(spentNums) > 0
+		ret.LastSellPrice = coins[spentNums[end]]["spentHeight"] |> BlockNum2Timestamp
 	end
 	return ret
 	end
