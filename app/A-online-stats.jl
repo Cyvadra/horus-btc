@@ -10,6 +10,11 @@ using MmapDB
 # load address service
 include("./service-address2id.jl");
 
+# load FinanceDB service
+using FinanceDB
+FinanceDB.SetDataFolder("/mnt/data/mmap")
+pairName     = "BTC_USDT"
+
 # Config
 dataFolder   = "/mnt/data/cacheTx/"
 shuffleRng   = Random.MersenneTwister(10086)
@@ -203,11 +208,16 @@ function Address2State(addr::String, blockNum::Int)::AddressStatistics
 	mintNums  = map(x->x["mintHeight"], coins[mintRange])
 	spentNums = map(x->x["spentHeight"], coins[spentRange])
 	blockNums = sort!(vcat(mintNums, spentNums))
+	# check
+		if length(mintNums) == 0
+			@warn "error occurred $addr"
+			throw("check data!")
+		end
 	ret   = AddressStatistics(
 		blockNums[1] |> BlockNum2Timestamp, # TimestampCreated Int32
 		blockNums[end] |> BlockNum2Timestamp, # TimestampLastActive Int32
-		findlast(x->x<=blockNum, mintNums) |> BlockNum2Timestamp, # TimestampLastReceived Int32
-		findlast(x->x<=blockNum, spentNums) |> BlockNum2Timestamp, # TimestampLastPayed Int32
+		mintNums[end] |> BlockNum2Timestamp, # TimestampLastReceived Int32
+		spentNums[end] |> BlockNum2Timestamp, # TimestampLastPayed Int32
 		map(x->x["value"],
 			coins[mintRange]
 		) |> sum |> bitcoreInt2Float64, # AmountIncomeTotal Float64
@@ -224,10 +234,34 @@ function Address2State(addr::String, blockNum::Int)::AddressStatistics
 		0, # UsdtNetUnrealized Float64
 		0 , # Balance Float64
 	)
-	ret.Balance = ret.AmountIncomeTotal - ret.AmountExpenseTotal
-	if length(spentNums) > 0
-		ret.LastSellPrice = coins[spentNums[end]]["spentHeight"] |> BlockNum2Timestamp
-	end
+	# default value
+		firstPrice   = FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(mintNums[1]))
+		currentPrice = FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(blockNum))
+	# Balance
+		ret.Balance = ret.AmountIncomeTotal - ret.AmountExpenseTotal
+	# LastSellPrice
+		if length(spentNums) > 0
+			ret.LastSellPrice = FinanceDB.GetDerivativePriceWhen( pairName, BlockNum2Timestamp(spentNums[end]) )
+		else
+			ret.LastSellPrice = firstPrice
+		end
+	# Usdt
+		ret.UsdtPayed4Input = map(
+			x->bitcoreInt2Float64(x["value"]) * FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(x["mintHeight"])),
+			coins[mintRange]
+		) |> sum
+		ret.UsdtReceived4Output = map(
+			x->bitcoreInt2Float64(x["value"]) * FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(x["spentHeight"])),
+			coins[spentRange]
+		) |> sum
+		if ret.Balance > 0.00
+			ret.AveragePurchasePrice = ret.UsdtPayed4Input / ret.Balance
+		else
+			ret.AveragePurchasePrice = firstPrice
+		end
+	# UsdtNetRealized / UsdtNetUnrealized
+		ret.UsdtNetRealized = ret.UsdtReceived4Output - ret.UsdtPayed4Input
+		ret.UsdtNetUnrealized = ret.Balance * currentPrice - ret.UsdtPayed4Input
 	return ret
 	end
 
