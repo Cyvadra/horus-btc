@@ -205,6 +205,21 @@ mutable struct AddressStatistics
 	UsdtNetUnrealized::Float64
 	Balance::Float64
 	end
+mutable struct AddressDiff
+	# timestamp
+	TimestampLastReceived::Int32
+	TimestampLastPayed::Int32
+	# amount
+	AmountIncomeTotal::Float64
+	AmountExpenseTotal::Float64
+	# statistics
+	NumTxInTotal::Int32
+	NumTxOutTotal::Int32
+	# relevant usdt amount
+	UsdtPayed4Input::Float64
+	UsdtReceived4Output::Float64
+	LastSellPrice::Float32
+	end
 tplAddressStatistics = AddressStatistics(zeros(length(AddressStatistics.types))...)
 function Address2State(addr::String, blockNum::Int)::AddressStatistics
 	blockNum += 1
@@ -213,7 +228,7 @@ function Address2State(addr::String, blockNum::Int)::AddressStatistics
 		Mongoc.BSON(
 			"""{
 				"address":"$addr",
-				"mintHeight": {"\$lt":$blockNum}
+				"mintHeight": {"\$lt":$blockNum, "\$gt":0}
 			}"""
 		)
 	) |> collect
@@ -279,5 +294,82 @@ function Address2State(addr::String, blockNum::Int)::AddressStatistics
 		ret.UsdtNetUnrealized = ret.Balance * (currentPrice - ret.AveragePurchasePrice)
 	return ret
 	end
-
+function Address2StateDiff(addr::String, fromBlock::Int, toBlock::Int)::AddressStatistics
+	fromBlock -= 1
+	toBlock   += 1
+	coins = Mongoc.find(
+		MongoCollection("coins"),
+		Mongoc.BSON(
+			"""{
+				"address":"$addr",
+				"mintHeight": {"\$lt":$toBlock, "\$gt":$fromBlock}
+			}"""
+		)
+	) |> collect
+	fromBlock += 1
+	toBlock   -= 1
+	spentRange= map(x->0 < x["spentHeight"] <= toBlock, coins)
+	mintNums  = map(x->x["mintHeight"], coins)
+	spentNums = map(x->x["spentHeight"], coins[spentRange])
+	blockNums = sort!(vcat(mintNums, spentNums))
+	ret       = deepcopy(tplAddressStatistics)
+	if length(mintNums) > 0 && length(spentNums) > 0
+		ret.TimestampCreated = blockNums[1] |> BlockNum2Timestamp # Int32
+		ret.TimestampLastActive = blockNums[end] |> BlockNum2Timestamp # Int32
+		ret.TimestampLastReceived = mintNums[end] |> BlockNum2Timestamp # Int32
+		ret.TimestampLastPayed = spentNums[end] |> BlockNum2Timestamp # Int32
+		ret.AmountIncomeTotal = map(x->x["value"],
+			coins
+		) |> sum |> bitcoreInt2Float64 # Float64
+		ret.AmountExpenseTotal = map(x->x["value"],
+			coins[spentRange]
+		) |> sum |> bitcoreInt2Float64 # Float64
+		ret.NumTxInTotal = length(mintNums) # Int32
+		ret.NumTxOutTotal = length(spentNums) # Int32
+	elseif length(blockNums) > 0
+		ret.TimestampLastActive = blockNums[end] |> BlockNum2Timestamp
+		if length(mintNums) > 0
+			ret.TimestampLastReceived = mintNums[end] |> BlockNum2Timestamp
+			ret.AmountIncomeTotal = map(
+				x->x["value"],
+				coins
+			) |> sum |> bitcoreInt2Float64
+			ret.NumTxInTotal = length(mintNums)
+		end
+		if length(spentNums) > 0
+			ret.TimestampLastPayed = spentNums[end] |> BlockNum2Timestamp
+			ret.AmountExpenseTotal = map(
+				x->x["value"],
+				coins[spentRange]
+			) |> sum |> bitcoreInt2Float64
+			ret.NumTxOutTotal = length(spentNums)
+		end
+	end
+	# Balance
+		ret.Balance = ret.AmountIncomeTotal - ret.AmountExpenseTotal
+	# LastSellPrice
+		if length(spentNums) > 0
+			ret.LastSellPrice = FinanceDB.GetDerivativePriceWhen( pairName, BlockNum2Timestamp(spentNums[end]) )
+		end
+	# Usdt
+		if length(mintNums) > 0
+			ret.UsdtPayed4Input = map(
+				x->bitcoreInt2Float64(x["value"]) * GetPriceAtBlockN(x["mintHeight"]),
+				coins
+			) |> sum
+		end
+		if length(spentNums) > 0
+			ret.UsdtReceived4Output = map(
+				x->bitcoreInt2Float64(x["value"]) * GetPriceAtBlockN(x["spentHeight"]),
+				coins[spentRange]
+			) |> sum
+		end
+		if abs(ret.Balance) > 0.00
+			ret.AveragePurchasePrice = ret.UsdtPayed4Input / ret.AmountIncomeTotal
+		end
+	# UsdtNetRealized / UsdtNetUnrealized
+		ret.UsdtNetRealized = ret.UsdtReceived4Output - ret.UsdtPayed4Input
+		ret.UsdtNetUnrealized = GetPriceAtBlockN(toBlock)
+	return ret
+	end
 
