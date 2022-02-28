@@ -35,7 +35,7 @@ function MongoCollection(key::String)::Mongoc.Collection
 	end
 
 # Middlewares: Get data from mongodb
-function GetBlockInfo(height::Int)::Mongoc.BSON
+function GetBlockInfo(height)::Mongoc.BSON
 	return Mongoc.find_one(MongoCollection("blocks"),  Mongoc.BSON("{\"height\":$height}"))
 	end
 function GetBlockTransactions(height::Int)::Vector{Mongoc.BSON}
@@ -252,7 +252,7 @@ function Address2State(addr::String, blockNum::Int)::AddressStatistics
 	blockNums = sort!(vcat(mintNums, spentNums))
 	# check
 		if length(mintNums) == 0
-			@warn "error occurred $addr"
+			@warn "no transaction found at address: $addr"
 			throw("check data!")
 		end
 	ret   = AddressStatistics(
