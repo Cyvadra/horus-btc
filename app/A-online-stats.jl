@@ -145,7 +145,7 @@ function ProcessBlockN(height::Int)::Vector{cacheTx}
 
 # BlockNum 2 Timestamp
 BlockTimestamps = JLD2.load(tsFile)["BlockTimestamps"]
-function BlockNum2Timestamp(height::Int)::Int32
+function BlockNum2Timestamp(height)::Int32
 	if haskey(BlockTimestamps, height)
 		return BlockTimestamps[height]
 	end
