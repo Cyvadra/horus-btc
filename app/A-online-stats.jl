@@ -198,8 +198,8 @@ function Address2State(addr::String, blockNum::Int)
 		)
 	) |> collect
 	blockNum -= 1
-	mintRange = map(x->x["mintHeight"] > 0, coins)
-	spentRange= map(x->0 < x["spentHeight"] < blockNum, coins)
+	mintRange = map(x->0 < x["mintHeight"], coins)
+	spentRange= map(x->0 < x["spentHeight"] <= blockNum, coins)
 	mintNums  = map(x->x["mintHeight"], coins[mintRange])
 	spentNums = map(x->x["spentHeight"], coins[spentRange])
 	blockNums = sort!(vcat(mintNums, spentNums))
