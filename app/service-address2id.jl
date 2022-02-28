@@ -1,6 +1,6 @@
 
 
-strFolder = "/media/jason89757/gloway/AddressServiceString/"
+strFolder = "/mnt/data/AddressServiceString/"
 isdir(strFolder) || mkdir(strFolder)
 previousMaxN = parse(UInt32, readline(strFolder*"counter"))
 
@@ -135,7 +135,7 @@ function SetID(addr, id)
 	return nothing
 	end
 
-
+nothing
 
 
 
