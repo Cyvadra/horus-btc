@@ -2,6 +2,7 @@
 
 ### Todos:
 3. [ ] Timestamp-snapshot supported Mmap database ==> Update Address Service.
+5. [ ] Add feature to FinanceDB to support online data loading.
 7. [ ] Feature: Different alignment of timestamp, so as to generate more data (after version updated)
 9. [ ] Add MA to dnn input. FinanceDB rewrite required.
 
