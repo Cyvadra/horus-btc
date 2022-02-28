@@ -261,7 +261,7 @@ function Address2State(addr::String, blockNum::Int)::AddressStatistics
 		end
 	# UsdtNetRealized / UsdtNetUnrealized
 		ret.UsdtNetRealized = ret.UsdtReceived4Output - ret.UsdtPayed4Input
-		ret.UsdtNetUnrealized = ret.Balance * currentPrice - ret.UsdtPayed4Input
+		ret.UsdtNetUnrealized = ret.Balance * (currentPrice - ret.AveragePurchasePrice)
 	return ret
 	end
 
