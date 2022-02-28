@@ -51,7 +51,6 @@ module AddressService
 		for i in 1:length(_types)
 			AddressStatisticsDict[_syms[i]] = Vector{_types[i]}(undef, numRows)
 			AddressStatisticsDict[_syms[i]] .= 0.0
-			close(f)
 		end
 		return nothing
 		end
