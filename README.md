@@ -5,6 +5,11 @@
 7. [ ] Feature: Different alignment of timestamp, so as to generate more data (after version updated)
 9. [ ] Add MA to dnn input. FinanceDB rewrite required.
 
+### Tests:
+- [ ] AddressService(part 1) test.
+- [ ] AddressService(part 2) test compared to previous snapshot at 2018.01.01.
+
+
 ### Processing:
 11. [ ] Consider real-time update.
 
