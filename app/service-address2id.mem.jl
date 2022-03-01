@@ -29,7 +29,7 @@ mutable struct MaxAddressNumberTpl
 	end
 MaxAddressNumber = MaxAddressNumberTpl(1, Threads.SpinLock())
 
-function String2ID(addr::String)::UInt32
+function String2ID(addr::AbstractString)::UInt32
 	if addr[1] == '1'
 		lv0_prefix = string(addr[2:4])
 		lv1_prefix = string(addr[5:7])
@@ -111,7 +111,7 @@ function String2ID(addr::String)::UInt32
 	return n
 	end
 
-function String2IDSafe(addr::String)::UInt32
+function String2IDSafe(addr::AbstractString)::UInt32
 	if addr[1] == '1'
 		lv0_prefix = string(addr[2:4])
 		lv1_prefix = string(addr[5:7])
@@ -169,7 +169,7 @@ function String2IDSafe(addr::String)::UInt32
 	end
 	end
 
-function SetID(addr::String, id)::Nothing
+function SetID(addr::AbstractString, id)::Nothing
 	if addr[1] == '1'
 		lv0_prefix = string(addr[2:4])
 		lv1_prefix = string(addr[5:7])
