@@ -2,16 +2,18 @@ using ProgressMeter
 using Dates
 using Statistics
 # private repos
+using MmapDB
 using FinanceDB
 using ThreadSafeDicts
-using AddressService
+
+include("./service-address.jl")
+include("./02-loadmmap.jl")
 
 @show Threads.nthreads()
-include("./02-loadmmap.jl")
-AddressService.Open()
-MmapDB.Init("/mnt/data/tmp")
 
 # Config
+	AddressService.Open()
+	MmapDB.Init("/mnt/data/tmp")
 	FinanceDB.SetDataFolder("/mnt/data/mmap")
 	pairName = "BTC_USDT"
 	seconds = (
