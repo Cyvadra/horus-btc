@@ -1,7 +1,7 @@
 # horus
 
 ### Todos:
-3. [ ] Timestamp-snapshot supported Mmap database ==> Update Address Service.
+3. [x] AddressService totally moved into memory.
 5. [ ] FinanceDB: online data loading.
 7. [ ] Feature: Different alignment of timestamp, so as to generate more data (after version update)
 9. [ ] Add MA to dnn input. FinanceDB rewrite might be required.
@@ -15,8 +15,9 @@
 
 ### Issues:
 - [ ] Original version might have missing value(records).
-- [ ] Performance issue of new version AddressService.
+- [x] New version of AddressService failed due to performance issue, deprecated by now.
 
 ### Cancelled:
 5. [ ] Big Update: support batch calculation and touch!() function (or next generation of AddressService)
+3. [x] Timestamp-snapshot supported Mmap database ==> Update Address Service.
 
