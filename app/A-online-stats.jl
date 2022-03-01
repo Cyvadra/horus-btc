@@ -7,8 +7,10 @@ using JSON
 using JLD2
 using MmapDB
 
-# load address service
 include("./service-address2id.jl");
+
+# load data
+tsFile          = "/mnt/data/bitcore/BlockTimestamps.dict.jld2"
 
 # load FinanceDB service
 using FinanceDB
@@ -18,7 +20,6 @@ pairName     = "BTC_USDT"
 # Config
 dataFolder   = "/mnt/data/cacheTx/"
 shuffleRng   = Random.MersenneTwister(10086)
-tsFile       = "/mnt/data/bitcore/BlockTimestamps.dict.jld2"
 BlockPriceDict = Dict{Int32,Float64}()
 
 # Init Mongo
@@ -234,6 +235,7 @@ mutable struct AddressDiff
 tplAddressDiff       = AddressDiff(zeros(length(AddressDiff.types))...)
 tplAddressStatistics = AddressStatistics(zeros(length(AddressStatistics.types))...)
 function Address2State(addr::String, blockNum::Int)::AddressStatistics
+	# (1, blockNum]
 	blockNum += 1
 	coins = Mongoc.find(
 		MongoCollection("coins"),
@@ -253,19 +255,17 @@ function Address2State(addr::String, blockNum::Int)::AddressStatistics
 	# check
 		if length(mintNums) == 0
 			@warn "no transaction found at address: $addr"
-			throw("check data!")
+			return deepcopy(tplAddressStatistics)
 		end
 	ret   = AddressStatistics(
 		blockNums[1] |> BlockNum2Timestamp, # TimestampCreated Int32
 		blockNums[end] |> BlockNum2Timestamp, # TimestampLastActive Int32
 		mintNums[end] |> BlockNum2Timestamp, # TimestampLastReceived Int32
-		spentNums[end] |> BlockNum2Timestamp, # TimestampLastPayed Int32
+		0, # TimestampLastPayed Int32
 		map(x->x["value"],
 			coins[mintRange]
 		) |> sum |> bitcoreInt2Float64, # AmountIncomeTotal Float64
-		map(x->x["value"],
-			coins[spentRange]
-		) |> sum |> bitcoreInt2Float64, # AmountExpenseTotal Float64
+		0, # AmountExpenseTotal Float64
 		length(mintNums), # NumTxInTotal Int32
 		length(spentNums), # NumTxOutTotal Int32
 		0, # UsdtPayed4Input Float64
@@ -281,9 +281,14 @@ function Address2State(addr::String, blockNum::Int)::AddressStatistics
 		currentPrice = FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(blockNum))
 	# Balance
 		ret.Balance = ret.AmountIncomeTotal - ret.AmountExpenseTotal
-	# LastSellPrice
+	# Spent coins
 		if length(spentNums) > 0
 			ret.LastSellPrice = FinanceDB.GetDerivativePriceWhen( pairName, BlockNum2Timestamp(spentNums[end]) )
+			ret.TimestampLastPayed = spentNums[end] |> BlockNum2Timestamp
+			ret.AmountExpenseTotal = map(
+				x->x["value"],
+				coins[spentRange]
+			) |> sum |> bitcoreInt2Float64
 		else
 			ret.LastSellPrice = firstPrice
 		end
@@ -307,6 +312,7 @@ function Address2State(addr::String, blockNum::Int)::AddressStatistics
 	return ret
 	end
 function Address2StateDiff(addr::String, fromBlock::Int, toBlock::Int)::AddressDiff
+	# [fromBlock, toBlock]
 	fromBlock -= 1
 	toBlock   += 1
 	coins = Mongoc.find(
@@ -409,3 +415,4 @@ function MergeAddressState(baseState::AddressStatistics, arrayDiff::Vector{Addre
 	baseState.UsdtNetUnrealized = baseState.Balance * (coinPrice - ret.AveragePurchasePrice)
 	return baseState
 	end
+
