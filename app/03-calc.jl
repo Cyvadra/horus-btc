@@ -768,11 +768,13 @@ include("./02-loadmmap.jl")
 		resultTpl.timestamp = tsStart
 		lastI = 0
 		# calc loop, in bach
-		t = @timed DoCalculations!(thisPosStart, thisPosEnd, Ref(resultTpl))
 		println()
+		@info "length of transactions $lenTxs"
+		println()
+		t = @timed DoCalculations!(thisPosStart, thisPosEnd, Ref(resultTpl))
 		@info "Calculation Time: $(Float16(t.time))s, gc $(Float16(t.gctime)), $(Float32(t.bytes / 1024^3))GB"
 		t = @timed touch!(thisPosStart, thisPosEnd)
-		@info "Calculation Time: $(Float16(t.time))s, gc $(Float16(t.gctime)), $(Float32(t.bytes / 1024^3))GB"
+		@info "Touch Time: $(Float16(t.time))s, gc $(Float16(t.gctime)), $(Float32(t.bytes / 1024^3))GB"
 		println()
 		# debug
 		if isinf(resultTpl.amountRealizedProfitBillion) || isnan(resultTpl.amountRealizedProfitBillion)
