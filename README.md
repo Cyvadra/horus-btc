@@ -18,6 +18,6 @@
 - [x] New version of AddressService failed due to performance issue, deprecated by now.
 
 ### Cancelled:
-5. [ ] Big Update: support batch calculation and touch!() function (or next generation of AddressService)
+5. [x] Batch calculation failed due to same performance and lower accuracy.
 3. [x] Timestamp-snapshot supported Mmap database ==> Update Address Service.
 
