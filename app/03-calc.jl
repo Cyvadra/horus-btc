@@ -717,6 +717,69 @@ include("./02-loadmmap.jl")
 		return nothing
 		end
 
+# Generate AddressStatistics from TxRowsDF
+	mutable struct AddressStatistics
+		# timestamp
+		TimestampCreated::Int32
+		TimestampLastActive::Int32
+		TimestampLastReceived::Int32
+		TimestampLastPayed::Int32
+		# amount
+		AmountIncomeTotal::Float64
+		AmountExpenseTotal::Float64
+		# statistics
+		NumTxInTotal::Int32
+		NumTxOutTotal::Int32
+		# relevant usdt amount
+		UsdtPayed4Input::Float64
+		UsdtReceived4Output::Float64
+		AveragePurchasePrice::Float32
+		LastSellPrice::Float32
+		# calculated extra
+		UsdtNetRealized::Float64
+		UsdtNetUnrealized::Float64
+		Balance::Float64
+		end
+	tplAddressStatistics = AddressStatistics(zeros(length(AddressStatistics.types))...)
+	function GenerateAddrState(addrId::UInt32, ts::Int32)::AddressStatistics
+		coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, ts)
+		ret    = deepcopy(tplAddressStatistics)
+		tsLast = findlast(x->x<=ts, TxRowsDF.Timestamp)
+		inds   = findall(x->x==addrId, TxRowsDF.AddressId[1:tsLast])
+		ret.TimestampCreated = TxRowsDF.Timestamp[inds[1]]
+		ret.TimestampLastActive = TxRowsDF.Timestamp[inds[end]]
+		for i in length(inds):-1:1
+			if TxRowsDF.Amount[i] < 0
+				ret.TimestampLastPayed = TxRowsDF.Timestamp[i]
+				break
+			end
+		end
+		for i in length(inds):-1:1
+			if TxRowsDF.Amount[i] > 0
+				ret.TimestampLastReceived = TxRowsDF.Timestamp[i]
+				break
+			end
+		end
+		tmpIn   = filter(x->x>0, TxRowsDF.Amount[inds])
+		tmpOut  = filter(x->x<0, TxRowsDF.Amount[inds])
+		ret.AmountIncomeTotal  = sum(tmpIn)
+		ret.AmountExpenseTotal = abs(sum(tmpOut))
+		ret.NumTxInTotal  = length(tmpIn)
+		ret.NumTxOutTotal = length(tmpOut)
+		ret.LastSellPrice = FinanceDB.GetDerivativePriceWhen(pairName, ret.TimestampLastPayed)
+		tmpUsdt   = [ FinanceDB.GetDerivativePriceWhen(pairName, TxRowsDF.Timestamp[_ind]) * TxRowsDF.Amount[_ind] for _ind in inds ]
+		ret.UsdtPayed4Input      = sum(filter(x->x>0, tmpUsdt))
+		ret.UsdtReceived4Output  = abs(sum(filter(x->x<0, tmpUsdt)))
+		ret.Balance = ret.AmountIncomeTotal - ret.AmountExpenseTotal
+		if ret.Balance > 0
+			ret.AveragePurchasePrice = ret.UsdtPayed4Input / ret.Balance
+		else
+			ret.AveragePurchasePrice = coinPrice
+		end
+		ret.UsdtNetRealized = ret.UsdtReceived4Output - ret.UsdtPayed4Input
+		ret.UsdtNetUnrealized = ret.Balance * (coinPrice - ret.AveragePurchasePrice)
+		return ret
+		end
 
 # Processing
 	fromDate = DateTime(2018,1, 1, 0, 0, 0)
