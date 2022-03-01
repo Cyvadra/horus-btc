@@ -747,7 +747,7 @@ include("./02-loadmmap.jl")
 	thisPosEnd   = 1
 	resLen       = ceil(Int, (toDate - fromDate).value / 1000 / 3600 / 3)
 	TableResultCalculations = MmapDB.GenerateCode(ResultCalculations)
-	TableResultCalculations.Create!(resLen)
+	TableResultCalculations.Open(resLen)
 	resCounter = 1
 	barLen   = findlast(x->x<=dt2unix(toDate), sumTs) - findfirst(x->x>=dt2unix(fromDate), sumTs) + 1
 	prog     = ProgressMeter.Progress(barLen; barlen=36, color=:blue)
