@@ -18,9 +18,9 @@ MaxAddressNumber = MaxAddressNumberTpl(1, Threads.SpinLock())
 
 function String2ID(addr::String)::UInt32
 	if addr[1] == '1'
-		lv0_prefix = string(addr[2:5])
-		lv1_prefix = string(addr[6:9])
-		lv2_body   = string(addr[10:end])
+		lv0_prefix = string(addr[2:4])
+		lv1_prefix = string(addr[5:7])
+		lv2_body   = string(addr[8:end])
 		if !haskey(Lv0IndexP2PKH, lv0_prefix)
 			Lv0IndexP2PKH[lv0_prefix] = Dict{String, Dict{String,UInt32}}()
 		end
@@ -38,9 +38,9 @@ function String2ID(addr::String)::UInt32
 			return n
 		end
 	elseif addr[1] == '3'
-		lv0_prefix = string(addr[2:5])
-		lv1_prefix = string(addr[6:9])
-		lv2_body   = string(addr[10:end])
+		lv0_prefix = string(addr[2:4])
+		lv1_prefix = string(addr[5:7])
+		lv2_body   = string(addr[8:end])
 		if !haskey(Lv1IndexP2SH, lv0_prefix)
 			Lv1IndexP2SH[lv0_prefix] = Dict{String, Dict{String,UInt32}}()
 		end
@@ -58,9 +58,9 @@ function String2ID(addr::String)::UInt32
 			return n
 		end
 	elseif addr[1] == 'b' # bc1q
-		lv0_prefix = string(addr[5:8])
-		lv1_prefix = string(addr[9:12])
-		lv2_body   = string(addr[13:end])
+		lv0_prefix = string(addr[5:7])
+		lv1_prefix = string(addr[8:10])
+		lv2_body   = string(addr[11:end])
 		if !haskey(Lv1IndexBech32, lv0_prefix)
 			Lv1IndexBech32[lv0_prefix] = Dict{String, Dict{String,UInt32}}()
 		end
