@@ -729,10 +729,10 @@ include("./02-loadmmap.jl")
 	# now it's time to process real stuff
 	tmpLen = nrow(TxRowsDF)
 	# pre alloc mem
-	sumAddrId = deepcopy(TxRowsDF[1:posStart-1, :AddressId])
-	sumTagNew = fill(true, posStart - 1)
-	sumAmount = deepcopy(TxRowsDF[1:posStart-1, :Amount])
-	sumTs     = deepcopy(TxRowsDF[1:posStart-1, :Timestamp])
+	sumAddrId = deepcopy(TxRowsDF[posStart:tmpLen, :AddressId])
+	sumTagNew = fill(true, tmpLen - posStart + 1)
+	sumAmount = deepcopy(TxRowsDF[posStart:tmpLen, :Amount])
+	sumTs     = deepcopy(TxRowsDF[posStart:tmpLen, :Timestamp])
 
 	TxRowsDF = nothing
 	@show now()
