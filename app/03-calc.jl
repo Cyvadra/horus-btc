@@ -760,17 +760,21 @@ include("./02-loadmmap.jl")
 		thisPosStart = findnext(x-> x >= tsStart, sumTs, nextPosRef)
 		thisPosEnd   = findnext(x-> x > tsStart + 3seconds.Hour, sumTs, nextPosRef) - 1
 		lenTxs = thisPosEnd - thisPosStart + 1
+		lenNew = 0
 		for i in 1:lenTxs
 			_ind = thisPosStart+i-1
 			sumTagNew[_ind] = AddressService.isNew(sumAddrId[_ind])
+			if sumTagNew[_ind]
+				lenNew += 1
+			end
 		end
+		println()
+		@info "New addresses: $lenNew / $lenTxs \t $(Float16(lenNew/lenTxs)*100)%"
 		resultTpl = ResultCalculations(zeros(length(ResultCalculations.types))...)
 		resultTpl.timestamp = tsStart
 		lastI = 0
 		# calc loop, in bach
-		println()
 		@info "length of transactions $lenTxs"
-		println()
 		t = @timed DoCalculations!(thisPosStart, thisPosEnd, Ref(resultTpl))
 		@info "Calculation Time: $(Float16(t.time))s, gc $(Float16(t.gctime)), $(Float32(t.bytes / 1024^3))GB"
 		t = @timed touch!(thisPosStart, thisPosEnd)
