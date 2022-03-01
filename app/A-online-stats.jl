@@ -375,6 +375,9 @@ function MergeAddressState!(baseState::AddressStatistics, arrayDiff::Vector{Addr
 			baseState.AmountIncomeTotal += d.AmountIncomeTotal
 			baseState.NumTxInTotal += d.NumTxInTotal
 			baseState.UsdtPayed4Input += d.UsdtPayed4Input
+			if iszero(baseState.TimestampCreated)
+				baseState.TimestampCreated = d.TimestampLastReceived
+			end
 		end
 		if d.TimestampLastPayed > 0
 			baseState.TimestampLastPayed = d.TimestampLastPayed
@@ -399,6 +402,9 @@ function MergeAddressState(baseState::AddressStatistics, arrayDiff::Vector{Addre
 			baseState.AmountIncomeTotal += d.AmountIncomeTotal
 			baseState.NumTxInTotal += d.NumTxInTotal
 			baseState.UsdtPayed4Input += d.UsdtPayed4Input
+			if iszero(baseState.TimestampCreated)
+				baseState.TimestampCreated = d.TimestampLastReceived
+			end
 		end
 		if d.TimestampLastPayed > 0
 			baseState.TimestampLastPayed = d.TimestampLastPayed
