@@ -1,14 +1,27 @@
 
+
+mutable struct Lv2Unit
+	strings::Vector{String}
+	ids::Vector{UInt32}
+	end
 Lv0IndexP2PKH = Dict{String, Dict}()
-	Lv1IndexP2PKH = Dict{String, Dict{String,UInt32}}()
-	Lv2IndexP2PKH = Dict{String, UInt32}()
+	# Lv1IndexP2PKH = Dict{String, Lv2Unit}()
+	# Lv2AddrStringVectorP2PKH = Vector{String}()
+	# Lv2AddrIdVectorP2PKH = Vector{UInt32}()
 Lv0IndexP2SH = Dict{String, Dict}()
-	Lv1IndexP2SH = Dict{String, Dict{String,UInt32}}()
-	Lv2IndexP2SH = Dict{String, UInt32}()
+	# Lv1IndexP2SH = Dict{String, Lv2Unit}()
+	# Lv2AddrStringVectorP2SH = Vector{String}()
+	# Lv2AddrIdVectorP2SH = Vector{UInt32}()
 Lv0IndexBech32 = Dict{String, Dict}()
-	Lv1IndexBech32 = Dict{String, Dict{String,UInt32}}()
-	Lv2IndexBech32 = Dict{String, UInt32}()
+	# Lv1IndexBech32 = Dict{String, Lv2Unit}()
+	# Lv2AddrStringVectorBech32 = Vector{String}()
+	# Lv2AddrIdVectorBech32 = Vector{UInt32}()
 Lv0IndexOther = Dict{String, UInt32}()
+
+empty!(Lv0IndexP2PKH)
+empty!(Lv0IndexP2SH)
+empty!(Lv0IndexBech32)
+empty!(Lv0IndexOther)
 
 mutable struct MaxAddressNumberTpl
 	id::UInt32
@@ -22,59 +35,65 @@ function String2ID(addr::String)::UInt32
 		lv1_prefix = string(addr[5:7])
 		lv2_body   = string(addr[8:end])
 		if !haskey(Lv0IndexP2PKH, lv0_prefix)
-			Lv0IndexP2PKH[lv0_prefix] = Dict{String, Dict{String,UInt32}}()
+			Lv0IndexP2PKH[lv0_prefix] = Dict{String, Lv2Unit}()
 		end
 		if !haskey(Lv0IndexP2PKH[lv0_prefix], lv1_prefix)
-			Lv0IndexP2PKH[lv0_prefix][lv1_prefix] = Dict{String,UInt32}()
+			Lv0IndexP2PKH[lv0_prefix][lv1_prefix] = Lv2Unit(String[], UInt32[])
 		end
-		if haskey(Lv0IndexP2PKH[lv0_prefix][lv1_prefix], lv2_body)
-			return Lv0IndexP2PKH[lv0_prefix][lv1_prefix][lv2_body]
+		i = findfirst(x->x==lv2_body, Lv0IndexP2PKH[lv0_prefix][lv1_prefix].strings)
+		if !isnothing(i)
+			return Lv0IndexP2PKH[lv0_prefix][lv1_prefix].ids[i]
 		else
 			lock(MaxAddressNumber.dlock)
 			n = MaxAddressNumber.id + 1
 			MaxAddressNumber.id = n
 			unlock(MaxAddressNumber.dlock)
-			Lv0IndexP2PKH[lv0_prefix][lv1_prefix][lv2_body] = n
+			push!(Lv0IndexP2PKH[lv0_prefix][lv1_prefix].strings, lv2_body)
+			push!(Lv0IndexP2PKH[lv0_prefix][lv1_prefix].ids, n)
 			return n
 		end
 	elseif addr[1] == '3'
 		lv0_prefix = string(addr[2:4])
 		lv1_prefix = string(addr[5:7])
 		lv2_body   = string(addr[8:end])
-		if !haskey(Lv1IndexP2SH, lv0_prefix)
-			Lv1IndexP2SH[lv0_prefix] = Dict{String, Dict{String,UInt32}}()
+		if !haskey(Lv0IndexP2SH, lv0_prefix)
+			Lv0IndexP2SH[lv0_prefix] = Dict{String, Lv2Unit}()
 		end
-		if !haskey(Lv1IndexP2SH[lv0_prefix], lv1_prefix)
-			Lv1IndexP2SH[lv0_prefix][lv1_prefix] = Dict{String,UInt32}()
+		if !haskey(Lv0IndexP2SH[lv0_prefix], lv1_prefix)
+			Lv0IndexP2SH[lv0_prefix][lv1_prefix] = Lv2Unit(String[], UInt32[])
 		end
-		if haskey(Lv1IndexP2SH[lv0_prefix][lv1_prefix], lv2_body)
-			return Lv1IndexP2SH[lv0_prefix][lv1_prefix][lv2_body]
+		i = findfirst(x->x==lv2_body, Lv0IndexP2SH[lv0_prefix][lv1_prefix].strings)
+		if !isnothing(i)
+			return Lv0IndexP2SH[lv0_prefix][lv1_prefix].ids[i]
 		else
 			lock(MaxAddressNumber.dlock)
 			n = MaxAddressNumber.id + 1
 			MaxAddressNumber.id = n
 			unlock(MaxAddressNumber.dlock)
-			Lv1IndexP2SH[lv0_prefix][lv1_prefix][lv2_body] = n
+			push!(Lv0IndexP2SH[lv0_prefix][lv1_prefix].strings, lv2_body)
+			push!(Lv0IndexP2SH[lv0_prefix][lv1_prefix].ids, n)
 			return n
 		end
 	elseif addr[1] == 'b' # bc1q
 		lv0_prefix = string(addr[5:7])
 		lv1_prefix = string(addr[8:10])
 		lv2_body   = string(addr[11:end])
-		if !haskey(Lv1IndexBech32, lv0_prefix)
-			Lv1IndexBech32[lv0_prefix] = Dict{String, Dict{String,UInt32}}()
+		if !haskey(Lv0IndexBech32, lv0_prefix)
+			Lv0IndexBech32[lv0_prefix] = Dict{String, Lv2Unit}()
 		end
-		if !haskey(Lv1IndexBech32[lv0_prefix], lv1_prefix)
-			Lv1IndexBech32[lv0_prefix][lv1_prefix] = Dict{String,UInt32}()
+		if !haskey(Lv0IndexBech32[lv0_prefix], lv1_prefix)
+			Lv0IndexBech32[lv0_prefix][lv1_prefix] = Lv2Unit(String[], UInt32[])
 		end
-		if haskey(Lv1IndexBech32[lv0_prefix][lv1_prefix], lv2_body)
-			return Lv1IndexBech32[lv0_prefix][lv1_prefix][lv2_body]
+		i = findfirst(x->x==lv2_body, Lv0IndexBech32[lv0_prefix][lv1_prefix].strings)
+		if !isnothing(i)
+			return Lv0IndexBech32[lv0_prefix][lv1_prefix].ids[i]
 		else
 			lock(MaxAddressNumber.dlock)
 			n = MaxAddressNumber.id + 1
 			MaxAddressNumber.id = n
 			unlock(MaxAddressNumber.dlock)
-			Lv1IndexBech32[lv0_prefix][lv1_prefix][lv2_body] = n
+			push!(Lv0IndexBech32[lv0_prefix][lv1_prefix].strings, lv2_body)
+			push!(Lv0IndexBech32[lv0_prefix][lv1_prefix].ids, n)
 			return n
 		end
 	else
