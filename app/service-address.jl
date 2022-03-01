@@ -62,9 +62,7 @@ module AddressService
 		for i in 1:length(_types)
 			f = open(dataFolder*string(_syms[i])*".bin", "w+")
 			m = mmap( f, Vector{_types[i]}, numRows; grow=true )
-			for j in 1:numRows
-				m[j] = AddressStatisticsDict[_syms[i]][j]
-			end
+			m .= AddressStatisticsDict[_syms[i]]
 			close(f)
 			@info "Done saving $dataFolder $(string(_syms[i])).bin"
 		end
