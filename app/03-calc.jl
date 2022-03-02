@@ -814,7 +814,7 @@ include("./02-loadmmap.jl")
 	resCounter = 1
 	barLen   = findlast(x->x<=dt2unix(toDate), sumTs) - findfirst(x->x>=dt2unix(fromDate), sumTs) + 1
 	prog     = ProgressMeter.Progress(barLen; barlen=36, color=:blue)
-	for dt in fromDate:Hour(3):toDate
+	for dt in fromDate:Hour(3):(toDate-Hour(3))
 		if isfile("/tmp/JULIA_EMERGENCY_STOP")
 			@show dt
 			break
@@ -840,8 +840,13 @@ include("./02-loadmmap.jl")
 		@info "length of transactions $lenTxs"
 		t = @timed DoCalculations!(thisPosStart, thisPosEnd, Ref(resultTpl))
 		@info "Calculation Time: $(Float16(t.time))s, gc $(Float16(t.gctime)), $(Float32(t.bytes / 1024^3))GB"
-		t = @timed touch!(thisPosStart, thisPosEnd)
-		@info "Touch Time: $(Float16(t.time))s, gc $(Float16(t.gctime)), $(Float32(t.bytes / 1024^3))GB"
+		t = now()
+		a = round(Int, thisPosStart + lenTxs / 3)
+		b = round(Int, thisPosStart + 2lenTxs / 3)
+		touch!(thisPosStart, a)
+		touch!(a+1, b)
+		touch!(b+1, thisPosEnd)
+		@info "Touch Time: $(Float16((now() - t).value / 1000))s"
 		println()
 		# debug
 		if isinf(resultTpl.amountRealizedProfitBillion) || isnan(resultTpl.amountRealizedProfitBillion)
