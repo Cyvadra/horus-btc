@@ -80,6 +80,9 @@ using JLD2
 		else
 			RootOther[addr] = id
 		end
+		if id > AddressCounter.x
+			AddressCounter.x = id
+		end
 		return nothing
 		end
 	function GenerateID(addr::AbstractString)::UInt32
