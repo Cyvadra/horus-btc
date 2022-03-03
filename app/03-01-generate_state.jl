@@ -27,37 +27,37 @@ mutable struct AddressStatistics
 	Balance::Float64
 	end
 function GenerateState(addrId::UInt32, startN::Int, endN::Int)::AddressStatistics
-	mintTags  = map(x->x>0.0, df.Amount[startN:endN])
-	spentTags = map(x->x<0.0, df.Amount[startN:endN])
+	mintTags  = map(x->x>0.0, sumAmount[startN:endN])
+	spentTags = map(x->x<0.0, sumAmount[startN:endN])
 	# collect index
 		tmpInds   = collect(startN:endN)
 		mintInds  = tmpInds[mintTags]
 		spentInds = tmpInds[spentTags]
 	ret   = AddressStatistics(
-		min(df.Timestamp[startN:endN]...), # TimestampCreated Int32
-		max(df.Timestamp[startN:endN]...), # TimestampLastActive Int32
-		df.Timestamp[mintInds[end]], # TimestampLastReceived Int32
-		df.Timestamp[spentInds[end]], # TimestampLastPayed Int32
-		df.Amount[mintInds] |> sum, # AmountIncomeTotal Float64
-		df.Amount[spentInds] |> sum |> abs, # AmountExpenseTotal Float64
+		min(sumTs[startN:endN]...), # TimestampCreated Int32
+		max(sumTs[startN:endN]...), # TimestampLastActive Int32
+		sumTs[mintInds[end]], # TimestampLastReceived Int32
+		sumTs[spentInds[end]], # TimestampLastPayed Int32
+		sumAmount[mintInds] |> sum, # AmountIncomeTotal Float64
+		sumAmount[spentInds] |> sum |> abs, # AmountExpenseTotal Float64
 		sum(mintTags), # NumTxInTotal Int32
 		sum(spentTags), # NumTxOutTotal Int32
 		0, # UsdtPayed4Input Float64
 		0, # UsdtReceived4Output Float64
 		0, # AveragePurchasePrice Float32
-		FinanceDB.GetDerivativePriceWhen(pairName, df.Timestamp[spentInds[end]]), # LastSellPrice Float32
+		FinanceDB.GetDerivativePriceWhen(pairName, sumTs[spentInds[end]]), # LastSellPrice Float32
 		0, # UsdtNetRealized Float64
 		0, # UsdtNetUnrealized Float64
 		0 , # Balance Float64
 	)
 	# default value
 		# firstPrice   = FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(mintNums[1]))
-		currentPrice = FinanceDB.GetDerivativePriceWhen(pairName, max(df.Timestamp[startN:endN]...))
+		currentPrice = FinanceDB.GetDerivativePriceWhen(pairName, max(sumTs[startN:endN]...))
 	# Balance
 		ret.Balance = ret.AmountIncomeTotal - ret.AmountExpenseTotal
 	# Usdt
-		ret.UsdtPayed4Input = [ df.Amount[i] * FinanceDB.GetDerivativePriceWhen(pairName, df.Timestamp[i]) for i in mintInds ] |> sum
-		ret.UsdtReceived4Output = [ df.Amount[i] * FinanceDB.GetDerivativePriceWhen(pairName, df.Timestamp[i]) for i in spentInds ] |> sum |> abs
+		ret.UsdtPayed4Input = [ sumAmount[i] * FinanceDB.GetDerivativePriceWhen(pairName, sumTs[i]) for i in mintInds ] |> sum
+		ret.UsdtReceived4Output = [ sumAmount[i] * FinanceDB.GetDerivativePriceWhen(pairName, sumTs[i]) for i in spentInds ] |> sum |> abs
 		if ret.AmountIncomeTotal > 1e9
 			ret.AveragePurchasePrice = ret.UsdtPayed4Input / ret.AmountIncomeTotal
 		else
@@ -74,31 +74,19 @@ function GenerateState(addrId::UInt32, startN::Int, endN::Int)::AddressStatistic
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 nextPosRef = 1
 currentPos = 1
-addrId = df.AddressId[currentPos]
-endPos = findnext(x->x!==addrId, df.AddressId, nextPosRef) - 1
+addrId = sumAddrId[currentPos]
+endPos = findnext(x->x!==addrId, sumAddrId, nextPosRef) - 1
 
-prog = ProgressMeter.Progress(nrow(df); barlen=36, color=:blue)
+prog = ProgressMeter.Progress(length(sumTs); barlen=36, color=:blue)
 while !isnothing(endPos)
 	txs    = currentPos:endPos
 	# ...
 	next!(prog, length(txs))
 	currentPos = endPos + 1
-	addrId = df.AddressId[currentPos]
-	endPos = findnext(x->x!==addrId, df.AddressId, nextPosRef) - 1
+	addrId = sumAddrId[currentPos]
+	endPos = findnext(x->x!==addrId, sumAddrId, nextPosRef) - 1
 	end
 
 
