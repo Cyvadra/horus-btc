@@ -27,7 +27,7 @@ using JLD2
 		JLD2.save(DATA_DIR*"Trie.RootP2PKH.jld2", "RootP2PKH", RootP2PKH)
 		JLD2.save(DATA_DIR*"Trie.RootP2SH.jld2", "RootP2SH", RootP2SH)
 		JLD2.save(DATA_DIR*"Trie.RootBech32.jld2", "RootBech32", RootBech32)
-		JLD2.save(DATA_DIR*"Trie.RootOther.jld2", "RootOther", RootOther)
+		JLD2.save(DATA_DIR*"Trie.RootOther.jld2", "RootOther", RootOther.d)
 		@info "Synchronization Complete!"
 		end
 	atexit(WriteCounter)
@@ -46,10 +46,10 @@ using JLD2
 	const firstLetterBech32 = 'b'
 	# auto load
 	if filesize(DATA_DIR*"Trie.RootOther.jld2") > 0
-		RootP2PKH  = JLD2.load(DATA_DIR*"Trie.RootP2PKH.jld2", "RootP2PKH")
-		RootP2SH   = JLD2.load(DATA_DIR*"Trie.RootP2SH.jld2", "RootP2SH")
-		RootBech32 = JLD2.load(DATA_DIR*"Trie.RootBech32.jld2", "RootBech32")
-		RootOther  = JLD2.load(DATA_DIR*"Trie.RootOther.jld2", "RootOther")
+		RootP2PKH   = JLD2.load(DATA_DIR*"Trie.RootP2PKH.jld2", "RootP2PKH")
+		RootP2SH    = JLD2.load(DATA_DIR*"Trie.RootP2SH.jld2", "RootP2SH")
+		RootBech32  = JLD2.load(DATA_DIR*"Trie.RootBech32.jld2", "RootBech32")
+		RootOther.d = JLD2.load(DATA_DIR*"Trie.RootOther.jld2", "RootOther")
 	end
 
 # Methods
