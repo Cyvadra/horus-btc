@@ -7,7 +7,7 @@ using JSON
 using JLD2
 using MmapDB
 
-include("./service-address2id.jl");
+include("./service-address2id.mem.jl");
 
 # load data
 tsFile          = "/mnt/data/bitcore/BlockTimestamps.dict.jld2"
@@ -124,7 +124,7 @@ function ProcessBlockN(height::Int)::Vector{cacheTx}
 		addrs   = unique(map(x->x["address"], vcat(inputs, outputs)))
 		for addr in addrs
 			if !haskey(tmpDict, addr)
-				tmpDict[addr] = String2ID(addr)
+				tmpDict[addr] = GenerateID(addr)
 			end
 		end
 		for c in inputs

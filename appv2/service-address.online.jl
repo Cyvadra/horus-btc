@@ -1,4 +1,6 @@
 
+addrCacheFolder = "/media/jason89757/gloway/addrCache/"
+
 # Realtime Address Service
 mutable struct AddressStatistics
 	# timestamp
@@ -226,9 +228,6 @@ function MergeAddressState(baseState::AddressStatistics, arrayDiff::Vector{Addre
 	baseState.UsdtNetUnrealized = baseState.Balance * (coinPrice - ret.AveragePurchasePrice)
 	return baseState
 	end
-
-
-addrCacheFolder = "/media/jason89757/gloway/addrCache/"
 
 mutable struct AddressCache
 	blockHeight::Int32
