@@ -1,259 +1,125 @@
+using DataStructures
+using ThreadSafeDicts # private repo
 
+# Base Config
+	const DATA_DIR = "/mnt/data/AddressServiceTrie/"
 
-mutable struct Lv2Unit
-	strings::Vector{String}
-	ids::Vector{UInt32}
-	end
-Lv0IndexP2PKH = Dict{String, Dict}()
-	# Lv1IndexP2PKH = Dict{String, Lv2Unit}()
-	# Lv2AddrStringVectorP2PKH = Vector{String}()
-	# Lv2AddrIdVectorP2PKH = Vector{UInt32}()
-Lv0IndexP2SH = Dict{String, Dict}()
-	# Lv1IndexP2SH = Dict{String, Lv2Unit}()
-	# Lv2AddrStringVectorP2SH = Vector{String}()
-	# Lv2AddrIdVectorP2SH = Vector{UInt32}()
-Lv0IndexBech32 = Dict{String, Dict}()
-	# Lv1IndexBech32 = Dict{String, Lv2Unit}()
-	# Lv2AddrStringVectorBech32 = Vector{String}()
-	# Lv2AddrIdVectorBech32 = Vector{UInt32}()
-Lv0IndexOther = Dict{String, UInt32}()
+# Config: CURRENT_MAX_N
+  CURRENT_MAX_N = UInt32(0)
+  if filesize(DATA_DIR*"CURRENT_MAX_N") > 0
+  	CURRENT_MAX_N = parse(UInt32, readline(DATA_DIR*"CURRENT_MAX_N"))
+	  end
+	struct AddressCounterTpl
+		dlock::Threads.SpinLock
+		x::UInt32
+		end
+	AddressCounter = AddressCounterTpl(Threads.SpinLock(), CURRENT_MAX_N)
+  function WriteCounter()
+  	write(DATA_DIR*"CURRENT_MAX_N", string(AddressCounter.x))
+	  end
+	atexit(WriteCounter)
 
-empty!(Lv0IndexP2PKH)
-empty!(Lv0IndexP2SH)
-empty!(Lv0IndexBech32)
-empty!(Lv0IndexOther)
+# Defaults
+	const NUM_NOT_EXIST = UInt32(0)
 
-mutable struct MaxAddressNumberTpl
-	id::UInt32
-	dlock::Threads.SpinLock
-	end
-MaxAddressNumber = MaxAddressNumberTpl(1, Threads.SpinLock())
+# Fundamental Trie Trees
+	RootP2PKH  = Trie{UInt32}()
+	RootP2SH   = Trie{UInt32}()
+	RootBech32 = Trie{UInt32}()
+	RootOther  = ThreadSafeDict{String, UInt32}()
+	const firstLetterP2PKH  = '1'
+	const firstLetterP2SH   = '3'
+	const firstLetterBech32 = 'b'
 
-function String2ID(addr::AbstractString)::UInt32
-	if addr[1] == '1'
-		lv0_prefix = string(addr[2:4])
-		lv1_prefix = string(addr[5:7])
-		lv2_body   = string(addr[8:end])
-		if !haskey(Lv0IndexP2PKH, lv0_prefix)
-			Lv0IndexP2PKH[lv0_prefix] = Dict{String, Lv2Unit}()
-		end
-		if !haskey(Lv0IndexP2PKH[lv0_prefix], lv1_prefix)
-			Lv0IndexP2PKH[lv0_prefix][lv1_prefix] = Lv2Unit(String[], UInt32[])
-		end
-		i = findfirst(x->x==lv2_body, Lv0IndexP2PKH[lv0_prefix][lv1_prefix].strings)
-		if !isnothing(i)
-			return Lv0IndexP2PKH[lv0_prefix][lv1_prefix].ids[i]
+# Methods
+	function ReadID(addr::AbstractString)::UInt32
+		firstChar = addr[1]
+		if firstChar == firstLetterP2PKH
+			return get(RootP2PKH, addr[2:end], NUM_NOT_EXIST)
+		elseif firstChar == firstLetterP2SH
+			return get(RootP2SH, addr[2:end], NUM_NOT_EXIST)
+		elseif firstChar == firstLetterBech32
+			return get(RootBech32, addr[5:end], NUM_NOT_EXIST)
 		else
-			lock(MaxAddressNumber.dlock)
-			n = MaxAddressNumber.id + 1
-			MaxAddressNumber.id = n
-			unlock(MaxAddressNumber.dlock)
-			push!(Lv0IndexP2PKH[lv0_prefix][lv1_prefix].strings, lv2_body)
-			push!(Lv0IndexP2PKH[lv0_prefix][lv1_prefix].ids, n)
-			return n
+			if haskey(RootOther, addr)
+				return RootOther[addr]
+			else
+				return NUM_NOT_EXIST
+			end
 		end
-	elseif addr[1] == '3'
-		lv0_prefix = string(addr[2:4])
-		lv1_prefix = string(addr[5:7])
-		lv2_body   = string(addr[8:end])
-		if !haskey(Lv0IndexP2SH, lv0_prefix)
-			Lv0IndexP2SH[lv0_prefix] = Dict{String, Lv2Unit}()
 		end
-		if !haskey(Lv0IndexP2SH[lv0_prefix], lv1_prefix)
-			Lv0IndexP2SH[lv0_prefix][lv1_prefix] = Lv2Unit(String[], UInt32[])
-		end
-		i = findfirst(x->x==lv2_body, Lv0IndexP2SH[lv0_prefix][lv1_prefix].strings)
-		if !isnothing(i)
-			return Lv0IndexP2SH[lv0_prefix][lv1_prefix].ids[i]
+	function SetID(addr::AbstractString, id)::Nothing
+		firstChar = addr[1]
+		if firstChar == firstLetterP2PKH
+			RootP2PKH[addr[2:end]] = id
+		elseif firstChar == firstLetterP2SH
+			RootP2SH[addr[2:end]] = id
+		elseif firstChar == firstLetterBech32
+			RootBech32[addr[5:end]] = id
 		else
-			lock(MaxAddressNumber.dlock)
-			n = MaxAddressNumber.id + 1
-			MaxAddressNumber.id = n
-			unlock(MaxAddressNumber.dlock)
-			push!(Lv0IndexP2SH[lv0_prefix][lv1_prefix].strings, lv2_body)
-			push!(Lv0IndexP2SH[lv0_prefix][lv1_prefix].ids, n)
-			return n
+			RootOther[addr] = id
 		end
-	elseif addr[1] == 'b' # bc1q
-		lv0_prefix = string(addr[5:7])
-		lv1_prefix = string(addr[8:10])
-		lv2_body   = string(addr[11:end])
-		if !haskey(Lv0IndexBech32, lv0_prefix)
-			Lv0IndexBech32[lv0_prefix] = Dict{String, Lv2Unit}()
+		return nothing
 		end
-		if !haskey(Lv0IndexBech32[lv0_prefix], lv1_prefix)
-			Lv0IndexBech32[lv0_prefix][lv1_prefix] = Lv2Unit(String[], UInt32[])
-		end
-		i = findfirst(x->x==lv2_body, Lv0IndexBech32[lv0_prefix][lv1_prefix].strings)
-		if !isnothing(i)
-			return Lv0IndexBech32[lv0_prefix][lv1_prefix].ids[i]
+	function GenerateID(addr::AbstractString)::UInt32
+		firstChar = addr[1]
+		tmpRet = UInt32(0)
+		if firstChar == firstLetterP2PKH
+			tmpRet = get(RootP2PKH, addr[2:end], NUM_NOT_EXIST)
+			if iszero(tmpRet)
+				lock(AddressCounter.dlock)
+				AddressCounter.x = AddressCounter.x + 1
+				tmpRet = AddressCounter.x
+				RootP2PKH[addr[2:end]] = tmpRet
+				unlock(AddressCounter.dlock)
+			end
+		elseif firstChar == firstLetterP2SH
+			tmpRet = get(RootP2SH, addr[2:end], NUM_NOT_EXIST)
+			if iszero(tmpRet)
+				lock(AddressCounter.dlock)
+				AddressCounter.x = AddressCounter.x + 1
+				tmpRet = AddressCounter.x
+				RootP2SH[addr[2:end]] = tmpRet
+				unlock(AddressCounter.dlock)
+			end
+		elseif firstChar == firstLetterBech32
+			tmpRet = get(RootBech32, addr[5:end], NUM_NOT_EXIST)
+			if iszero(tmpRet)
+				lock(AddressCounter.dlock)
+				AddressCounter.x = AddressCounter.x + 1
+				tmpRet = AddressCounter.x
+				RootBech32[addr[5:end]] = tmpRet
+				unlock(AddressCounter.dlock)
+			end
+		elseif haskey(RootOther, addr)
+			tmpRet = RootOther[addr]
 		else
-			lock(MaxAddressNumber.dlock)
-			n = MaxAddressNumber.id + 1
-			MaxAddressNumber.id = n
-			unlock(MaxAddressNumber.dlock)
-			push!(Lv0IndexBech32[lv0_prefix][lv1_prefix].strings, lv2_body)
-			push!(Lv0IndexBech32[lv0_prefix][lv1_prefix].ids, n)
-			return n
+			lock(AddressCounter.dlock)
+			AddressCounter.x = AddressCounter.x + 1
+			tmpRet = AddressCounter.x
+			RootOther[addr] = tmpRet
+			unlock(AddressCounter.dlock)
 		end
-	else
-		if haskey(Lv0IndexOther, addr)
-			return Lv0IndexOther[addr]
-		else
-			lock(MaxAddressNumber.dlock)
-			n = MaxAddressNumber.id + 1
-			MaxAddressNumber.id = n
-			unlock(MaxAddressNumber.dlock)
-			Lv0IndexOther[addr] = n
-			return n
+		return tmpRet
 		end
-	end
-	return n
-	end
-
-function String2IDSafe(addr::AbstractString)::UInt32
-	if addr[1] == '1'
-		lv0_prefix = string(addr[2:4])
-		lv1_prefix = string(addr[5:7])
-		lv2_body   = string(addr[8:end])
-		if !haskey(Lv0IndexP2PKH, lv0_prefix)
-			Lv0IndexP2PKH[lv0_prefix] = Dict{String, Lv2Unit}()
-		end
-		if !haskey(Lv0IndexP2PKH[lv0_prefix], lv1_prefix)
-			Lv0IndexP2PKH[lv0_prefix][lv1_prefix] = Lv2Unit(String[], UInt32[])
-		end
-		i = findfirst(x->x==lv2_body, Lv0IndexP2PKH[lv0_prefix][lv1_prefix].strings)
-		if !isnothing(i)
-			return Lv0IndexP2PKH[lv0_prefix][lv1_prefix].ids[i]
-		else
-			return zero(UInt32)
-		end
-	elseif addr[1] == '3'
-		lv0_prefix = string(addr[2:4])
-		lv1_prefix = string(addr[5:7])
-		lv2_body   = string(addr[8:end])
-		if !haskey(Lv0IndexP2SH, lv0_prefix)
-			Lv0IndexP2SH[lv0_prefix] = Dict{String, Lv2Unit}()
-		end
-		if !haskey(Lv0IndexP2SH[lv0_prefix], lv1_prefix)
-			Lv0IndexP2SH[lv0_prefix][lv1_prefix] = Lv2Unit(String[], UInt32[])
-		end
-		i = findfirst(x->x==lv2_body, Lv0IndexP2SH[lv0_prefix][lv1_prefix].strings)
-		if !isnothing(i)
-			return Lv0IndexP2SH[lv0_prefix][lv1_prefix].ids[i]
-		else
-			return zero(UInt32)
-		end
-	elseif addr[1] == 'b' # bc1q
-		lv0_prefix = string(addr[5:7])
-		lv1_prefix = string(addr[8:10])
-		lv2_body   = string(addr[11:end])
-		if !haskey(Lv0IndexBech32, lv0_prefix)
-			Lv0IndexBech32[lv0_prefix] = Dict{String, Lv2Unit}()
-		end
-		if !haskey(Lv0IndexBech32[lv0_prefix], lv1_prefix)
-			Lv0IndexBech32[lv0_prefix][lv1_prefix] = Lv2Unit(String[], UInt32[])
-		end
-		i = findfirst(x->x==lv2_body, Lv0IndexBech32[lv0_prefix][lv1_prefix].strings)
-		if !isnothing(i)
-			return Lv0IndexBech32[lv0_prefix][lv1_prefix].ids[i]
-		else
-			return zero(UInt32)
-		end
-	else
-		if haskey(Lv0IndexOther, addr)
-			return Lv0IndexOther[addr]
-		else
-			return zero(UInt32)
-		end
-	end
-	end
-
-function SetID(addr::AbstractString, id)::Nothing
-	if addr[1] == '1'
-		lv0_prefix = string(addr[2:4])
-		lv1_prefix = string(addr[5:7])
-		lv2_body   = string(addr[8:end])
-		if !haskey(Lv0IndexP2PKH, lv0_prefix)
-			Lv0IndexP2PKH[lv0_prefix] = Dict{String, Lv2Unit}()
-		end
-		if !haskey(Lv0IndexP2PKH[lv0_prefix], lv1_prefix)
-			Lv0IndexP2PKH[lv0_prefix][lv1_prefix] = Lv2Unit(String[], UInt32[])
-		end
-		i = findfirst(x->x==lv2_body, Lv0IndexP2PKH[lv0_prefix][lv1_prefix].strings)
-		if !isnothing(i)
-			Lv0IndexP2PKH[lv0_prefix][lv1_prefix].ids[i] = id
-			return nothing
-		else
-			lock(MaxAddressNumber.dlock)
-			MaxAddressNumber.id = max(MaxAddressNumber.id, id)
-			unlock(MaxAddressNumber.dlock)
-			push!(Lv0IndexP2PKH[lv0_prefix][lv1_prefix].strings, lv2_body)
-			push!(Lv0IndexP2PKH[lv0_prefix][lv1_prefix].ids, id)
-			return nothing
-		end
-	elseif addr[1] == '3'
-		lv0_prefix = string(addr[2:4])
-		lv1_prefix = string(addr[5:7])
-		lv2_body   = string(addr[8:end])
-		if !haskey(Lv0IndexP2SH, lv0_prefix)
-			Lv0IndexP2SH[lv0_prefix] = Dict{String, Lv2Unit}()
-		end
-		if !haskey(Lv0IndexP2SH[lv0_prefix], lv1_prefix)
-			Lv0IndexP2SH[lv0_prefix][lv1_prefix] = Lv2Unit(String[], UInt32[])
-		end
-		i = findfirst(x->x==lv2_body, Lv0IndexP2SH[lv0_prefix][lv1_prefix].strings)
-		if !isnothing(i)
-			Lv0IndexP2SH[lv0_prefix][lv1_prefix].ids[i] = id
-			return nothing
-		else
-			lock(MaxAddressNumber.dlock)
-			MaxAddressNumber.id = max(MaxAddressNumber.id, id)
-			unlock(MaxAddressNumber.dlock)
-			push!(Lv0IndexP2SH[lv0_prefix][lv1_prefix].strings, lv2_body)
-			push!(Lv0IndexP2SH[lv0_prefix][lv1_prefix].ids, id)
-			return nothing
-		end
-	elseif addr[1] == 'b' # bc1q
-		lv0_prefix = string(addr[5:7])
-		lv1_prefix = string(addr[8:10])
-		lv2_body   = string(addr[11:end])
-		if !haskey(Lv0IndexBech32, lv0_prefix)
-			Lv0IndexBech32[lv0_prefix] = Dict{String, Lv2Unit}()
-		end
-		if !haskey(Lv0IndexBech32[lv0_prefix], lv1_prefix)
-			Lv0IndexBech32[lv0_prefix][lv1_prefix] = Lv2Unit(String[], UInt32[])
-		end
-		i = findfirst(x->x==lv2_body, Lv0IndexBech32[lv0_prefix][lv1_prefix].strings)
-		if !isnothing(i)
-			Lv0IndexBech32[lv0_prefix][lv1_prefix].ids[i] = id
-			return nothing
-		else
-			lock(MaxAddressNumber.dlock)
-			MaxAddressNumber.id = max(MaxAddressNumber.id, id)
-			unlock(MaxAddressNumber.dlock)
-			push!(Lv0IndexBech32[lv0_prefix][lv1_prefix].strings, lv2_body)
-			push!(Lv0IndexBech32[lv0_prefix][lv1_prefix].ids, id)
-			return nothing
-		end
-	else
-		if haskey(Lv0IndexOther, addr)
-			Lv0IndexOther[addr] = id
-			return nothing
-		else
-			lock(MaxAddressNumber.dlock)
-			MaxAddressNumber.id = max(MaxAddressNumber.id, id)
-			unlock(MaxAddressNumber.dlock)
-			Lv0IndexOther[addr] = id
-			return nothing
-		end
-	end
-	return nothing
-	end
 
 
 
-nothing
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
