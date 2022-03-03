@@ -1,6 +1,8 @@
 
-using ProgressMeter
-
+# Deps check
+	ProgressMeter
+	FinanceDB
+	pairName = "BTC_USDT"
 
 mutable struct AddressStatistics
 	# timestamp
@@ -27,27 +29,43 @@ mutable struct AddressStatistics
 function GenerateState(addrId::UInt32, startN::Int, endN::Int)::AddressStatistics
 	mintTags  = map(x->x>0.0, df.Amount[startN:endN])
 	spentTags = map(x->x<0.0, df.Amount[startN:endN])
+	# collect index
+		tmpInds   = collect(startN:endN)
+		mintInds  = tmpInds[mintTags]
+		spentInds = tmpInds[spentTags]
 	ret   = AddressStatistics(
 		min(df.Timestamp[startN:endN]...), # TimestampCreated Int32
 		max(df.Timestamp[startN:endN]...), # TimestampLastActive Int32
-		df.Timestamp[
-			startN - 1 + findlast(x->x, mintTags)
-		], # TimestampLastReceived Int32
-		df.Timestamp[
-			startN - 1 + findlast(x->x, spentTags)
-		], # TimestampLastPayed Int32
-		df.Amount[startN:endN][mintTags] |> sum, # AmountIncomeTotal Float64
-		df.Amount[startN:endN][spentTags] |> sum |> abs, # AmountExpenseTotal Float64
+		df.Timestamp[mintInds[end]], # TimestampLastReceived Int32
+		df.Timestamp[spentInds[end]], # TimestampLastPayed Int32
+		df.Amount[mintInds] |> sum, # AmountIncomeTotal Float64
+		df.Amount[spentInds] |> sum |> abs, # AmountExpenseTotal Float64
 		sum(mintTags), # NumTxInTotal Int32
 		sum(spentTags), # NumTxOutTotal Int32
 		0, # UsdtPayed4Input Float64
 		0, # UsdtReceived4Output Float64
 		0, # AveragePurchasePrice Float32
-		0, # LastSellPrice Float32
+		FinanceDB.GetDerivativePriceWhen(pairName, df.Timestamp[spentInds[end]]), # LastSellPrice Float32
 		0, # UsdtNetRealized Float64
 		0, # UsdtNetUnrealized Float64
 		0 , # Balance Float64
 	)
+	# default value
+		# firstPrice   = FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(mintNums[1]))
+		currentPrice = FinanceDB.GetDerivativePriceWhen(pairName, max(df.Timestamp[startN:endN]...))
+	# Balance
+		ret.Balance = ret.AmountIncomeTotal - ret.AmountExpenseTotal
+	# Usdt
+		ret.UsdtPayed4Input = [ df.Amount[i] * FinanceDB.GetDerivativePriceWhen(pairName, df.Timestamp[i]) for i in mintInds ] |> sum
+		ret.UsdtReceived4Output = [ df.Amount[i] * FinanceDB.GetDerivativePriceWhen(pairName, df.Timestamp[i]) for i in spentInds ] |> sum |> abs
+		if ret.AmountIncomeTotal > 1e9
+			ret.AveragePurchasePrice = ret.UsdtPayed4Input / ret.AmountIncomeTotal
+		else
+			ret.AveragePurchasePrice = currentPrice
+		end
+	# UsdtNetRealized / UsdtNetUnrealized
+		ret.UsdtNetRealized = ret.UsdtReceived4Output - ret.UsdtPayed4Input
+		ret.UsdtNetUnrealized = ret.Balance * (currentPrice - ret.AveragePurchasePrice)
 	return ret
 	end
 
