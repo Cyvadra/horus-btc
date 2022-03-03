@@ -53,6 +53,9 @@ function GetCoinsByTxid(txid::String)::Vector{Mongoc.BSON}
 	a = collect( Mongoc.find(MongoCollection("coins"), Mongoc.BSON("{\"mintTxid\":\"$txid\"}")) )
 	append!(a, collect( Mongoc.find(MongoCollection("coins"), Mongoc.BSON("{\"spentTxid\":\"$txid\"}")) ) )
 	end
+function GetCoinsByMintHeight(height)::Vector{Mongoc.BSON}
+	collect( Mongoc.find(MongoCollection("coins"), Mongoc.BSON("{\"mintHeight\":\"$height\"}")) )
+	end
 function GetCoinsInputByTxid(txid::String)::Vector{Mongoc.BSON}
 	filter!(
 		x->x["value"] > 0,
