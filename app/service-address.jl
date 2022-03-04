@@ -1,9 +1,10 @@
 module AddressService
 
 	using Mmap; using Mmap:mmap
+	using JLD2;
 
 	Config = Dict{String,Any}(
-			"dataFolder"  => "/mnt/data/AddressService/",
+			"dataFolder"  => "/mnt/data/AddressServiceMemory/",
 			"dataLength"  => round(Int, 1e9),
 		)
 
@@ -34,7 +35,19 @@ module AddressService
 	_types = Vector{DataType}(collect(AddressStatisticsReadOnly.types))
 	@assert all(isprimitivetype.(_types))
 
-	function Open(dataFolder::String=Config["dataFolder"], numRows::Int=Config["dataLength"])::Nothing
+
+	function Open(dataFolder::String=Config["dataFolder"])::Nothing
+		# check params
+		dataFolder[end] !== '/' ? dataFolder = dataFolder*"/" : nothing
+		isdir(dataFolder) || mkdir(dataFolder)
+		for i in 1:length(_syms)
+			AddressStatisticsDict[_syms[i]] = JLD2.load(
+				dataFolder * string(_syms[i]) * ".jld2",
+			)[string(_syms[i])]
+		end
+		return nothing
+		end
+	function OpenMmap(dataFolder::String=Config["dataFolder"], numRows::Int=Config["dataLength"])::Nothing
 		# check params
 		dataFolder[end] !== '/' ? dataFolder = dataFolder*"/" : nothing
 		isdir(dataFolder) || mkdir(dataFolder)
@@ -59,12 +72,13 @@ module AddressService
 		dataFolder[end] !== '/' ? dataFolder = dataFolder*"/" : nothing
 		isdir(dataFolder) || mkdir(dataFolder)
 		numRows = length(AddressStatisticsDict[_syms[1]])
-		for i in 1:length(_types)
-			f = open(dataFolder*string(_syms[i])*".bin", "w+")
-			m = mmap( f, Vector{_types[i]}, numRows; grow=true )
-			m .= AddressStatisticsDict[_syms[i]]
-			close(f)
-			@info "Done saving $dataFolder $(string(_syms[i])).bin"
+		for i in 1:length(_syms)
+			JLD2.save(
+				dataFolder * string(_syms[i]) * ".jld2",
+				string(_syms[i]),
+				AddressStatisticsDict[_syms[i]]
+			)
+			@info "Done saving $(dataFolder*string(_syms[i])).jld2"
 		end
 		return nothing
 		end
