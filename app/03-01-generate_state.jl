@@ -90,25 +90,31 @@ function GenerateState(startN::Int, endN::Int)::AddressStatistics
 
 
 
-len_data   = length(sumAddrId) - 10000
-numParallel= round(Int, 3*Threads.nthreads())
-listStartPos = zeros(Int, numParallel)
-listEndPos = zeros(Int, numParallel)
-listAddrId = zeros(UInt32, numParallel)
+len_data   = length(sumAddrId) - 20000 # waiting FinanceDB
+listStartPos = Int[]
+listEndPos = Int[]
+listAddrId = UInt32[]
 currentPos = 1
 nextPosRef = 1
 tmpAddrId  = sumAddrId[1]
+prog = Progress(len_data)
+@softscope while true
+	nextPosRef = findnext(x->x!==tmpAddrId, sumAddrId, nextPosRef)
+	if isnothing(nextPosRef)
+		break
+	end
+	push!(listStartPos, currentPos)
+	push!(listEndPos, nextPosRef - 1)
+	push!(listAddrId, tmpAddrId)
+	currentPos    = nextPosRef
+	nextPosRef    = currentPos + 1
+	tmpAddrId     = sumAddrId[currentPos]
+	next!(prog)
+end
+
 prog = ProgressMeter.Progress(len_data; barlen=32)
 @softscope while !isfile("/tmp/JULIA_EMERGENCY_STOP")
 	tmpVal = currentPos - 1
-	@softscope for i in 1:numParallel
-		listStartPos[i] = currentPos
-		listEndPos[i] = findnext(x->x!==tmpAddrId, sumAddrId, nextPosRef) - 1
-		listAddrId[i] = tmpAddrId
-		currentPos    = listEndPos[i] + 1
-		nextPosRef    = currentPos + 1
-		tmpAddrId     = sumAddrId[currentPos]
-	end
 	Threads.@threads for i in 1:numParallel
 		AddressService.SetRow(
 			listAddrId[i],
