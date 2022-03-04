@@ -103,7 +103,7 @@ while !isnothing(endPos)
 	state    = GenerateState(currentPos,endPos)
 	AddressService.SetRow(counter, state)
 	counter += 1
-	next!(prog, length(endPos - currentPos + 1))
+	next!(prog; step = length(endPos - currentPos + 1))
 	currentPos = endPos + 1
 	nextPosRef = currentPos + 1
 	addrId = sumAddrId[currentPos]
