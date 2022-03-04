@@ -1,17 +1,17 @@
 
 # Deps check
-	ProgressMeter
-	FinanceDB
-	pairName = "BTC_USDT"
+	using ProgressMeter, FinanceDB
+	using JLD2, DataFrames
+	FinanceDB.SetDataFolder("/mnt/data/mmap")
+	dataFolder = "/mnt/data/bitcore/"
+	pairName   = "BTC_USDT"
 
-# Tx convert
-
-	tmpLen    = nrow(TxRowsDF)
-	sumAddrId = deepcopy(TxRowsDF[1:tmpLen, :AddressId])
-	sumAmount = deepcopy(TxRowsDF[1:tmpLen, :Amount])
-	sumTs     = deepcopy(TxRowsDF[1:tmpLen, :Timestamp])
-
-
+# load data
+	res = JLD2.load(dataFolder*"TxRows.sorted.vector.jld2");
+	sumAddrId = res["sumAddrId"]
+	sumAmount = res["sumAmount"]
+	sumTs     = res["sumTs"]
+	res = nothing
 
 mutable struct AddressStatistics
 	# timestamp
