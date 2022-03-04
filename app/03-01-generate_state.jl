@@ -2,6 +2,8 @@
 # Deps check
 	using ProgressMeter, FinanceDB
 	using JLD2, DataFrames
+	using SoftGlobalScope
+	using ThreadsX
 	FinanceDB.SetDataFolder("/mnt/data/mmap")
 	dataFolder = "/mnt/data/bitcore/"
 	pairName   = "BTC_USDT"
@@ -88,7 +90,19 @@ function GenerateState(startN::Int, endN::Int)::AddressStatistics
 	end
 
 
-
+uniqueAddrs  = ThreadsX.unique(sumAddrId)
+_len         = length(uniqueAddrs)
+listStartPos = Vector{Int}(undef, _len)
+listEndPos   = Vector{Int}(undef, _len)
+listAddrId   = Vector{UInt32}(undef, _len)
+prog = Progress(length(sumAmount))
+Threads.@threads for i in 1:_len
+	tmpVal = findfirst(x->x==uniqueAddrs[i], sumAddrId)
+	listStartPos[i] = tmpVal
+	listEndPos[i] = findnext(x->x!==uniqueAddrs[i], sumAddrId, tmpVal)
+	listAddrId[i] = tmpAddrId
+	next!(prog)
+end
 
 len_data   = length(sumAddrId) - 20000 # waiting FinanceDB
 listStartPos = Int[]
