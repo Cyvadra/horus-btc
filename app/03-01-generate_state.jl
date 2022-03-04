@@ -89,7 +89,7 @@ function GenerateState(startN::Int, endN::Int)::AddressStatistics
 	return ret
 	end
 
-
+# Pretreatment ==> listXXX
 uniqueAddrs  = ThreadsX.unique(sumAddrId)
 _len         = length(uniqueAddrs)
 listStartPos = zeros(Int, _len)
@@ -111,28 +111,7 @@ Threads.@threads for i in 2:_len
 	next!(prog)
 end
 
-len_data   = length(sumAddrId) - 20000 # waiting FinanceDB
-listStartPos = Int[]
-listEndPos = Int[]
-listAddrId = UInt32[]
-currentPos = 1
-nextPosRef = 1
-tmpAddrId  = sumAddrId[1]
-prog = Progress(len_data)
-@softscope while true
-	nextPosRef = findnext(x->x!==tmpAddrId, sumAddrId, nextPosRef)
-	if isnothing(nextPosRef)
-		break
-	end
-	push!(listStartPos, currentPos)
-	push!(listEndPos, nextPosRef - 1)
-	push!(listAddrId, tmpAddrId)
-	currentPos    = nextPosRef
-	nextPosRef    = currentPos + 1
-	tmpAddrId     = sumAddrId[currentPos]
-	next!(prog)
-end
-
+# Calculation: listXXX ==> Vector{AddressStatistics} ==> memory cache
 prog = ProgressMeter.Progress(len_data; barlen=32)
 @softscope while !isfile("/tmp/JULIA_EMERGENCY_STOP")
 	tmpVal = currentPos - 1
@@ -152,5 +131,29 @@ end
 
 
 
+
+
+
+# len_data   = length(sumAddrId) - 20000 # waiting FinanceDB
+# listStartPos = Int[]
+# listEndPos = Int[]
+# listAddrId = UInt32[]
+# currentPos = 1
+# nextPosRef = 1
+# tmpAddrId  = sumAddrId[1]
+# prog = Progress(len_data)
+# @softscope while true
+# 	nextPosRef = findnext(x->x!==tmpAddrId, sumAddrId, nextPosRef)
+# 	if isnothing(nextPosRef)
+# 		break
+# 	end
+# 	push!(listStartPos, currentPos)
+# 	push!(listEndPos, nextPosRef - 1)
+# 	push!(listAddrId, tmpAddrId)
+# 	currentPos    = nextPosRef
+# 	nextPosRef    = currentPos + 1
+# 	tmpAddrId     = sumAddrId[currentPos]
+# 	next!(prog)
+# end
 
 
