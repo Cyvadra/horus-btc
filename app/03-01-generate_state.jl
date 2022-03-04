@@ -8,12 +8,19 @@
 	dataFolder = "/mnt/data/bitcore/"
 	pairName   = "BTC_USDT"
 
-# load data
+# load calculation data
 	res = JLD2.load(dataFolder*"TxRows.sorted.vector.jld2");
 	sumAddrId = res["sumAddrId"]
 	sumAmount = res["sumAmount"]
 	sumTs     = res["sumTs"]
 	res = nothing
+# load cache data
+	res = JLD2.save(dataFolder*"listPositionsForParallel.jld2");
+	listStartPos = res["listStartPos"]
+	listEndPos = res["listEndPos"]
+	listAddrId = res["listAddrId"]
+	res = nothing
+
 
 mutable struct AddressStatistics
 	# timestamp
@@ -110,6 +117,13 @@ Threads.@threads for i in 2:_len
 	listAddrId[i]   = uniqueAddrs[i]
 	next!(prog)
 end
+
+# save data 
+	JLD2.save(dataFolder*"listPositionsForParallel.jld2",
+		"listStartPos", listStartPos,
+		"listEndPos", listEndPos,
+		"listAddrId", listAddrId,
+		)
 
 # Calculation: listXXX ==> Vector{AddressStatistics} ==> memory cache
 AddressService.Create(round(Int,1.1e9))
