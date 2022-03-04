@@ -46,15 +46,15 @@ function GenerateState(startN::Int, endN::Int)::AddressStatistics
 		min(sumTs[startN:endN]...), # TimestampCreated Int32
 		max(sumTs[startN:endN]...), # TimestampLastActive Int32
 		sumTs[mintInds[end]], # TimestampLastReceived Int32
-		length(spentInds) > 0 ? sumTs[spentInds[end]] : sumTs[1] , # TimestampLastPayed Int32
+		sumTs[1], # TimestampLastPayed Int32
 		sumAmount[mintInds] |> sum, # AmountIncomeTotal Float64
-		sumAmount[spentInds] |> sum |> abs, # AmountExpenseTotal Float64
+		0, # AmountExpenseTotal Float64
 		sum(mintTags), # NumTxInTotal Int32
 		sum(spentTags), # NumTxOutTotal Int32
 		0, # UsdtPayed4Input Float64
 		0, # UsdtReceived4Output Float64
 		0, # AveragePurchasePrice Float32
-		FinanceDB.GetDerivativePriceWhen(pairName, sumTs[spentInds[end]]), # LastSellPrice Float32
+		0, # LastSellPrice Float32
 		0, # UsdtNetRealized Float64
 		0, # UsdtNetUnrealized Float64
 		0 , # Balance Float64
@@ -66,11 +66,20 @@ function GenerateState(startN::Int, endN::Int)::AddressStatistics
 		ret.Balance = ret.AmountIncomeTotal - ret.AmountExpenseTotal
 	# Usdt
 		ret.UsdtPayed4Input = [ sumAmount[i] * FinanceDB.GetDerivativePriceWhen(pairName, sumTs[i]) for i in mintInds ] |> sum
-		ret.UsdtReceived4Output = [ sumAmount[i] * FinanceDB.GetDerivativePriceWhen(pairName, sumTs[i]) for i in spentInds ] |> sum |> abs
 		if ret.AmountIncomeTotal > 1e9
 			ret.AveragePurchasePrice = ret.UsdtPayed4Input / ret.AmountIncomeTotal
 		else
 			ret.AveragePurchasePrice = currentPrice
+		end
+	# Conditional: 
+	# TimestampLastPayed, LastSellPrice, UsdtReceived4Output
+		if length(spentInds) > 0
+			ret.TimestampLastPayed = length(spentInds) > 0 ? sumTs[spentInds[end]] : sumTs[1]
+			ret.AmountExpenseTotal = sumAmount[spentInds] |> sum |> abs
+			ret.LastSellPrice = FinanceDB.GetDerivativePriceWhen(pairName, sumTs[spentInds[end]])
+			ret.UsdtReceived4Output = [ sumAmount[i] * FinanceDB.GetDerivativePriceWhen(pairName, sumTs[i]) for i in spentInds ] |> sum |> abs
+		else
+			ret.LastSellPrice = FinanceDB.GetDerivativePriceWhen(pairName, sumTs[end])
 		end
 	# UsdtNetRealized / UsdtNetUnrealized
 		ret.UsdtNetRealized = ret.UsdtReceived4Output - ret.UsdtPayed4Input
