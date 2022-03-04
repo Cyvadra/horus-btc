@@ -92,15 +92,22 @@ function GenerateState(startN::Int, endN::Int)::AddressStatistics
 
 uniqueAddrs  = ThreadsX.unique(sumAddrId)
 _len         = length(uniqueAddrs)
-listStartPos = Vector{Int}(undef, _len)
-listEndPos   = Vector{Int}(undef, _len)
-listAddrId   = Vector{UInt32}(undef, _len)
-prog = Progress(length(sumAmount))
-Threads.@threads for i in 1:_len
-	tmpVal = findfirst(x->x==uniqueAddrs[i], sumAddrId)
-	listStartPos[i] = tmpVal
-	listEndPos[i] = findnext(x->x!==uniqueAddrs[i], sumAddrId, tmpVal)
-	listAddrId[i] = tmpAddrId
+listStartPos = zeros(Int, _len)
+listEndPos   = collect(1:_len)
+listAddrId   = zeros(UInt32, _len)
+prog = Progress(length(sumAmount)-1)
+listStartPos[1]   = findfirst(x->x==uniqueAddrs[1], sumAddrId)
+listEndPos[1]     = findnext(x->x!==uniqueAddrs[1], sumAddrId, 1)
+listAddrId[1]     = uniqueAddrs[1]
+Threads.@threads for i in 2:_len
+	tmpStartPos     = findnext(
+		x->x==uniqueAddrs[i],
+		sumAddrId,
+		listEndPos[i-1]
+	)
+	listStartPos[i] = tmpStartPos
+	listEndPos[i]   = findnext(x->x!==uniqueAddrs[i], sumAddrId, tmpStartPos)
+	listAddrId[i]   = uniqueAddrs[i]
 	next!(prog)
 end
 
