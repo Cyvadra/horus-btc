@@ -112,19 +112,18 @@ Threads.@threads for i in 2:_len
 end
 
 # Calculation: listXXX ==> Vector{AddressStatistics} ==> memory cache
-prog = ProgressMeter.Progress(len_data; barlen=32)
-@softscope while !isfile("/tmp/JULIA_EMERGENCY_STOP")
-	tmpVal = currentPos - 1
-	Threads.@threads for i in 1:numParallel
-		AddressService.SetRow(
-			listAddrId[i],
-			GenerateState(
-				listStartPos[i],
-				listEndPos[i]
-			)
+AddressService.Create(round(Int,1.1e9))
+prog = ProgressMeter.Progress(_len; barlen=32)
+GC.safepoint()
+Threads.@threads for i in 1:_len
+	AddressService.SetRow(
+		listAddrId[i],
+		GenerateState(
+			listStartPos[i],
+			listEndPos[i]
 		)
-	end
-	next!(prog; step = listEndPos[end] - tmpVal)
+	)
+	next!(prog)
 end
 
 
