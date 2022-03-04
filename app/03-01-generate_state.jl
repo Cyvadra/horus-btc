@@ -128,17 +128,6 @@ prog = ProgressMeter.Progress(len_data; barlen=32)
 end
 
 
-for i in _len:-1:1
-	state    = GenerateState(currentPos,endPos)
-	AddressService.SetRow(counter, state)
-	counter += 1
-	next!(prog; step = length(endPos - currentPos + 1))
-	currentPos = endPos + 1
-	nextPosRef = currentPos + 1
-	addrId = sumAddrId[currentPos]
-	endPos = findnext(x->x!==addrId, sumAddrId, nextPosRef) - 1
-	end
-
 
 
 
