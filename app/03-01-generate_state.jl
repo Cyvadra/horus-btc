@@ -15,7 +15,7 @@
 	sumTs     = res["sumTs"]
 	res = nothing
 # load cache data
-	res = JLD2.save(dataFolder*"listPositionsForParallel.jld2");
+	res = JLD2.load(dataFolder*"listPositionsForParallel.jld2");
 	listStartPos = res["listStartPos"]
 	listEndPos = res["listEndPos"]
 	listAddrId = res["listAddrId"]
@@ -127,6 +127,8 @@ end
 
 # Calculation: listXXX ==> Vector{AddressStatistics} ==> memory cache
 AddressService.Create(round(Int,1.1e9))
+_len = length(listAddrId)
+# echo 3 > /proc/sys/vm/drop_caches
 prog = ProgressMeter.Progress(_len; barlen=32)
 GC.safepoint()
 Threads.@threads for i in 1:_len
