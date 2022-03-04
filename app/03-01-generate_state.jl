@@ -4,6 +4,15 @@
 	FinanceDB
 	pairName = "BTC_USDT"
 
+# Tx convert
+
+	tmpLen    = nrow(TxRowsDF)
+	sumAddrId = deepcopy(TxRowsDF[1:tmpLen, :AddressId])
+	sumAmount = deepcopy(TxRowsDF[1:tmpLen, :Amount])
+	sumTs     = deepcopy(TxRowsDF[1:tmpLen, :Timestamp])
+
+
+
 mutable struct AddressStatistics
 	# timestamp
 	TimestampCreated::Int32
@@ -26,7 +35,7 @@ mutable struct AddressStatistics
 	UsdtNetUnrealized::Float64
 	Balance::Float64
 	end
-function GenerateState(addrId::UInt32, startN::Int, endN::Int)::AddressStatistics
+function GenerateState(startN::Int, endN::Int)::AddressStatistics
 	mintTags  = map(x->x>0.0, sumAmount[startN:endN])
 	spentTags = map(x->x<0.0, sumAmount[startN:endN])
 	# collect index
@@ -37,7 +46,7 @@ function GenerateState(addrId::UInt32, startN::Int, endN::Int)::AddressStatistic
 		min(sumTs[startN:endN]...), # TimestampCreated Int32
 		max(sumTs[startN:endN]...), # TimestampLastActive Int32
 		sumTs[mintInds[end]], # TimestampLastReceived Int32
-		sumTs[spentInds[end]], # TimestampLastPayed Int32
+		length(spentInds) > 0 ? sumTs[spentInds[end]] : sumTs[1] , # TimestampLastPayed Int32
 		sumAmount[mintInds] |> sum, # AmountIncomeTotal Float64
 		sumAmount[spentInds] |> sum |> abs, # AmountExpenseTotal Float64
 		sum(mintTags), # NumTxInTotal Int32
@@ -74,17 +83,20 @@ function GenerateState(addrId::UInt32, startN::Int, endN::Int)::AddressStatistic
 
 
 
-nextPosRef = 1
 currentPos = 1
+nextPosRef = currentPos + 1
 addrId = sumAddrId[currentPos]
 endPos = findnext(x->x!==addrId, sumAddrId, nextPosRef) - 1
+counter = 1
 
 prog = ProgressMeter.Progress(length(sumTs); barlen=36, color=:blue)
 while !isnothing(endPos)
-	txs    = currentPos:endPos
-	# ...
-	next!(prog, length(txs))
+	state    = GenerateState(currentPos,endPos)
+	AddressService.SetRow(counter, state)
+	counter += 1
+	next!(prog, length(endPos - currentPos + 1))
 	currentPos = endPos + 1
+	nextPosRef = currentPos + 1
 	addrId = sumAddrId[currentPos]
 	endPos = findnext(x->x!==addrId, sumAddrId, nextPosRef) - 1
 	end
