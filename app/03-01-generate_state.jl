@@ -70,12 +70,12 @@ function GenerateState(startN::Int, endN::Int)::AddressStatistics
 		0 , # Balance Float64
 	)
 	# default value
-		# firstPrice   = FinanceDB.GetBTCPriceWhen(pairName, BlockNum2Timestamp(mintNums[1]))
-		currentPrice = FinanceDB.GetBTCPriceWhen(max(sumTs[startN:endN]...))
+		# firstPrice   = GetBTCPriceWhen(pairName, BlockNum2Timestamp(mintNums[1]))
+		currentPrice = GetBTCPriceWhen(max(sumTs[startN:endN]...))
 	# Balance
 		ret.Balance = ret.AmountIncomeTotal - ret.AmountExpenseTotal
 	# Usdt
-		ret.UsdtPayed4Input = [ sumAmount[i] * FinanceDB.GetBTCPriceWhen(sumTs[i]) for i in mintInds ] |> sum
+		ret.UsdtPayed4Input = [ sumAmount[i] * GetBTCPriceWhen(sumTs[i]) for i in mintInds ] |> sum
 		if ret.AmountIncomeTotal > 1e9
 			ret.AveragePurchasePrice = ret.UsdtPayed4Input / ret.AmountIncomeTotal
 		else
@@ -86,10 +86,10 @@ function GenerateState(startN::Int, endN::Int)::AddressStatistics
 		if length(spentInds) > 0
 			ret.TimestampLastPayed = length(spentInds) > 0 ? sumTs[spentInds[end]] : sumTs[1]
 			ret.AmountExpenseTotal = sumAmount[spentInds] |> sum |> abs
-			ret.LastSellPrice = FinanceDB.GetBTCPriceWhen(sumTs[spentInds[end]])
-			ret.UsdtReceived4Output = [ sumAmount[i] * FinanceDB.GetBTCPriceWhen(sumTs[i]) for i in spentInds ] |> sum |> abs
+			ret.LastSellPrice = GetBTCPriceWhen(sumTs[spentInds[end]])
+			ret.UsdtReceived4Output = [ sumAmount[i] * GetBTCPriceWhen(sumTs[i]) for i in spentInds ] |> sum |> abs
 		else
-			ret.LastSellPrice = FinanceDB.GetBTCPriceWhen(sumTs[end])
+			ret.LastSellPrice = GetBTCPriceWhen(sumTs[end])
 		end
 	# UsdtNetRealized / UsdtNetUnrealized
 		ret.UsdtNetRealized = ret.UsdtReceived4Output - ret.UsdtPayed4Input
