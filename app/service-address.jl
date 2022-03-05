@@ -62,8 +62,8 @@ module AddressService
 		end
 	function Create(numRows::Int=Config["dataLength"])::Nothing
 		for i in 1:length(_types)
-			AddressStatisticsDict[_syms[i]] = Vector{_types[i]}(undef, numRows)
-			AddressStatisticsDict[_syms[i]] .= 0.0
+			AddressStatisticsDict[_syms[i]] = zeros(
+				_types[i], numRows)
 		end
 		return nothing
 		end
