@@ -1,17 +1,16 @@
 # horus
 
 ### Todos:
-1. [ ] Rewrite MmapDB, support bson storage, remove Mmap dependency.
-3. [ ] Design TxRows storage format.
 5. [ ] FinanceDB: online data loading.
 
 ## Pending:
-11. [ ] Online AddressService.
 7. [ ] Feature: Different alignment of timestamp, so as to generate more data (after version update)
 9. [ ] Add MA to dnn input. FinanceDB rewrite might be required.
+1. [ ] Rewrite MmapDB, remove Mmap dependency.
+11. [x] Online AddressService.
 
 ### Issues:
-- [ ] Original version might have missing value(records).
+- [x] Original version might have missing value(records).
 
 ### Cancelled:
 5. [x] Batch calculation failed due to same performance and lower accuracy.
