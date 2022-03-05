@@ -23,8 +23,14 @@ module FinanceDB
 
 	function ts2ind(ts)::Int32
 		floor(Int32, (ts - baseTs)/60)
-	end
+		end
+	function ind2ts(i)
+		return round(Int, baseTs+i*60)
+		end
 
+	function GetBTCPriceWhen(ts)::Float32
+		return TableTick.GetFieldClose(ts2ind(ts))
+		end
 
 
 	function syncBitcoin()
@@ -71,7 +77,7 @@ module FinanceDB
 			return syncBitcoin()
 		end
 		return prevTs
-	end
+		end
 
 
 end
