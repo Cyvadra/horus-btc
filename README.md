@@ -1,13 +1,15 @@
 # horus
 
 ### Todos:
-5. [ ] FinanceDB: online data loading.
+1. [ ] Implementation of the whole pipeline.
+3. [ ] Train latest model.
 
 ## Pending:
 7. [ ] Feature: Different alignment of timestamp, so as to generate more data (after version update)
 9. [ ] Add MA to dnn input. FinanceDB rewrite might be required.
 1. [ ] Rewrite MmapDB, remove Mmap dependency.
 11. [x] Online AddressService.
+5. [x] FinanceDB: online data loading.
 
 ### Issues:
 - [x] Original version might have missing value(records).
