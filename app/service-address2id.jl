@@ -10,6 +10,10 @@ mutable struct MaxAddressNumberTpl
 	end
 
 MaxAddressNumber = MaxAddressNumberTpl(previousMaxN, Threads.SpinLock())
+function SyncMaxAddressNumber()
+	write(strFolder*"counter", string(MaxAddressNumber.id))
+	end
+atexit(SyncMaxAddressNumber)
 
 StringFolders = String[
 	strFolder * "P2PKH/", # 1...

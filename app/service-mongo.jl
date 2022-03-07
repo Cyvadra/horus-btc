@@ -1,6 +1,7 @@
 using BSON, Mongoc
 using Dates
 using JSON
+using Random
 
 dataFolder   = "/mnt/data/cacheTx/"
 shuffleRng   = Random.MersenneTwister(10086)
@@ -112,7 +113,7 @@ function ProcessBlockN(height::Int)::Vector{cacheTx}
 		addrs   = unique(map(x->x["address"], vcat(inputs, outputs)))
 		for addr in addrs
 			if !haskey(tmpDict, addr)
-				tmpDict[addr] = GenerateID(addr)
+				tmpDict[addr] = String2ID(addr)
 			end
 		end
 		for c in inputs
