@@ -1,0 +1,52 @@
+
+tsFile = "/mnt/data/bitcore/BlockTimestamps.dict.jld2"
+
+# BlockNum 2 Timestamp ( Dict{Int32, Int32} )
+# [!!!NOTICE!!!] Preload all of transaction data!
+# to avoid parallel-computing trouble
+BlockTimestamps = Dict{Int32, Int32}()
+BlockPairs = Vector{Pair{Int32,Int32}}()
+if filesize(tsFile) > 0
+	BlockTimestamps = JLD2.load(tsFile)["BlockTimestamps"]
+	BlockPairs = sort!(collect(BlockTimestamps), by=x->x[2])
+end
+function BlockNum2Timestamp(height)::Int32
+	if haskey(BlockTimestamps, height)
+		return BlockTimestamps[height]
+	end
+	BlockTimestamps[height] = round(Int32, 
+		datetime2unix(
+			GetBlockInfo(height)["timeNormalized"]
+		)
+	)
+	return BlockTimestamps[height]
+	end
+function ResyncBlockPairs()
+	global BlockPairs
+	BlockPairs = sort!(collect(BlockTimestamps), by=x->x[2])
+	return BlockPairs
+	end
+function Timestamp2LastBlockN(ts)::Int32
+	i = findlast(x->x<=ts, map(x->x[2], BlockPairs))
+	return BlockPairs[i][1]
+	end
+function SyncBlockTimestamps()
+	JLD2.save(tsFile, "BlockTimestamps", BlockTimestamps)
+	return nothing
+	end
+atexit(SyncBlockTimestamps)
+
+# Prepare: blockNum => coinPrice
+function SyncBlockPriceDict(fromN, toN)::Nothing
+	for h in fromN:toN
+		BlockPriceDict[h] = FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(h))
+	end
+	return nothing
+	end
+function GetPriceAtBlockN(height)::Float64
+	if !haskey(BlockPriceDict, height)
+		BlockPriceDict[height] = FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(height))
+	end
+	return BlockPriceDict[height]
+	end
+
