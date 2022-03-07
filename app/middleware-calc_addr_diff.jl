@@ -83,7 +83,7 @@ function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff}
 		end
 		# LastSellPrice
 			if length(spentNums) > 0
-				ret[v].LastSellPrice = FinanceDB.GetDerivativePriceWhen( pairName, BlockNum2Timestamp(spentNums[end]) )
+				ret[v].LastSellPrice = GetBTCPriceWhen(BlockNum2Timestamp(spentNums[end]))
 			end
 		# Usdt
 			if length(mintNums) > 0
@@ -155,6 +155,9 @@ function MergeAddressState(baseState::AddressStatistics, arrayDiff::Vector{Addre
 	return baseState
 	end
 
+function GetPriceAtBlockN(height)::Float64
+	return height |> BlockNum2Timestamp |> GetBTCPriceWhen
+	end
 
 
 
