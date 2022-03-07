@@ -1,34 +1,12 @@
 
 using Mongoc
 
-include("./service-address.jl");
-include("./service-address2id.jl");
+include("./service-address.ng.jl");
+include("./service-address2id.traditional.jl");
 include("./service-FinanceDB.jl");
 include("./service-mongo.jl");
 include("./service-block_timestamp.jl");
 
-mutable struct AddressStatistics
-	# timestamp
-	TimestampCreated::Int32
-	TimestampLastActive::Int32
-	TimestampLastReceived::Int32
-	TimestampLastPayed::Int32
-	# amount
-	AmountIncomeTotal::Float64
-	AmountExpenseTotal::Float64
-	# statistics
-	NumTxInTotal::Int32
-	NumTxOutTotal::Int32
-	# relevant usdt amount
-	UsdtPayed4Input::Float64
-	UsdtReceived4Output::Float64
-	AveragePurchasePrice::Float32
-	LastSellPrice::Float32
-	# calculated extra
-	UsdtNetRealized::Float64
-	UsdtNetUnrealized::Float64
-	Balance::Float64
-	end
 mutable struct AddressDiff
 	AddressId::UInt32
 	TimestampLastReceived::Int32
@@ -53,7 +31,7 @@ function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff}
 	for addr in addrs
 		v = String2ID(addr)
 		tmpDict[addr] = v
-		ret[v] = deepcopy(tplAddressDiff)
+		ret[v] = AddressDiff(zeros(length(AddressDiff.types))...)
 		ret[v].AddressId = v
 	end
 	for addr in addrs
