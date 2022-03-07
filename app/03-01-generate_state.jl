@@ -132,7 +132,7 @@ _len = length(listAddrId)
 # echo 3 > /proc/sys/vm/drop_caches
 prog = ProgressMeter.Progress(_len; barlen=32)
 GC.safepoint()
-Threads.@threads for i in 1:_len
+Threads.@threads for i in _len:-1:1
 	AddressService.SetRow(
 		listAddrId[i],
 		GenerateState(
