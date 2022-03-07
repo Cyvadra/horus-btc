@@ -27,6 +27,12 @@ mutable struct AddressStatistics
 	end
 
 AddressService = MmapDB.GenerateCode(AddressStatistics)
+function isNew(i::UInt32)::Bool
+	return iszero(AddressService.GetFieldTimestampCreated(i))
+	end
+function isNew(ids::Vector{UInt32})::Vector{Bool}
+	return AddressService.mapFunctionOnFieldIds(iszero, :TimestampCreated, ids)
+	end
 
 
 
