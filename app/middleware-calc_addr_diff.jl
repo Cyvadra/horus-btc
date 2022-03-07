@@ -40,6 +40,7 @@ mutable struct AddressDiff
 	UsdtReceived4Output::Float64
 	LastSellPrice::Float32
 	end
+tplAddressDiff = AddressDiff(zeros(length(AddressDiff.types))...)
 function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff}
 	ret = Dict{UInt32, AddressDiff}()
 	coinsAll = Mongoc.BSON[]
