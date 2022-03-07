@@ -7,7 +7,7 @@
 ## Pending:
 7. [ ] Feature: Different alignment of timestamp, so as to generate more data (after version update)
 9. [ ] Add MA to dnn input. FinanceDB rewrite might be required.
-1. [ ] Rewrite MmapDB, remove Mmap dependency.
+1. [x] Rewrite MmapDB, remove Mmap dependency.
 11. [x] Online AddressService.
 5. [x] FinanceDB: online data loading.
 
