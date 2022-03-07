@@ -21,7 +21,11 @@ TableTick.Open(2333333)
 baseTs = TableTick.GetFieldTimestamp(1) - 60
 
 function ts2ind(ts)::Int32
-	floor(Int32, (ts - baseTs)/60)
+	if ts - baseTs < 0
+		return 1
+	else
+		return floor(Int32, (ts - baseTs)/60)
+	end
 	end
 function ind2ts(i)
 	return round(Int, baseTs+i*60)
