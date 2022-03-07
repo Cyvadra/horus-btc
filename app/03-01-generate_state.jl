@@ -55,12 +55,12 @@ function GenerateState(startN::Int, endN::Int)::AddressStatistics
 	ret   = AddressStatistics(
 		min(sumTs[startN:endN]...), # TimestampCreated Int32
 		max(sumTs[startN:endN]...), # TimestampLastActive Int32
-		sumTs[mintInds[end]], # TimestampLastReceived Int32
+		sumTs[end], # TimestampLastReceived Int32
 		sumTs[1], # TimestampLastPayed Int32
-		sumAmount[mintInds] |> sum, # AmountIncomeTotal Float64
+		0, # AmountIncomeTotal Float64
 		0, # AmountExpenseTotal Float64
-		sum(mintTags), # NumTxInTotal Int32
-		sum(spentTags), # NumTxOutTotal Int32
+		0, # NumTxInTotal Int32
+		0, # NumTxOutTotal Int32
 		0, # UsdtPayed4Input Float64
 		0, # UsdtReceived4Output Float64
 		0, # AveragePurchasePrice Float32
@@ -69,13 +69,19 @@ function GenerateState(startN::Int, endN::Int)::AddressStatistics
 		0, # UsdtNetUnrealized Float64
 		0 , # Balance Float64
 	)
+	# general mint
+		if length(mintInds) > 0
+			ret.TimestampLastReceived = sumTs[mintInds[end]]
+			ret.AmountIncomeTotal = sumAmount[mintInds] |> sum
+			ret.UsdtPayed4Input = [ sumAmount[i] * GetBTCPriceWhen(sumTs[i]) for i in mintInds ] |> sum
+			ret.NumTxInTotal = sum(mintTags)
+		end
 	# default value
 		# firstPrice   = GetBTCPriceWhen(pairName, BlockNum2Timestamp(mintNums[1]))
 		currentPrice = GetBTCPriceWhen(max(sumTs[startN:endN]...))
 	# Balance
 		ret.Balance = ret.AmountIncomeTotal - ret.AmountExpenseTotal
 	# Usdt
-		ret.UsdtPayed4Input = [ sumAmount[i] * GetBTCPriceWhen(sumTs[i]) for i in mintInds ] |> sum
 		if ret.AmountIncomeTotal > 1e9
 			ret.AveragePurchasePrice = ret.UsdtPayed4Input / ret.AmountIncomeTotal
 		else
@@ -84,6 +90,7 @@ function GenerateState(startN::Int, endN::Int)::AddressStatistics
 	# Conditional: 
 	# TimestampLastPayed, LastSellPrice, UsdtReceived4Output
 		if length(spentInds) > 0
+			ret.NumTxOutTotal = sum(spentTags)
 			ret.TimestampLastPayed = length(spentInds) > 0 ? sumTs[spentInds[end]] : sumTs[1]
 			ret.AmountExpenseTotal = sumAmount[spentInds] |> sum |> abs
 			ret.LastSellPrice = GetBTCPriceWhen(sumTs[spentInds[end]])
@@ -109,6 +116,7 @@ _len = length(listAddrId)
 prog = ProgressMeter.Progress(_len; barlen=32)
 GC.safepoint()
 Threads.@threads for i in _len:-1:1
+	try
 	AddressService.SetRow(
 		listAddrId[i],
 		GenerateState(
@@ -116,6 +124,13 @@ Threads.@threads for i in _len:-1:1
 			listEndPos[i]
 		)
 	)
+	catch e
+		println()
+		@warn e
+		@warn i
+		println()
+		break
+	end
 	next!(prog)
 end
 
