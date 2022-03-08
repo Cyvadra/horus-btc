@@ -36,49 +36,119 @@ function isNew(ids::Vector{UInt32})::Vector{Bool}
 
 #=========================================# 
 
+using DataStructures
+
 const NUM_NOT_EXIST = UInt32(0)
-const TAG_MAX = "maximum"
-# TAG_MAX = 930830585
+const CHAR_DELIM = UInt8(0)
+ADDR_NUM_MAX = 930830585
 AddressStringLock = Threads.SpinLock()
-AddressIOBufferDict = Dict{UInt8, IOBuffer}()
+
+RootP2PKH  = Trie{IOBuffer}()
+RootP2SH   = Trie{IOBuffer}()
+RootBech32 = Trie{IOBuffer}()
+RootOther  = Dict{String, UInt32}()
+const headP2PKH  = Char(0x31)
+const headP2SH   = Char(0x33)
+const headBech32 = Char(0x62)
+const headRangeP2PKH  = 2:4
+const headRangeP2PSH  = 2:4
+const headRangeBech32 = 5:8
 
 function ReadID(addr::AbstractString)::UInt32
-	addrv = transcode(UInt8, addr)
-	_len  = UInt8(length(addrv))
-	if addrv[1] == 0x31
-		io = AddressIOBufferDict[_len]
-		v = readuntil(io, addrv[2:end])
+	if addr[1] == headP2PKH
+		io = RootP2PKH[addr[headRangeP2PKH]]
+		seek(io, 0)
+		v = readuntil(io, addr[5:end]; keep=true)
 		if length(v) > 0
-			skip(io, 1)
+			read(io, UInt8)
 			return read(io, UInt32)
 		end
-	# elseif addrv[1] == 0x33
-	# 	v = readuntil(AddressIOBufferDict(length(addrv)), addrv)
-	# elseif addrv[1] == 0x62
-	# 	v = readuntil(AddressIOBufferDict(length(addrv)), addrv)
+	elseif addr[1] == headP2SH
+		io = RootP2SH[addr[headRangeP2PSH]]
+		seek(io, 0)
+		v = readuntil(io, addr[5:end]; keep=true)
+		if length(v) > 0
+			read(io, UInt8)
+			return read(io, UInt32)
+		end
+	elseif addr[1] == headBech32
+		io = RootBech32[addr[headRangeBech32]]
+		seek(io, 0)
+		v = readuntil(io, addr[9:end]; keep=true)
+		if length(v) > 0
+			read(io, UInt8)
+			return read(io, UInt32)
+		end
+	else
+		if haskey(RootOther, addr)
+			return RootOther[addr]
+		end
 	end
 	return NUM_NOT_EXIST
 	end
 
 function SetID(addr::AbstractString, id::UInt32)::Nothing
-	addrv = transcode(UInt8, addr)
-	_len  = UInt8(length(addrv))
-	if addrv[1] == 0x31
-		if !haskey(AddressIOBufferDict, _len)
-			AddressIOBufferDict[_len] = IOBuffer()
+	if addr[1] == headP2PKH
+		if !haskey(RootP2PKH, addr[headRangeP2PKH])
+			RootP2PKH[addr[headRangeP2PKH]] = IOBuffer(;sizehint=65535)
 		end
-		io = AddressIOBufferDict[_len]
-		v = readuntil(io, addrv[2:end])
+		io = RootP2PKH[addr[headRangeP2PKH]]
+		seek(io, 0)
+		v = readuntil(io, addr[5:end]; keep=true)
 		if length(v) > 0
-			skip(io, 1)
+			write(io, CHAR_DELIM)
 			write(io, id)
-			return nothing
+			write(io, CHAR_DELIM)
 		else
-			write(io, addrv[2:end])
-			write(io, zero(UInt8))
-			return nothing
+			seekend(io)
+			write(io, addr[5:end])
+			write(io, CHAR_DELIM)
+			write(io, id)
+			write(io, CHAR_DELIM)
 		end
+		flush(io)
+	elseif addr[1] == headP2SH
+		if !haskey(RootP2SH, addr[headRangeP2PSH])
+			RootP2SH[addr[headRangeP2PSH]] = IOBuffer(;sizehint=65535)
+		end
+		io = RootP2SH[addr[headRangeP2PSH]]
+		seek(io, 0)
+		v = readuntil(io, addr[5:end]; keep=true)
+		if length(v) > 0
+			write(io, CHAR_DELIM)
+			write(io, id)
+			write(io, CHAR_DELIM)
+		else
+			seekend(io)
+			write(io, addr[5:end])
+			write(io, CHAR_DELIM)
+			write(io, id)
+			write(io, CHAR_DELIM)
+		end
+		flush(io)
+	elseif addr[1] == headBech32
+		if !haskey(RootBech32, addr[headRangeBech32])
+			RootBech32[addr[headRangeBech32]] = IOBuffer(;sizehint=65535)
+		end
+		io = RootBech32[addr[headRangeBech32]]
+		seek(io, 0)
+		v = readuntil(io, addr[9:end]; keep=true)
+		if length(v) > 0
+			write(io, CHAR_DELIM)
+			write(io, id)
+			write(io, CHAR_DELIM)
+		else
+			seekend(io)
+			write(io, addr[9:end])
+			write(io, CHAR_DELIM)
+			write(io, id)
+			write(io, CHAR_DELIM)
+		end
+		flush(io)
+	else
+		RootOther[addr] = id
 	end
+	return nothing
 	end
 
 
