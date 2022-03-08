@@ -1,11 +1,11 @@
 
 using Mongoc
 
-include("./service-address.ng.jl");
-include("./service-address2id.traditional.jl");
-include("./service-FinanceDB.jl");
-include("./service-mongo.jl");
-include("./service-block_timestamp.jl");
+# include("./service-address.ng.jl");
+# include("./service-address2id.traditional.jl");
+# include("./service-FinanceDB.jl");
+# include("./service-mongo.jl");
+# include("./service-block_timestamp.jl");
 
 mutable struct AddressDiff
 	AddressId::UInt32
@@ -136,10 +136,4 @@ function MergeAddressState(baseState::AddressStatistics, arrayDiff::Vector{Addre
 function GetPriceAtBlockN(height)::Float64
 	return height |> BlockNum2Timestamp |> GetBTCPriceWhen
 	end
-
-
-
-
-
-
 
