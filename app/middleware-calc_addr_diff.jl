@@ -79,8 +79,10 @@ function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff}
 	end
 	return collect(values(ret))
 	end
-function MergeAddressState!(baseState::AddressStatistics, arrayDiff::Vector{AddressDiff}, coinPrice::Float32)::AddressStatistics
+function MergeAddressState!(arrayDiff::Vector{AddressDiff}, coinPrice::Float32)::Int
+	counter = 0
 	for d in arrayDiff
+		baseState = AddressService.GetRow(d.AddressId)
 		if d.TimestampLastReceived > 0
 			baseState.TimestampLastReceived = d.TimestampLastReceived
 			baseState.AmountIncomeTotal += d.AmountIncomeTotal
@@ -97,40 +99,15 @@ function MergeAddressState!(baseState::AddressStatistics, arrayDiff::Vector{Addr
 			baseState.UsdtReceived4Output += d.UsdtReceived4Output
 			baseState.LastSellPrice = d.LastSellPrice
 		end
+		baseState.TimestampLastActive = max(baseState.TimestampLastReceived, baseState.TimestampLastPayed)
+		baseState.AveragePurchasePrice = baseState.UsdtPayed4Input / baseState.AmountIncomeTotal
+		baseState.UsdtNetRealized = baseState.UsdtReceived4Output - baseState.UsdtPayed4Input
+		baseState.Balance = baseState.AmountIncomeTotal - baseState.AmountExpenseTotal
+		baseState.UsdtNetUnrealized = baseState.Balance * (coinPrice - ret.AveragePurchasePrice)
+		AddressService.SetRow(d.AddressId, baseState)
+		counter += 1
 	end
-	baseState.TimestampLastActive = max(baseState.TimestampLastReceived, baseState.TimestampLastPayed)
-	baseState.AveragePurchasePrice = baseState.UsdtPayed4Input / baseState.AmountIncomeTotal
-	baseState.UsdtNetRealized = baseState.UsdtReceived4Output - baseState.UsdtPayed4Input
-	baseState.Balance = baseState.AmountIncomeTotal - baseState.AmountExpenseTotal
-	baseState.UsdtNetUnrealized = baseState.Balance * (coinPrice - ret.AveragePurchasePrice)
-	return baseState
-	end
-function MergeAddressState(baseState::AddressStatistics, arrayDiff::Vector{AddressDiff}, coinPrice::Float32)::AddressStatistics
-	baseState = deepcopy(baseState)
-	for d in arrayDiff
-		if d.TimestampLastReceived > 0
-			baseState.TimestampLastReceived = d.TimestampLastReceived
-			baseState.AmountIncomeTotal += d.AmountIncomeTotal
-			baseState.NumTxInTotal += d.NumTxInTotal
-			baseState.UsdtPayed4Input += d.UsdtPayed4Input
-			if iszero(baseState.TimestampCreated)
-				baseState.TimestampCreated = d.TimestampLastReceived
-			end
-		end
-		if d.TimestampLastPayed > 0
-			baseState.TimestampLastPayed = d.TimestampLastPayed
-			baseState.AmountExpenseTotal += d.AmountExpenseTotal
-			baseState.NumTxOutTotal += d.NumTxOutTotal
-			baseState.UsdtReceived4Output += d.UsdtReceived4Output
-			baseState.LastSellPrice = d.LastSellPrice
-		end
-	end
-	baseState.TimestampLastActive = max(baseState.TimestampLastReceived, baseState.TimestampLastPayed)
-	baseState.AveragePurchasePrice = baseState.UsdtPayed4Input / baseState.AmountIncomeTotal
-	baseState.UsdtNetRealized = baseState.UsdtReceived4Output - baseState.UsdtPayed4Input
-	baseState.Balance = baseState.AmountIncomeTotal - baseState.AmountExpenseTotal
-	baseState.UsdtNetUnrealized = baseState.Balance * (coinPrice - ret.AveragePurchasePrice)
-	return baseState
+	return counter
 	end
 
 function GetPriceAtBlockN(height)::Float64
