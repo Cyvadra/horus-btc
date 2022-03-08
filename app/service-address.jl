@@ -40,6 +40,7 @@ using DataStructures
 
 const NUM_NOT_EXIST = UInt32(0)
 const CHAR_DELIM = UInt8(0)
+const ADDR_UNIT_SIZE = 65535
 ADDR_NUM_MAX = 930830585
 AddressStringLock = Threads.SpinLock()
 
@@ -111,7 +112,7 @@ function SetID(addr::AbstractString, id::UInt32)::Nothing
 	addrv = transcode(UInt8, string(addr))
 	if addr[1] == headP2PKH
 		if !haskey(RootP2PKH, addr[headRangeP2PKH])
-			RootP2PKH[addr[headRangeP2PKH]] = IOBuffer(;sizehint=65535)
+			RootP2PKH[addr[headRangeP2PKH]] = IOBuffer(;sizehint=ADDR_UNIT_SIZE)
 		end
 		io = RootP2PKH[addr[headRangeP2PKH]]
 		v  = seeknext(addrv[5:end], io)
@@ -131,7 +132,7 @@ function SetID(addr::AbstractString, id::UInt32)::Nothing
 		seek(io, 0)
 	elseif addr[1] == headP2SH
 		if !haskey(RootP2SH, addr[headRangeP2PSH])
-			RootP2SH[addr[headRangeP2PSH]] = IOBuffer(;sizehint=65535)
+			RootP2SH[addr[headRangeP2PSH]] = IOBuffer(;sizehint=ADDR_UNIT_SIZE)
 		end
 		io = RootP2SH[addr[headRangeP2PSH]]
 		v  = seeknext(addrv[5:end], io)
@@ -151,7 +152,7 @@ function SetID(addr::AbstractString, id::UInt32)::Nothing
 		seek(io, 0)
 	elseif addr[1] == headBech32
 		if !haskey(RootBech32, addr[headRangeBech32])
-			RootBech32[addr[headRangeBech32]] = IOBuffer(;sizehint=65535)
+			RootBech32[addr[headRangeBech32]] = IOBuffer(;sizehint=ADDR_UNIT_SIZE)
 		end
 		io = RootBech32[addr[headRangeBech32]]
 		v  = seeknext(addrv[9:end], io)
