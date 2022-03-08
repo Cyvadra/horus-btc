@@ -51,6 +51,9 @@ using JLD2
 	const firstLetterP2PKH  = '1'
 	const firstLetterP2SH   = '3'
 	const firstLetterBech32 = 'b'
+	const headRangeP2PKH  = 2:5
+	const headRangeP2PSH  = 2:5
+	const headRangeBech32 = 5:9
 
 # auto load
 	if filesize(DATA_DIR*"Trie.RootOther.jld2") > 0
@@ -64,17 +67,32 @@ using JLD2
 	function ReadID(addr::AbstractString)::UInt32
 		firstChar = addr[1]
 		if firstChar == firstLetterP2PKH
-			s = get(RootP2PKH, addr[2:5], NUM_NOT_EXIST)
-			x = findfirst(x->x==addr[6:end], s.listString)
-			isnothing(x) ? NUM_NOT_EXIST : s.listId[x]
+			if haskey(RootP2PKH, addr[headRangeP2PKH])
+				x = findlast(x->x==addr[6:end], RootP2PKH[addr[headRangeP2PKH]].listString)
+				if isnothing(x)
+					return NUM_NOT_EXIST
+				else
+					return RootP2PKH[addr[headRangeP2PKH]].listId[x]
+				end
+			end
 		elseif firstChar == firstLetterP2SH
-			s = get(RootP2SH, addr[2:5], NUM_NOT_EXIST)
-			x = findfirst(x->x==addr[6:end], s.listString)
-			isnothing(x) ? NUM_NOT_EXIST : s.listId[x]
+			if haskey(RootP2SH, addr[headRangeP2PSH])
+				x = findlast(x->x==addr[6:end], RootP2SH[addr[headRangeP2PSH]].listString)
+				if isnothing(x)
+					return NUM_NOT_EXIST
+				else
+					return RootP2SH[addr[headRangeP2PSH]].listId[x]
+				end
+			end
 		elseif firstChar == firstLetterBech32
-			s = get(RootBech32, addr[5:9], NUM_NOT_EXIST)
-			x = findfirst(x->x==addr[10:end], s.listString)
-			isnothing(x) ? NUM_NOT_EXIST : s.listId[x]
+			if haskey(RootBech32, addr[headRangeBech32])
+				x = findlast(x->x==addr[10:end], RootBech32[addr[headRangeBech32]].listString)
+				if isnothing(x)
+					return NUM_NOT_EXIST
+				else
+					return RootBech32[addr[headRangeBech32]].listId[x]
+				end
+			end
 		else
 			if haskey(RootOther, addr)
 				return RootOther[addr]
@@ -86,37 +104,31 @@ using JLD2
 	function SetID(addr::AbstractString, id)::Nothing
 		firstChar = addr[1]
 		if firstChar == firstLetterP2PKH
-			s = get(RootP2PKH, addr[2:5], nothing)
-			if isnothing(s)
-				RootP2PKH[addr[2:5]] = AddressSet(String[], UInt32[])
-				s = RootP2PKH[addr[2:5]]
+			if !haskey(RootP2PKH, addr[headRangeP2PKH])
+				RootP2PKH[addr[headRangeP2PKH]] = AddressSet(String[], UInt32[])
 			end
-			x = findfirst(x->x==addr[6:end], s.listString)
+			x = findlast(x->x==addr[6:end], RootP2PKH[addr[headRangeP2PKH]].listString)
 			if isnothing(x)
-				push!(RootP2PKH[addr[2:5]].listString, addr[6:end])
-				push!(RootP2PKH[addr[2:5]].listId, id)
+				push!(RootP2PKH[addr[headRangeP2PKH]].listString, addr[6:end])
+				push!(RootP2PKH[addr[headRangeP2PKH]].listId, id)
 			end
 		elseif firstChar == firstLetterP2SH
-			s = get(RootP2SH, addr[2:5], nothing)
-			if isnothing(s)
-				RootP2SH[addr[2:5]] = AddressSet(String[], UInt32[])
-				s = RootP2SH[addr[2:5]]
+			if !haskey(RootP2SH, addr[headRangeP2PSH])
+				RootP2SH[addr[headRangeP2PSH]] = AddressSet(String[], UInt32[])
 			end
-			x = findfirst(x->x==addr[6:end], s.listString)
+			x = findlast(x->x==addr[6:end], RootP2SH[addr[headRangeP2PSH]].listString)
 			if isnothing(x)
-				push!(RootP2SH[addr[2:5]].listString, addr[6:end])
-				push!(RootP2SH[addr[2:5]].listId, id)
+				push!(RootP2SH[addr[headRangeP2PSH]].listString, addr[6:end])
+				push!(RootP2SH[addr[headRangeP2PSH]].listId, id)
 			end
 		elseif firstChar == firstLetterBech32
-			s = get(RootBech32, addr[5:9], nothing)
-			if isnothing(s)
-				RootBech32[addr[5:9]] = AddressSet(String[], UInt32[])
-				s = RootBech32[addr[5:9]]
+			if !haskey(RootBech32, addr[headRangeBech32])
+				RootBech32[addr[headRangeBech32]] = AddressSet(String[], UInt32[])
 			end
-			x = findfirst(x->x==addr[10:end], s.listString)
+			x = findlast(x->x==addr[10:end], RootBech32[addr[headRangeBech32]].listString)
 			if isnothing(x)
-				push!(RootBech32[addr[5:9]].listString, addr[10:end])
-				push!(RootBech32[addr[5:9]].listId, id)
+				push!(RootBech32[addr[headRangeBech32]].listString, addr[10:end])
+				push!(RootBech32[addr[headRangeBech32]].listId, id)
 			end
 		else
 			RootOther[addr] = id
@@ -127,53 +139,53 @@ using JLD2
 		firstChar = addr[1]
 		tmpRet = UInt32(1)
 		if firstChar == firstLetterP2PKH
-			s = get(RootP2PKH, addr[2:5], nothing)
+			s = get(RootP2PKH, addr[headRangeP2PKH], nothing)
 			if isnothing(s)
-				RootP2PKH[ addr[2:5] ] = AddressSet(String[], UInt32[])
-				s = RootP2PKH[ addr[2:5] ]
+				RootP2PKH[ addr[headRangeP2PKH] ] = AddressSet(String[], UInt32[])
+				s = RootP2PKH[ addr[headRangeP2PKH] ]
 			end
-			x = findfirst(x->x==addr[6:end], s.listString)
+			x = findlast(x->x==addr[6:end], s.listString)
 			if isnothing(x)
 				lock(AddressCounter.dlock)
 				tmpRet += AddressCounter.x
 				AddressCounter.x = tmpRet
 				unlock(AddressCounter.dlock)
-				push!(RootP2PKH[addr[2:5]].listId, tmpRet)
-				push!(RootP2PKH[addr[2:5]].listString, addr[6:end])
+				push!(RootP2PKH[addr[headRangeP2PKH]].listId, tmpRet)
+				push!(RootP2PKH[addr[headRangeP2PKH]].listString, addr[6:end])
 			else
 				tmpRet = s.listId[x]
 			end
 		elseif firstChar == firstLetterP2SH
-			s = get(RootP2SH, addr[2:5], nothing)
+			s = get(RootP2SH, addr[headRangeP2PSH], nothing)
 			if isnothing(s)
-				RootP2SH[ addr[2:5] ] = AddressSet(String[], UInt32[])
-				s = RootP2SH[ addr[2:5] ]
+				RootP2SH[ addr[headRangeP2PSH] ] = AddressSet(String[], UInt32[])
+				s = RootP2SH[ addr[headRangeP2PSH] ]
 			end
-			x = findfirst(x->x==addr[6:end], s.listString)
+			x = findlast(x->x==addr[6:end], s.listString)
 			if isnothing(x)
 				lock(AddressCounter.dlock)
 				tmpRet += AddressCounter.x
 				AddressCounter.x = tmpRet
 				unlock(AddressCounter.dlock)
-				push!(RootP2SH[addr[2:5]].listId, tmpRet)
-				push!(RootP2SH[addr[2:5]].listString, addr[6:end])
+				push!(RootP2SH[addr[headRangeP2PSH]].listId, tmpRet)
+				push!(RootP2SH[addr[headRangeP2PSH]].listString, addr[6:end])
 			else
 				tmpRet = s.listId[x]
 			end
 		elseif firstChar == firstLetterBech32
-			s = get(RootBech32, addr[5:9], nothing)
+			s = get(RootBech32, addr[headRangeBech32], nothing)
 			if isnothing(s)
-				RootBech32[ addr[5:9] ] = AddressSet(String[], UInt32[])
-				s = RootBech32[ addr[5:9] ]
+				RootBech32[ addr[headRangeBech32] ] = AddressSet(String[], UInt32[])
+				s = RootBech32[ addr[headRangeBech32] ]
 			end
-			x = findfirst(x->x==addr[10:end], s.listString)
+			x = findlast(x->x==addr[10:end], s.listString)
 			if isnothing(x)
 				lock(AddressCounter.dlock)
 				tmpRet += AddressCounter.x
 				AddressCounter.x = tmpRet
 				unlock(AddressCounter.dlock)
-				push!(RootBech32[addr[5:9]].listId, tmpRet)
-				push!(RootBech32[addr[5:9]].listString, addr[10:end])
+				push!(RootBech32[addr[headRangeBech32]].listId, tmpRet)
+				push!(RootBech32[addr[headRangeBech32]].listString, addr[10:end])
 			else
 				tmpRet = s.listId[x]
 			end
