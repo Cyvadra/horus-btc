@@ -1,5 +1,10 @@
 # horus
 
+### Issues:
+1. [ ] Benchmark: GetBlockCoins, Address2StateDiff
+3. [ ] Test: MergeAddressState!
+5. [ ] Benchmark: GenerateID
+
 ### Todos:
 1. [ ] Implementation of the whole pipeline.
 3. [ ] Train latest model.
