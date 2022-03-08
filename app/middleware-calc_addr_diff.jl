@@ -21,61 +21,75 @@ mutable struct AddressDiff
 	end
 tplAddressDiff = AddressDiff(zeros(length(AddressDiff.types))...)
 function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff}
-	ret = Dict{UInt32, AddressDiff}()
+	ret = Vector{AddressDiff}()
 	coinsAll = Mongoc.BSON[]
 	for i in fromBlock:toBlock
 		append!(coinsAll, GetBlockCoins(i))
 	end
-	addrs = unique(map(x->x["address"], coinsAll))
-	for addr in addrs
-		v = GenerateID(addr)
-		ret[v] = AddressDiff(zeros(length(AddressDiff.types))...)
-		ret[v].AddressId = v
-	# end
-	# for addr in addrs
-		# v = ReadID(addr)
-		coins     = filter(x->x["address"]==addr, coinsAll)
+	sort!(coinsAll, by=x->x["address"])
+	counter = 1
+	counterNext = findnext(
+		x->x["address"] !== coinsAll[counter]["address"],
+		coinsAll,
+		counter
+	)
+	if isnothing(counterNext)
+		counterNext = 2
+	end
+	while !isnothing(counterNext)
+		counterNext -= 1
+		currentDiff = AddressDiff(zeros(length(AddressDiff.types))...)
+		currentDiff.AddressId = GenerateID(coinsAll[counter]["address"])
+		coins     = coinsAll[counter:counterNext]
 		spentRange= map(x->0 < x["spentHeight"] <= toBlock, coins)
 		mintNums  = map(x->x["mintHeight"], coins)
 		spentNums = map(x->x["spentHeight"], coins[spentRange])
 		blockNums = sort!(vcat(mintNums, spentNums))
 		if length(blockNums) > 0
 			if length(mintNums) > 0
-				ret[v].TimestampLastReceived = mintNums[end] |> BlockNum2Timestamp
-				ret[v].AmountIncomeTotal = map(
+				currentDiff.TimestampLastReceived = mintNums[end] |> BlockNum2Timestamp
+				currentDiff.AmountIncomeTotal = map(
 					x->x["value"],
 					coins
 				) |> sum |> bitcoreInt2Float64
-				ret[v].NumTxInTotal = length(mintNums)
+				currentDiff.NumTxInTotal = length(mintNums)
 			end
 			if length(spentNums) > 0
-				ret[v].TimestampLastPayed = spentNums[end] |> BlockNum2Timestamp
-				ret[v].AmountExpenseTotal = map(
+				currentDiff.TimestampLastPayed = spentNums[end] |> BlockNum2Timestamp
+				currentDiff.AmountExpenseTotal = map(
 					x->x["value"],
 					coins[spentRange]
 				) |> sum |> bitcoreInt2Float64
-				ret[v].NumTxOutTotal = length(spentNums)
+				currentDiff.NumTxOutTotal = length(spentNums)
 			end
 		end
 		# LastSellPrice
 			if length(spentNums) > 0
-				ret[v].LastSellPrice = GetBTCPriceWhen(BlockNum2Timestamp(spentNums[end]))
+				currentDiff.LastSellPrice = GetBTCPriceWhen(BlockNum2Timestamp(spentNums[end]))
 			end
 		# Usdt
 			if length(mintNums) > 0
-				ret[v].UsdtPayed4Input = map(
+				currentDiff.UsdtPayed4Input = map(
 					x->bitcoreInt2Float64(x["value"]) * GetPriceAtBlockN(x["mintHeight"]),
 					coins
 				) |> sum
 			end
 			if length(spentNums) > 0
-				ret[v].UsdtReceived4Output = map(
+				currentDiff.UsdtReceived4Output = map(
 					x->bitcoreInt2Float64(x["value"]) * GetPriceAtBlockN(x["spentHeight"]),
 					coins[spentRange]
 				) |> sum
 			end
+		counter = counterNext + 1
+		addr    = coinsAll[counter]["address"]
+		counterNext = findnext(
+			x->x["address"] !== addr,
+			coinsAll,
+			counter
+		)
+		push!(ret, currentDiff)
 	end
-	return collect(values(ret))
+	return ret
 	end
 function MergeAddressState!(arrayDiff::Vector{AddressDiff}, coinPrice::Float32)::Int
 	counter = 0
