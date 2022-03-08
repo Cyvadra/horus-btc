@@ -3,6 +3,7 @@
 ### Todos:
 1. [ ] Implementation of the whole pipeline.
 3. [ ] Train latest model.
+5. [ ] Modify address2id.ng.jl, save string list to files, IOStream instead of IOBuffer, to reduce huge mem occupation.
 
 ## Pending:
 7. [ ] Feature: Different alignment of timestamp, so as to generate more data (after version update)
