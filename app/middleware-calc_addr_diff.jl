@@ -27,15 +27,13 @@ function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff}
 		append!(coinsAll, GetBlockCoins(i))
 	end
 	addrs = unique(map(x->x["address"], coinsAll))
-	tmpDict = Dict{String, UInt32}()
 	for addr in addrs
-		v = String2ID(addr)
-		tmpDict[addr] = v
+		v = GenerateID(addr)
 		ret[v] = AddressDiff(zeros(length(AddressDiff.types))...)
 		ret[v].AddressId = v
-	end
-	for addr in addrs
-		v = tmpDict[addr]
+	# end
+	# for addr in addrs
+		# v = ReadID(addr)
 		coins     = filter(x->x["address"]==addr, coinsAll)
 		spentRange= map(x->0 < x["spentHeight"] <= toBlock, coins)
 		mintNums  = map(x->x["mintHeight"], coins)
