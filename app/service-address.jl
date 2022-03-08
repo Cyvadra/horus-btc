@@ -54,28 +54,41 @@ const headRangeP2PKH  = 2:4
 const headRangeP2PSH  = 2:4
 const headRangeBech32 = 5:8
 
+function seeknext(needle, io::IOBuffer)
+	seek(io,0)
+	_len = length(needle)-1
+	v = read(io)
+	for i in 1:length(v)-_len
+		if v[i:i+_len] == needle
+			return i+_len
+		end
+	end
+	return nothing
+	end
+
 function ReadID(addr::AbstractString)::UInt32
+	addrv = transcode(UInt8, string(addr))
 	if addr[1] == headP2PKH
 		io = RootP2PKH[addr[headRangeP2PKH]]
-		seek(io, 0)
-		v = readuntil(io, addr[5:end]; keep=true)
-		if length(v) > 0
+		v = seeknext(addrv[5:end], io)
+		if !isnothing(v)
+			seek(io, v)
 			read(io, UInt8)
 			return read(io, UInt32)
 		end
 	elseif addr[1] == headP2SH
 		io = RootP2SH[addr[headRangeP2PSH]]
-		seek(io, 0)
-		v = readuntil(io, addr[5:end]; keep=true)
-		if length(v) > 0
+		v = seeknext(addrv[5:end], io)
+		if !isnothing(v)
+			seek(io, v)
 			read(io, UInt8)
 			return read(io, UInt32)
 		end
 	elseif addr[1] == headBech32
 		io = RootBech32[addr[headRangeBech32]]
-		seek(io, 0)
-		v = readuntil(io, addr[9:end]; keep=true)
-		if length(v) > 0
+		v = seeknext(addrv[9:end], io)
+		if !isnothing(v)
+			seek(io, v)
 			read(io, UInt8)
 			return read(io, UInt32)
 		end
@@ -88,63 +101,67 @@ function ReadID(addr::AbstractString)::UInt32
 	end
 
 function SetID(addr::AbstractString, id::UInt32)::Nothing
+	addrv = transcode(UInt8, string(addr))
 	if addr[1] == headP2PKH
 		if !haskey(RootP2PKH, addr[headRangeP2PKH])
 			RootP2PKH[addr[headRangeP2PKH]] = IOBuffer(;sizehint=65535)
 		end
 		io = RootP2PKH[addr[headRangeP2PKH]]
-		seek(io, 0)
-		v = readuntil(io, addr[5:end]; keep=true)
-		if length(v) > 0
+		v  = seeknext(addrv[5:end], io)
+		if !isnothing(v)
+			seek(io, v)
 			write(io, CHAR_DELIM)
 			write(io, id)
 			write(io, CHAR_DELIM)
 		else
 			seekend(io)
-			write(io, addr[5:end])
+			write(io, addrv[5:end])
 			write(io, CHAR_DELIM)
 			write(io, id)
 			write(io, CHAR_DELIM)
 		end
 		flush(io)
+		seek(io, 0)
 	elseif addr[1] == headP2SH
 		if !haskey(RootP2SH, addr[headRangeP2PSH])
 			RootP2SH[addr[headRangeP2PSH]] = IOBuffer(;sizehint=65535)
 		end
 		io = RootP2SH[addr[headRangeP2PSH]]
-		seek(io, 0)
-		v = readuntil(io, addr[5:end]; keep=true)
-		if length(v) > 0
+		v  = seeknext(addrv[5:end], io)
+		if !isnothing(v)
+			seek(io, v)
 			write(io, CHAR_DELIM)
 			write(io, id)
 			write(io, CHAR_DELIM)
 		else
 			seekend(io)
-			write(io, addr[5:end])
+			write(io, addrv[5:end])
 			write(io, CHAR_DELIM)
 			write(io, id)
 			write(io, CHAR_DELIM)
 		end
 		flush(io)
+		seek(io, 0)
 	elseif addr[1] == headBech32
 		if !haskey(RootBech32, addr[headRangeBech32])
 			RootBech32[addr[headRangeBech32]] = IOBuffer(;sizehint=65535)
 		end
 		io = RootBech32[addr[headRangeBech32]]
-		seek(io, 0)
-		v = readuntil(io, addr[9:end]; keep=true)
-		if length(v) > 0
+		v  = seeknext(addrv[9:end], io)
+		if !isnothing(v)
+			seek(io, v)
 			write(io, CHAR_DELIM)
 			write(io, id)
 			write(io, CHAR_DELIM)
 		else
 			seekend(io)
-			write(io, addr[9:end])
+			write(io, addrv[9:end])
 			write(io, CHAR_DELIM)
 			write(io, id)
 			write(io, CHAR_DELIM)
 		end
 		flush(io)
+		seek(io, 0)
 	else
 		RootOther[addr] = id
 	end
