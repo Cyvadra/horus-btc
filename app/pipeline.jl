@@ -6,6 +6,9 @@ include("./service-mongo.jl");
 include("./service-block_timestamp.jl");
 include("./middleware-calc_addr_diff.jl");
 
+# Init
+	AddressService.Open(false) # shall always
+
 # Get latest timestamp
 	tmpVal = findlast(x->!iszero(x), AddressService.AddressStatisticsDict[:TimestampLastActive])
 	tmpVal = reduce(max, AddressService.AddressStatisticsDict[:TimestampLastActive][tmpVal-100:tmpVal]) - 1
@@ -18,6 +21,7 @@ include("./middleware-calc_addr_diff.jl");
 		push!(BlockPairs, Pair{Int32, Int32}(tmpVal+1, ts))
 		print(".")
 	end
+	ResyncBlockTimestamps()
 
 # Test address diff
 	arrayDiff = Address2StateDiff(lastProcessedBlockN+1,lastProcessedBlockN+1)
