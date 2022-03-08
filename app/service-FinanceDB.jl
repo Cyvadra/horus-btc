@@ -17,7 +17,7 @@ mutable struct Tick
 end
 
 TableTick = MmapDB.GenerateCode(Tick)
-TableTick.Open(2333333)
+TableTick.Open(true)
 baseTs = TableTick.GetFieldTimestamp(1) - 60
 
 function ts2ind(ts)::Int32
