@@ -386,9 +386,7 @@ include("./02-loadmmap.jl")
 		end
 	function CalcAddressDirection(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressDirection
 		concreteIndexes  = map(x->!x, cacheTagNew[])
-		concreteBalances = AddressService.GetField(:Balance,
-				cacheAddrId[][ concreteIndexes ]
-			)
+		concreteBalances = AddressService.GetFieldBalance(cacheAddrId[][ concreteIndexes ])
 		concretePercents = cacheAmount[][ concreteIndexes ] ./ concreteBalances
 		concreteAmounts  = abs.( cacheAmount[][ concreteIndexes ] )
 		tmpIndexes = (
@@ -436,8 +434,8 @@ include("./02-loadmmap.jl")
 		tsMid = round(Int32, (tsMin+tsMax)/2)
 		concreteIndexes  = map(x->!x, cacheTagNew[])
 		ids = cacheAddrId[][concreteIndexes]
-		concreteLastPayed    = AddressService.GetField(:TimestampLastPayed, ids)
-		concreteLastReceived = AddressService.GetField(:TimestampLastReceived, ids)
+		concreteLastPayed    = AddressService.GetFieldTimestampLastPayed(ids)
+		concreteLastReceived = AddressService.GetFieldTimestampLastReceived(ids)
 		concreteAmounts      = cacheAmount[][concreteIndexes]
 		concreteAmountsSend  = concreteAmounts .< 0.0
 		concreteAmountsBuy   = concreteAmounts .> 0.0
@@ -491,9 +489,8 @@ include("./02-loadmmap.jl")
 	function CalcAddressSupplier(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressSupplier
 		concreteIndexes  = map(x->!x, cacheTagNew[])
 		concreteIndexes  = concreteIndexes .&& (cacheAmount[] .< 0.0)
-		concreteBalances = abs.(AddressService.GetField(:Balance,
-			cacheAddrId[][ concreteIndexes ]
-			))
+		concreteBalances = abs.(AddressService.GetFieldBalance(
+			cacheAddrId[][ concreteIndexes ]))
 		concreteAmounts  = abs.(cacheAmount[][ concreteIndexes ])
 		sortedBalances = sort(concreteBalances)[1:floor(Int, 0.99*end)]
 		ret = CellAddressSupplier(
@@ -530,7 +527,7 @@ include("./02-loadmmap.jl")
 		_indexes = collect(1:length(concreteIndexes))[concreteIndexes]
 		for i in _indexes
 			coinPrice = FinanceDB.GetDerivativePriceWhen(pairName, cacheTs[][i])
-			boughtPrice = AddressService.GetField(:AveragePurchasePrice, cacheAddrId[][i])
+			boughtPrice = AddressService.GetFieldAveragePurchasePrice(cacheAddrId[][i])
 			if coinPrice > boughtPrice
 				ret.numRealizedProfit += 1
 				ret.amountRealizedProfitBillion += Float64(coinPrice-boughtPrice) * abs(cacheAmount[][i]) / 1e9

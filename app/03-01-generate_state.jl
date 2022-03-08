@@ -110,7 +110,7 @@ if false
 end
 
 # Calculation: listXXX ==> Vector{AddressStatistics} ==> memory cache
-AddressService.Create(round(Int,1.1e9))
+AddressService.CreateMem(round(Int,1.1e9))
 _len = length(listAddrId)
 # echo 3 > /proc/sys/vm/drop_caches
 prog = ProgressMeter.Progress(_len; barlen=32)
