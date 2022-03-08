@@ -27,6 +27,11 @@ function ResyncBlockPairs()
 	BlockPairs = sort!(collect(BlockTimestamps), by=x->x[2])
 	return BlockPairs
 	end
+function ResyncBlockTimestamps()
+	global BlockTimestamps
+	BlockTimestamps = Dict(BlockPairs)
+	return BlockTimestamps
+	end
 function Timestamp2LastBlockN(ts)::Int32
 	i = findlast(x->x<=ts, map(x->x[2], BlockPairs))
 	return BlockPairs[i][1]
