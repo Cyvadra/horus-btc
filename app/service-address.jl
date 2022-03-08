@@ -55,12 +55,19 @@ const headRangeP2PSH  = 2:4
 const headRangeBech32 = 5:8
 
 function seeknext(needle, io::IOBuffer)
+	counterN = 1
+	counterI = 0
 	seek(io,0)
 	_len = length(needle)-1
-	v = read(io)
-	for i in 1:length(v)-_len
-		if v[i:i+_len] == needle
-			return i+_len
+	while !eof(io)
+		counterI += 1
+		if read(io, UInt8) == needle[counterN]
+			if counterN > _len
+				return counterI
+			end
+			counterN += 1
+		else
+			counterN = 1
 		end
 	end
 	return nothing
