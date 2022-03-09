@@ -39,7 +39,20 @@ function GetCoinsByTxid(txid::String)::Vector{Mongoc.BSON}
 	append!(a, collect( Mongoc.find(MongoCollection("coins"), Mongoc.BSON("{\"spentTxid\":\"$txid\"}")) ) )
 	end
 function GetCoinsByMintHeight(height)::Vector{Mongoc.BSON}
-	collect( Mongoc.find(MongoCollection("coins"), Mongoc.BSON("{\"mintHeight\":\"$height\"}")) )
+	collect( Mongoc.find(
+		MongoCollection("coins"),
+		Mongoc.BSON("""{
+			"chain":"BTC", "network":"mainnet", "mintHeight":$height
+			}""")
+		) )
+	end
+function GetCoinsBySpentHeight(height)::Vector{Mongoc.BSON}
+	collect( Mongoc.find(
+		MongoCollection("coins"),
+		Mongoc.BSON("""{
+			"chain":"BTC", "network":"mainnet", "spentHeight":$height
+			}""")
+		) )
 	end
 function GetCoinsInputByTxid(txid::String)::Vector{Mongoc.BSON}
 	filter!(
