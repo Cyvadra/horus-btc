@@ -20,12 +20,10 @@ mutable struct AddressDiff
 	LastSellPrice::Float32
 	end
 tplAddressDiff = AddressDiff(zeros(length(AddressDiff.types))...)
-function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff}
+function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff} # (fromBlock, toBlock]
+	fromBlock += 1
 	ret = Vector{AddressDiff}()
-	coinsAll = Mongoc.BSON[]
-	for i in fromBlock:toBlock
-		append!(coinsAll, GetBlockCoins(i))
-	end
+	coinsAll = GetBlockCoinsInRange(fromBlock, toBlock)
 	sort!(coinsAll, by=x->x["address"])
 	counter = 1
 	counterNext = findnext(
@@ -122,7 +120,16 @@ function MergeAddressState!(arrayDiff::Vector{AddressDiff}, coinPrice::Float32):
 	return counter
 	end
 
-function GetPriceAtBlockN(height)::Float64
-	return height |> BlockNum2Timestamp |> GetBTCPriceWhen
+BlockPriceDict = Dict{Int, Float32}()
+function SyncBlockPriceDict(fromN, toN)::Nothing
+	for h in fromN:toN
+		BlockPriceDict[h] = h |> BlockNum2Timestamp |> GetBTCPriceWhen
 	end
-
+	return nothing
+	end
+function GetPriceAtBlockN(height)::Float64
+	if !haskey(BlockPriceDict, height)
+		BlockPriceDict[height] = height |> BlockNum2Timestamp |> GetBTCPriceWhen
+	end
+	return BlockPriceDict[height]
+	end

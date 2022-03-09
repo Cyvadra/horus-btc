@@ -97,12 +97,28 @@ function GetAddressCoins(addr::String)::Vector{Mongoc.BSON}
 		}""")
 	collect(Mongoc.find(db["coins"], tmpBson))
 	end
-function GetBlockCoins(height::Int)::Vector{Mongoc.BSON}
+function GetBlockCoins(height::Int)::Vector{Mongoc.BSON} # use with caution, may cause duplicate values
 	retList = collect( Mongoc.find(
 		MongoCollection("coins"),
 		Mongoc.BSON("""{
 			"chain":"BTC", "network":"mainnet",
 			"\$or": [ {"mintHeight":$height}, {"spentHeight":$height} ]
+			}""")
+		) )
+	Random.shuffle!(shuffleRng, retList)
+	return retList
+	end
+function GetBlockCoinsInRange(fromBlock::Int, toBlock::Int)::Vector{Mongoc.BSON} # [fromBlock, toBlock]
+	gt = fromBlock - 1
+	lt = toBlock + 1
+	retList = collect( Mongoc.find(
+		MongoCollection("coins"),
+		Mongoc.BSON("""{
+			"chain":"BTC", "network":"mainnet",
+			"\$or": [
+				{"mintHeight": {"\$gt":$gt, "\$lt":$lt}},
+				{"spentHeight": {"\$gt":$gt, "\$lt":$lt}}
+			]
 			}""")
 		) )
 	Random.shuffle!(shuffleRng, retList)
