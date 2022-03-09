@@ -12,20 +12,22 @@ include("./middleware-calc_addr_diff.jl");
 # Get latest timestamp
 	tmpVal = findlast(x->!iszero(x), AddressService.AddressStatisticsDict[:TimestampLastActive])
 	tmpVal = reduce(max, AddressService.AddressStatisticsDict[:TimestampLastActive][tmpVal-100:tmpVal]) - 1
-	lastProcessedBlockN = Timestamp2LastBlockN(tmpVal)
+	lastProcessedBlockN = Int(Timestamp2LastBlockN(tmpVal))
 
 # Sync BlockPairs
+	latestBlockHeight = 1
 	while true
-		tmpVal = BlockPairs[end][1]
-		ts = round(Int32, GetBlockInfo(tmpVal+1)["timeNormalized"] |> datetime2unix)
-		push!(BlockPairs, Pair{Int32, Int32}(tmpVal+1, ts))
+		latestBlockHeight = BlockPairs[end][1]
+		ts = round(Int32, GetBlockInfo(latestBlockHeight+1)["timeNormalized"] |> datetime2unix)
+		push!(BlockPairs, Pair{Int32, Int32}(latestBlockHeight+1, ts))
 		print(".")
 	end
 	ResyncBlockTimestamps()
 
 # Test address diff
-	arrayDiff = Address2StateDiff(lastProcessedBlockN+1,lastProcessedBlockN+1)
-	currentTs = BlockNum2Timestamp(lastProcessedBlockN+1)
+	# todo: partitions
+	arrayDiff = Address2StateDiff(lastProcessedBlockN, latestBlockHeight)
+	currentTs = BlockNum2Timestamp(latestBlockHeight)
 	MergeAddressState!(arrayDiff, GetBTCPriceWhen(currentTs))
 
 
