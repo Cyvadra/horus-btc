@@ -12,16 +12,17 @@ if filesize(tsFile) > 0
 	BlockPairs = sort!(collect(BlockTimestamps), by=x->x[2])
 end
 function BlockNum2Timestamp(height)::Int32
-	if haskey(BlockTimestamps, height)
-		return BlockTimestamps[height]
-	end
-	BlockTimestamps[height] = round(Int32, 
-		datetime2unix(
-			GetBlockInfo(height)["timeNormalized"]
-		)
-	)
 	return BlockTimestamps[height]
 	end
+#=
+	BlockTimestamps[b["height"]] = round(Int32, 
+		datetime2unix(
+			b["timeNormalized"]
+		)
+	) for b in collect(
+			Mongoc.find(MongoCollection("blocks"),  Mongoc.BSON("{}"))
+	)
+=#
 function ResyncBlockPairs()
 	global BlockPairs
 	BlockPairs = sort!(collect(BlockTimestamps), by=x->x[2])
@@ -41,18 +42,3 @@ function SyncBlockTimestamps()
 	return nothing
 	end
 atexit(SyncBlockTimestamps)
-
-# Prepare: blockNum => coinPrice
-function SyncBlockPriceDict(fromN, toN)::Nothing
-	for h in fromN:toN
-		BlockPriceDict[h] = FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(h))
-	end
-	return nothing
-	end
-function GetPriceAtBlockN(height)::Float64
-	if !haskey(BlockPriceDict, height)
-		BlockPriceDict[height] = FinanceDB.GetDerivativePriceWhen(pairName, BlockNum2Timestamp(height))
-	end
-	return BlockPriceDict[height]
-	end
-
