@@ -6,6 +6,12 @@ using Random
 dataFolder   = "/mnt/data/cacheTx/"
 shuffleRng   = Random.MersenneTwister(10086)
 
+#= NOTICE
+		use bitcore;
+		db.coins.ensureIndex({"spentHeight":1})
+		db.coins.ensureIndex({"mintHeight":1})
+=#
+
 # Init Mongo
 client = Mongoc.Client("mongodb://localhost:27017")
 @show Mongoc.ping(client)
@@ -92,19 +98,14 @@ function GetAddressCoins(addr::String)::Vector{Mongoc.BSON}
 	collect(Mongoc.find(db["coins"], tmpBson))
 	end
 function GetBlockCoins(height::Int)::Vector{Mongoc.BSON}
-	txs       = GetBlockTransactions(height)
-	# timeStamp = datetime2unix(txs[1]["blockTime"])
-	retList   = Vector{Mongoc.BSON}()
-	tmpList = Vector{Mongoc.BSON}()
-	for tx in txs
-		inputs  = GetCoinsInputByTxid(string(tx["txid"]))
-		outputs = GetCoinsOutputByTxid(string(tx["txid"]), height)
-		append!(tmpList, inputs)
-		append!(tmpList, outputs)
-		Random.shuffle!(shuffleRng, tmpList)
-		append!(retList, tmpList)
-		empty!(tmpList)
-	end
+	retList = collect( Mongoc.find(
+		MongoCollection("coins"),
+		Mongoc.BSON("""{
+			"chain":"BTC", "network":"mainnet",
+			"\$or": [ {"mintHeight":$height}, {"spentHeight":$height} ]
+			}""")
+		) )
+	Random.shuffle!(shuffleRng, retList)
 	return retList
 	end
 
