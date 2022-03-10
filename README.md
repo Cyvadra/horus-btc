@@ -1,8 +1,8 @@
 # horus
 
 ### Issues:
-3. [ ] Test: MergeAddressState!
-5. [ ] Benchmark: GenerateID
+3. [x] Test: MergeAddressState!
+5. [x] Benchmark: GenerateID
 
 ### Todos:
 1. [ ] Implementation of the whole pipeline.
@@ -11,9 +11,6 @@
 
 ### Done:
 1. [x] Benchmark: GetBlockCoins, Address2StateDiff
-
-### Known Issues:
-- Balance calculated online is incorrect.
 
 ### Pending:
 7. [ ] Feature: Different alignment of timestamp, so as to generate more data (after version update)
