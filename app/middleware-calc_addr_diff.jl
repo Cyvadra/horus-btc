@@ -42,7 +42,7 @@ function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff} # 
 		currentDiff = AddressDiff(zeros(length(AddressDiff.types))...)
 		currentDiff.AddressId = GenerateID(coinsAll[counter]["address"])
 		coins     = coinsAll[counter:counterNext]
-		mintRange = map(x->fromBlock <= x["mintRange"] <= toBlock, coins)
+		mintRange = map(x->fromBlock <= x["mintHeight"] <= toBlock, coins)
 		spentRange= map(x->fromBlock <= x["spentHeight"] <= toBlock, coins)
 		mintNums  = map(x->x["mintHeight"], coins[mintRange])
 		spentNums = map(x->x["spentHeight"], coins[spentRange])
