@@ -18,6 +18,7 @@ include("./middleware-calc_addr_diff.jl");
 	lastProcessedBlockN = GetLastProcessedBlockN()
 
 # Sync BlockPairs
+# this loop will auto throw error when all synchronized
 	latestBlockHeight = 1
 	while true
 		latestBlockHeight = BlockPairs[end][1]
