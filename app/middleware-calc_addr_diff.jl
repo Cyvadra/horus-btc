@@ -39,8 +39,8 @@ function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff} # 
 		currentDiff = AddressDiff(zeros(length(AddressDiff.types))...)
 		currentDiff.AddressId = GenerateID(coinsAll[counter]["address"])
 		coins     = coinsAll[counter:counterNext]
-		mintRange = map(x->x["spentHeight"] > toBlock || x["spentHeight"] <= 0, coins)
-		spentRange= map(x->0 < x["spentHeight"] <= toBlock, coins)
+		mintRange = map(x->fromBlock <= x["mintRange"] <= toBlock, coins)
+		spentRange= map(x->fromBlock <= x["spentHeight"] <= toBlock, coins)
 		mintNums  = map(x->x["mintHeight"], coins[mintRange])
 		spentNums = map(x->x["spentHeight"], coins[spentRange])
 		blockNums = sort!(vcat(mintNums, spentNums))
@@ -49,7 +49,7 @@ function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff} # 
 				currentDiff.TimestampLastReceived = mintNums[end] |> BlockNum2Timestamp
 				currentDiff.AmountIncomeTotal = map(
 					x->x["value"],
-					coins
+					coins[mintNums]
 				) |> sum |> bitcoreInt2Float64
 				currentDiff.NumTxInTotal = length(mintNums)
 			end
