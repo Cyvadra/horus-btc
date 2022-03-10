@@ -10,9 +10,12 @@ include("./middleware-calc_addr_diff.jl");
 	AddressService.Open(false) # shall always
 
 # Get latest timestamp
-	tmpVal = findlast(x->!iszero(x), AddressService.AddressStatisticsDict[:TimestampLastActive])
-	tmpVal = reduce(max, AddressService.AddressStatisticsDict[:TimestampLastActive][tmpVal-100:tmpVal]) - 1
-	lastProcessedBlockN = Int(Timestamp2LastBlockN(tmpVal))
+	function GetLastProcessedBlockN()::Int
+		tmpVal = findlast(x->!iszero(x), AddressService.AddressStatisticsDict[:TimestampLastActive])
+		tmpVal = reduce(max, AddressService.AddressStatisticsDict[:TimestampLastActive][tmpVal-2000:tmpVal])
+		return Int(Timestamp2LastBlockN(tmpVal))
+		end
+	lastProcessedBlockN = GetLastProcessedBlockN()
 
 # Sync BlockPairs
 	latestBlockHeight = 1
@@ -23,6 +26,23 @@ include("./middleware-calc_addr_diff.jl");
 		print(".")
 	end
 	ResyncBlockTimestamps()
+
+# Timeline alignment
+	function AlignToTimestamp(lastTs)::Nothing
+		lastProcessedBlockN = GetLastProcessedBlockN()
+		ts = BlockNum2Timestamp(lastProcessedBlockN)
+		while ts < lastTs
+			if ts + 86400 <= lastTs
+				ts += 86400
+			else
+				ts = lastTs
+			end
+			toN = Timestamp2LastBlockN(ts)
+			arrayDiff = Address2StateDiff(lastProcessedBlockN, toN)
+			MergeAddressState!(arrayDiff, GetBTCPriceWhen(ts))
+			@assert GetLastProcessedBlockN() == Timestamp2LastBlockN(ts)
+		end
+		return nothing
 
 # Test address diff
 	# todo: partitions

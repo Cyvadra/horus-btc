@@ -33,7 +33,7 @@ function ResyncBlockTimestamps()
 	BlockTimestamps = Dict(BlockPairs)
 	return BlockTimestamps
 	end
-function Timestamp2LastBlockN(ts)::Int32
+function Timestamp2LastBlockN(ts)::Int
 	i = findlast(x->x<=ts, map(x->x[2], BlockPairs))
 	return BlockPairs[i][1]
 	end
