@@ -24,7 +24,7 @@ include("./middleware-calc_addr_diff.jl");
 		latestBlockHeight = BlockPairs[end][1]
 		ts = round(Int32, GetBlockInfo(latestBlockHeight+1)["timeNormalized"] |> datetime2unix)
 		push!(BlockPairs, Pair{Int32, Int32}(latestBlockHeight+1, ts))
-		print(".")
+		print("$(latestBlockHeight+1)\t")
 	end
 	ResyncBlockTimestamps()
 
