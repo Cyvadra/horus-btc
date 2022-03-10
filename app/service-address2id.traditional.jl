@@ -7,15 +7,17 @@ const TAG_MAX = "maximum"
 AddressStringDict[TAG_MAX] = 930830585
 AddressStringLock = Threads.SpinLock()
 
-# Data Loader
-# tmpList = []
-# counter = 0
-# _len = length(f)
-# s = ["asdf", "123"]
+
+# @show now()
+# f = readlines("/mnt/data/bitcore/addr.latest.txt")
+# @show now()
 # @showprogress for l in f
 # 	s = split(l,'\t')
 # 	AddressStringDict[s[1]] = parse(UInt32, s[2])
 # 	end
+# @show now()
+
+
 
 function ReadID(addr::AbstractString)::UInt32
 	get(AddressStringDict, addr, NUM_NOT_EXIST)
