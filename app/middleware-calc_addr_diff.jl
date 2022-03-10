@@ -1,5 +1,6 @@
 
 using Mongoc
+using ProgressMeter
 
 # include("./service-address.jl");
 # include("./service-address2id.traditional.jl");
@@ -91,7 +92,7 @@ function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff} # 
 	end
 function MergeAddressState!(arrayDiff::Vector{AddressDiff}, coinPrice::Float32)::Int
 	counter = 0
-	for d in arrayDiff
+	@showprogress for d in arrayDiff
 		baseState = AddressService.GetRow(d.AddressId)
 		if d.TimestampLastReceived > 0
 			baseState.TimestampLastReceived = d.TimestampLastReceived
@@ -113,7 +114,7 @@ function MergeAddressState!(arrayDiff::Vector{AddressDiff}, coinPrice::Float32):
 		baseState.AveragePurchasePrice = baseState.UsdtPayed4Input / baseState.AmountIncomeTotal
 		baseState.UsdtNetRealized = baseState.UsdtReceived4Output - baseState.UsdtPayed4Input
 		baseState.Balance = baseState.AmountIncomeTotal - baseState.AmountExpenseTotal
-		baseState.UsdtNetUnrealized = baseState.Balance * (coinPrice - ret.AveragePurchasePrice)
+		baseState.UsdtNetUnrealized = baseState.Balance * (coinPrice - baseState.AveragePurchasePrice)
 		AddressService.SetRow(d.AddressId, baseState)
 		counter += 1
 	end
