@@ -12,7 +12,10 @@
 ### Done:
 1. [x] Benchmark: GetBlockCoins, Address2StateDiff
 
-## Pending:
+### Known Issues:
+- Balance calculated online is incorrect.
+
+### Pending:
 7. [ ] Feature: Different alignment of timestamp, so as to generate more data (after version update)
 9. [ ] Add MA to dnn input. FinanceDB rewrite might be required.
 1. [x] Rewrite MmapDB, remove Mmap dependency.
