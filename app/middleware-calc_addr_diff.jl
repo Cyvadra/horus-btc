@@ -21,6 +21,9 @@ mutable struct AddressDiff
 	end
 tplAddressDiff = AddressDiff(zeros(length(AddressDiff.types))...)
 function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff} # (fromBlock, toBlock]
+	if fromBlock == toBlock
+		return AddressDiff[]
+	end
 	fromBlock += 1
 	ret = Vector{AddressDiff}()
 	coinsAll = GetBlockCoinsInRange(fromBlock, toBlock)

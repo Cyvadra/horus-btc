@@ -33,7 +33,7 @@ include("./middleware-calc_addr_diff.jl");
 		lastProcessedBlockN = GetLastProcessedBlockN()
 		ts = BlockNum2Timestamp(lastProcessedBlockN)
 		while ts < lastTs
-			if ts + 86400 <= lastTs
+			if ts + 86400 < lastTs
 				ts += 86400
 			else
 				ts = lastTs
@@ -51,11 +51,7 @@ include("./middleware-calc_addr_diff.jl");
 		return nothing
 		end
 
-# Test address diff
-	# todo: partitions
-	arrayDiff = Address2StateDiff(lastProcessedBlockN, latestBlockHeight)
-	currentTs = BlockNum2Timestamp(latestBlockHeight)
-	MergeAddressState!(arrayDiff, GetBTCPriceWhen(currentTs))
+# Todo: partitions, test
 
 
 
