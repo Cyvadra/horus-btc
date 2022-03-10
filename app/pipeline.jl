@@ -37,12 +37,18 @@ include("./middleware-calc_addr_diff.jl");
 			else
 				ts = lastTs
 			end
+			@info "Fetching tx till $(unix2datetime(ts)+Hour(8))"
+			@info now()
 			toN = Timestamp2LastBlockN(ts)
 			arrayDiff = Address2StateDiff(lastProcessedBlockN, toN)
+			@info "Merging state"
+			@info now()
 			MergeAddressState!(arrayDiff, GetBTCPriceWhen(ts))
+			@info "merged"
 			@assert GetLastProcessedBlockN() == Timestamp2LastBlockN(ts)
 		end
 		return nothing
+		end
 
 # Test address diff
 	# todo: partitions
