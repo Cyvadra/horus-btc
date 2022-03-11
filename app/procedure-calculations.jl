@@ -2,10 +2,10 @@
 	AddressService
 	GetBTCPriceWhen
 
-	sumAddrId
-	sumTagNew
-	sumAmount
-	sumTs
+	# sumAddrId
+	# sumTagNew
+	# sumAmount
+	# sumTs
 
 	mutable struct CalcCell
 		resultType::DataType
