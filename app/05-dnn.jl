@@ -5,7 +5,11 @@ using Dates
 using JLD2
 include("./struct-ResultCalculations.jl")
 resultsCalculated = ResultCalculations[]
-resultsCalculated = JLD2.load("/mnt/data/tmp/results.jld2", "results")
+resultsCalculated = JLD2.load("/mnt/data/tmp/results.2020.08.jld2", "results")
+for i in 1:length(resultsCalculated)
+	# 2020.08 was set to tsStart, correct to tsEnd
+	resultsCalculated[i].timestamp += 10800
+	end
 
 # Params
 	includePrev = 12 # ticks, [current-x+1:current]
@@ -13,6 +17,7 @@ resultsCalculated = JLD2.load("/mnt/data/tmp/results.jld2", "results")
 
 
 # Load market data
+	# todo: use middle number instead of mean
 	FinanceDB.SetDataFolder("/mnt/data/mmap")
 	d = FinanceDB.GetDerivativeWindowed("BTC_USDT")["H3"];
 	df = DataFrame(
@@ -129,13 +134,16 @@ data      = zip(training_x, training_y)
 
 m = Chain(
 		Dense(inputSize, modelWidth),
+		Dense(modelWidth, modelWidth),
+		Dense(modelWidth, modelWidth, tanh_fast),
+		Dense(modelWidth, modelWidth),
 		Dense(modelWidth, yLength),
 	)
 ps = params(m);
 
 
-opt        = ADAM(2e-8)
-tx, ty     = (training_x[5], training_y[5])
+opt        = ADAM(1e-9)
+tx, ty     = (test_x[5], test_y[5])
 evalcb     = () -> @show loss(tx, ty)
 loss(x, y) = Flux.Losses.mse(m(x), y)
 @show loss(tx, ty)
@@ -146,24 +154,5 @@ for epoch = 1:nEpoch
 	@info "Epoch $(epoch) / $nEpoch"
 	Flux.train!(loss, ps, data, opt, cb = Flux.throttle(evalcb, nThrottle))
 	end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
