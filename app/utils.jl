@@ -1,5 +1,6 @@
 
 using ProgressMeter
+using JSON
 
 # Method: Smooth Timestamp
 	function Smooth!(tsList::Vector{Int32})::Vector{Int32}
@@ -51,5 +52,7 @@ using ProgressMeter
 		return unix2datetime(ts) + Hour(8)
 		end
 
-
+	function showme()
+		println(json(ans,2))
+		end
 

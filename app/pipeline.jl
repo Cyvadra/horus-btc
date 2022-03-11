@@ -1,19 +1,19 @@
 
+include("./utils.jl");
 include("./service-address.jl");
 include("./service-address2id.traditional.jl");
 include("./service-FinanceDB.jl");
 include("./service-mongo.jl");
 include("./service-block_timestamp.jl");
 include("./middleware-calc_addr_diff.jl");
-include("./utils.jl")
 
 # Init
 	AddressService.Open(false) # shall always
 
 # Get latest timestamp
 	function GetLastProcessedTimestamp()::Int32
-		tmpVal = findlast(x->!iszero(x), AddressService.AddressStatisticsDict[:TimestampLastActive])
-		tmpVal = reduce(max, AddressService.AddressStatisticsDict[:TimestampLastActive][tmpVal-3000:tmpVal])
+		tmpVal = AddressService.Findlast(x->!iszero(x), :TimestampLastActive)
+		tmpVal = max( AddressService.GetFieldTimestampLastActive(tmpVal-3000:tmpVal)... )
 		return tmpVal
 		end
 	function GetLastProcessedBlockN()::Int
