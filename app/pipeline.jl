@@ -62,6 +62,10 @@ include("./middleware-calc_addr_diff.jl");
 
 # Period predict
 	intervalSecs = 10800
+	cacheAddrId = Vector{UInt32}()
+	cacheTagNew = Vector{Bool}()
+	cacheAmount = Vector{Float64}()
+	cacheTs     = Vector{Int32}()
 	function CalculateResults(fromTs, toTs)::Vector{ResultCalculations} # (fromTs, toTs]
 		@assert fromTs % intervalSecs == 0
 		@assert toTs % intervalSecs == 0
@@ -70,10 +74,10 @@ include("./middleware-calc_addr_diff.jl");
 		for ts in fromTs:intervalSecs:toTs
 			fromBlockN = Timestamp2LastBlockN(ts)
 			toBlockN   = Timestamp2LastBlockN(ts+intervalSecs)
-			cacheAddrId = Vector{UInt32}()
-			cacheTagNew = Vector{Bool}()
-			cacheAmount = Vector{Float64}()
-			cacheTs     = Vector{Int32}()
+			empty!(cacheAddrId)
+			empty!(cacheTagNew)
+			empty!(cacheAmount)
+			empty!(cacheTs)
 			for n in fromBlockN:toBlockN
 				coins = GetCoinsByMintHeight(n)
 				append!(coins, GetCoinsBySpentHeight(n))
