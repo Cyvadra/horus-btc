@@ -37,6 +37,10 @@ function Timestamp2LastBlockN(ts)::Int
 	i = findlast(x->x<=ts, map(x->x[2], BlockPairs))
 	return BlockPairs[i][1]
 	end
+function Timestamp2FirstBlockN(ts)::Int
+	i = findfirst(x->x>=ts, map(x->x[2], BlockPairs))
+	return BlockPairs[i][1]
+	end
 function SyncBlockTimestamps()
 	JLD2.save(tsFile, "BlockTimestamps", BlockTimestamps)
 	return nothing
