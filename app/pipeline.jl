@@ -11,11 +11,6 @@ include("./middleware-calc_addr_diff.jl");
 	AddressService.Open(false) # shall always
 
 # Get latest timestamp
-	function GetLastProcessedTimestamp()::Int32
-		tmpVal = AddressService.Findlast(x->!iszero(x), :TimestampLastActive)
-		tmpVal = max( AddressService.GetFieldTimestampLastActive(tmpVal-3000:tmpVal)... )
-		return tmpVal
-		end
 	function GetLastProcessedBlockN()::Int
 		return Int(Timestamp2LastBlockN(GetLastProcessedTimestamp()))
 		end

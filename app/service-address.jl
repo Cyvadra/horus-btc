@@ -34,6 +34,12 @@ function isNew(ids::Vector{UInt32})::Vector{Bool}
 	return AddressService.mapFunctionOnFieldIds(iszero, :TimestampCreated, ids)
 	end
 
+function GetLastProcessedTimestamp()::Int32
+	tmpVal = AddressService.Findlast(x->!iszero(x), :TimestampLastActive)
+	tmpVal = max( AddressService.GetFieldTimestampLastActive(tmpVal-3000:tmpVal)... )
+	return tmpVal
+	end
+
 #=========================================# 
 
 using DataStructures
