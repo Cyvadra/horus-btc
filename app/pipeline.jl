@@ -11,22 +11,33 @@ include("./utils.jl")
 	AddressService.Open(false) # shall always
 
 # Get latest timestamp
-	function GetLastProcessedBlockN()::Int
+	function GetLastProcessedTimestamp()::Int32
 		tmpVal = findlast(x->!iszero(x), AddressService.AddressStatisticsDict[:TimestampLastActive])
-		tmpVal = reduce(max, AddressService.AddressStatisticsDict[:TimestampLastActive][tmpVal-2000:tmpVal])
-		return Int(Timestamp2LastBlockN(tmpVal))
+		tmpVal = reduce(max, AddressService.AddressStatisticsDict[:TimestampLastActive][tmpVal-3000:tmpVal])
+		return tmpVal
+		end
+	function GetLastProcessedBlockN()::Int
+		return Int(Timestamp2LastBlockN(GetLastProcessedTimestamp()))
 		end
 	lastProcessedBlockN = GetLastProcessedBlockN()
 
 # Sync BlockPairs
 # this loop will auto throw error when all synchronized
-	latestBlockHeight = 1
-	while true
-		latestBlockHeight = BlockPairs[end][1]
-		ts = round(Int32, GetBlockInfo(latestBlockHeight+1)["timeNormalized"] |> datetime2unix)
-		push!(BlockPairs, Pair{Int32, Int32}(latestBlockHeight+1, ts))
-		print("$(latestBlockHeight+1)\t")
-	end
+	function SyncBlockInfo()::Int
+		latestBlockHeight = 1
+		while true
+			try
+				latestBlockHeight = BlockPairs[end][1]
+				ts = round(Int32, GetBlockInfo(latestBlockHeight+1)["timeNormalized"] |> datetime2unix)
+				push!(BlockPairs, Pair{Int32, Int32}(latestBlockHeight+1, ts))
+				print("$(latestBlockHeight+1)\t")
+			catch
+				return latestBlockHeight
+			end
+		end
+		return latestBlockHeight
+		end
+	SyncBlockInfo()
 	ResyncBlockTimestamps()
 
 # Timeline alignment
@@ -55,10 +66,11 @@ include("./utils.jl")
 	include("./procedure-calculations.jl")
 
 # Period predict
-	function CalculateResults(fromTs, toTs)::Vector{ResultCalculations} # [fromTs, toTs]
-		intervalSecs = 10800
-		fromTs = fromTs - fromTs % intervalSecs
-		toTs   = toTs + intervalSecs - toTs % intervalSecs - 1
+	intervalSecs = 10800
+	function CalculateResults(fromTs, toTs)::Vector{ResultCalculations} # (fromTs, toTs]
+		@assert fromTs % intervalSecs == 0
+		@assert toTs % intervalSecs == 0
+		toTs -= 1
 		ret = Vector{ResultCalculations}()
 		for ts in fromTs:intervalSecs:toTs
 			fromBlockN = Timestamp2LastBlockN(ts)
@@ -92,6 +104,18 @@ include("./utils.jl")
 		end
 		return ret
 		end
+
+# Online Calculations
+	lastTs    = GetLastProcessedTimestamp()
+	currentTs = round( Int, now()-Hour(8) |> datetime2unix )
+	fromTs = lastTs + intervalSecs - lastTs % intervalSecs
+	toTs   = currentTs - currentTs % intervalSecs - 1
+	AlignToTimestamp(fromTs)
+	results   = ResultCalculations[]
+	for ts in fromTs:intervalSecs:toTs
+		append!(results, CalculateResults(ts, ts+intervalSecs))
+		AlignToTimestamp(ts+intervalSecs)
+	end
 
 
 # Todo: partitions, test

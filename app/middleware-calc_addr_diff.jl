@@ -52,7 +52,7 @@ function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff} # 
 				currentDiff.TimestampLastReceived = mintNums[end] |> BlockNum2Timestamp
 				currentDiff.AmountIncomeTotal = map(
 					x->x["value"],
-					coins[mintNums]
+					coins[mintRange]
 				) |> sum |> bitcoreInt2Float64
 				currentDiff.NumTxInTotal = length(mintNums)
 			end
