@@ -49,7 +49,7 @@ using Dates
 	function dt2unix(dt::DateTime)::Int32
 		return round(Int32, datetime2unix(dt - Hour(8)))
 		end
-	function unix2dt(ts::Int32)::DateTime
+	function unix2dt(ts)::DateTime
 		return unix2datetime(ts) + Hour(8)
 		end
 

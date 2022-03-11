@@ -11,10 +11,10 @@ include("./middleware-calc_addr_diff.jl");
 	AddressService.Open(false) # shall always
 
 # Get latest timestamp
-	function GetLastProcessedBlockN()::Int
-		return Int(Timestamp2LastBlockN(GetLastProcessedTimestamp()))
-		end
-	lastProcessedBlockN = GetLastProcessedBlockN()
+	# function GetLastProcessedBlockN()::Int
+	# 	return Int(Timestamp2LastBlockN(GetLastProcessedTimestamp()))
+	# 	end
+	# lastProcessedBlockN = GetLastProcessedBlockN()
 
 # Sync BlockPairs
 # this loop will auto throw error when all synchronized
@@ -36,8 +36,8 @@ include("./middleware-calc_addr_diff.jl");
 	ResyncBlockTimestamps()
 
 # Timeline alignment
-	function AlignToTimestamp(lastTs)::Nothing
-		lastProcessedBlockN = GetLastProcessedBlockN()
+	function AlignToTimestamp(fromTs, lastTs)::Nothing
+		lastProcessedBlockN = Timestamp2LastBlockN(fromTs)
 		ts = BlockNum2Timestamp(lastProcessedBlockN)
 		while ts < lastTs
 			if ts + 86400 < lastTs
@@ -53,7 +53,8 @@ include("./middleware-calc_addr_diff.jl");
 			@info now()
 			MergeAddressState!(arrayDiff, GetBTCPriceWhen(ts))
 			@info "merged"
-			@assert GetLastProcessedBlockN() == Timestamp2LastBlockN(ts)
+			tmpTs = max( AddressService.GetFieldTimestampLastActive.( map(x->x.AddressId, arrayDiff) )... )
+			@assert Timestamp2LastBlockN(tmpTs) == Timestamp2LastBlockN(ts)
 		end
 		return nothing
 		end
@@ -93,7 +94,7 @@ include("./middleware-calc_addr_diff.jl");
 						, coins)
 					)
 				append!(cacheTs,
-					map(x->datetime2unix.(x["timeNormalized"]), coins)
+					fill(BlockNum2Timestamp(n), length(coins))
 					)
 			end
 			Smooth!(cacheTs)
@@ -109,11 +110,12 @@ include("./middleware-calc_addr_diff.jl");
 	currentTs = round( Int, now()-Hour(8) |> datetime2unix )
 	fromTs = lastTs + intervalSecs - lastTs % intervalSecs
 	toTs   = currentTs - currentTs % intervalSecs - 1
-	AlignToTimestamp(fromTs)
+	AlignToTimestamp(lastTs, fromTs)
 	results   = ResultCalculations[]
 	for ts in fromTs:intervalSecs:toTs
+		@info unix2dt(ts)
 		append!(results, CalculateResults(ts, ts+intervalSecs))
-		AlignToTimestamp(ts+intervalSecs)
+		AlignToTimestamp(ts, ts+intervalSecs)
 	end
 
 

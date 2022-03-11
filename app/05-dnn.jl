@@ -93,8 +93,8 @@ resultsCalculated = JLD2.load("/mnt/data/tmp/results.jld2", "results")
 		end
 
 # DateTime alignment
-	originalfromDate = DateTime(2018,1, 1, 0, 0, 0)
-	originaltoDate   = DateTime(2021,5,31,23,00,00)
+	originalfromDate = DateTime(2018,2,1,0,00,00)
+	originaltoDate   = DateTime(2020,9,1,0,00,00)
 	fromDate = originalfromDate + Hour(3*includePrev)
 	toDate   = originaltoDate - Hour(3*includePrev)
 	tsFromDate   = dt2unix(fromDate)
@@ -129,15 +129,12 @@ data      = zip(training_x, training_y)
 
 m = Chain(
 		Dense(inputSize, modelWidth),
-		Dense(modelWidth, modelWidth),
-		Dense(modelWidth, modelWidth, tanh_fast),
-		Dense(modelWidth, modelWidth),
 		Dense(modelWidth, yLength),
 	)
 ps = params(m);
 
 
-opt        = ADAM()
+opt        = ADAM(2e-8)
 tx, ty     = (training_x[5], training_y[5])
 evalcb     = () -> @show loss(tx, ty)
 loss(x, y) = Flux.Losses.mse(m(x), y)

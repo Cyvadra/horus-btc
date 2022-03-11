@@ -14,7 +14,7 @@ include("./utils.jl")
 
 # Config
 	AddressService.Open()
-	MmapDB.Init("/mnt/data/tmp")
+	MmapDB.Init("/mnt/data/tmp/results")
 	pairName = "BTC_USDT"
 	seconds = (
 		Hour  = 3600,
