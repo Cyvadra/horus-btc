@@ -1,5 +1,6 @@
 
 using ProgressMeter
+using Dates
 
 AddressStringDict = Dict{String,UInt32}()
 const NUM_NOT_EXIST = UInt32(0)
@@ -8,14 +9,18 @@ AddressStringDict[TAG_MAX] = 930830585
 AddressStringLock = Threads.SpinLock()
 
 
-# @show now()
-# f = readlines("/mnt/data/bitcore/addr.latest.txt")
-# @show now()
-# @showprogress for l in f
-# 	s = split(l,'\t')
-# 	AddressStringDict[s[1]] = parse(UInt32, s[2])
-# 	end
-# @show now()
+@show now()
+f = readlines("/mnt/data/bitcore/addr.latest.txt")
+@show now()
+@showprogress for l in f
+	s = split(l,'\t')
+	AddressStringDict[s[1]] = parse(UInt32, s[2])
+	end
+@show now()
+empty!(f)
+f = nothing
+varinfo(r"f")
+GC.gc()
 
 
 
