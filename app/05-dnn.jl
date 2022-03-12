@@ -137,7 +137,7 @@ m = Chain(
 		Dense(modelWidth, modelWidth),
 		Dense(modelWidth, modelWidth, tanh_fast),
 		Dense(modelWidth, modelWidth),
-		Dense(modelWidth, yLength),
+		Dense(modelWidth, yLength, tanh_fast),
 	)
 ps = params(m);
 
