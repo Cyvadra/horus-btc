@@ -34,6 +34,9 @@ function ind2ts(i)
 function GetBTCPriceWhen(ts)::Float32
 	return TableTick.GetFieldClose(ts2ind(ts))
 	end
+function GetBTCPriceWhen(ts::Union{Vector,UnitRange})::Vector{Float32}
+	return TableTick.GetFieldClose(ts2ind.(ts))
+	end
 
 
 function syncBitcoin()
