@@ -11,7 +11,7 @@ for i in 1:length(resultsCalculated)
 	resultsCalculated[i].timestamp += 10800
 	end
 
-includePrev = 3
+includePrev = 6
 
 # Load market data
 	# todo: use middle number instead of mean
@@ -29,19 +29,23 @@ includePrev = 3
 	df[!,:mid] = (2df.open + df.close + 3df.high + 3df.low) ./ 9;
 	GC.gc()
 
-# Definition of Y : 30m, 1h, 3h
+# Definition of Y : 5m, 10m, 15m, 20m, 30m
 	include("./service-FinanceDB.jl")
 	function GenerateYAtRowI(i::Int)::Vector{Float32}
 		ts  = df[i,:timestamp]
-    bp  = df[i,:mid]
-		res = GetBTCPriceWhen(ts:ts+10800) ./ bp .- 1.0
+    bp  = GetBTCPriceWhen(ts)
+		res = GetBTCPriceWhen(ts:ts+3600) ./ bp .- 1.0 .* 100
 		return [
-			# sim 15m
-			sort(res[1:1800])[900],
-			# sim 1h
+			# sim 10m
+			sort(res[300:900])[300],
+			# 15m
+			res[900],
+			# sim 20m
+			sort(res[900:1800])[450],
+			# 30m
+			res[1800],
+			# sim 45m
 			sort(res[1800:3600])[900],
-			# sim 2h
-			sort(res[3600:10800])[3600],
 		]
 		end
 
@@ -52,7 +56,7 @@ includePrev = 3
 	Previous $includePrev data, auto-configure weight
 =#
 	function GenerateXAtIndexI(i::Int)::Vector{Float32}
-		return vcat(result2vector.(
+		return vcat(result2vector_expand.(
 			resultsCalculated[i - includePrev + 1 : i]
 			)...)
 		end
@@ -86,25 +90,25 @@ includePrev = 3
 
 	tmpList = sum.(oriY)
 	sortedTmpList = sort(tmpList)[21:end-20]
-	if sum(sortedTmpList) < -2.0
-		while sum(sortedTmpList) < -1.0
+	tmpVal  = mean(sortedTmpList)
+	while abs(tmpVal) > 1e-3
+		if tmpVal < 0
 			if rand() < 0.8
 				popfirst!(sortedTmpList)
 			else
 				pop!(sortedTmpList)
 			end
-		end
-	elseif sum(sortedTmpList) > 2.0
-		while sum(sortedTmpList) > 1.0
+		elseif tmpVal > 0
 			if rand() < 0.8
 				pop!(sortedTmpList)
 			else
 				popfirst!(sortedTmpList)
 			end
 		end
+		tmpVal = mean(sortedTmpList)
 	end
 
-	tmpInds = map(x->sortedTmpList[1] <= sum(x) <= sortedTmpList[end], Y)
+	tmpInds = map(x->sortedTmpList[1] <= sum(x) <= sortedTmpList[end], oriY)
 	X = oriX[tmpInds]
 	Y = oriY[tmpInds]
 
@@ -115,8 +119,8 @@ includePrev = 3
 	test_x = deepcopy(oriX[tmpMidN+1:end])
 	test_y = deepcopy(oriY[tmpMidN+1:end])
 
-modelWidth    = 1024
-nEpoch        = 300
+modelWidth    = 768
+nEpoch        = 800
 nThrottle     = 30
 
 
