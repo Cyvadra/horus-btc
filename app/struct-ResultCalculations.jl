@@ -93,7 +93,22 @@
 				use directly
 =#
 
-	need_log2 = findall(x->x[1:3]=="amo", _names)
+	need_log2 = findall(x->x[1:3]=="amo" || x[1:3]=="num", _names)
+	function result2vector_expand(res::ResultCalculations)::Vector{Float32}
+		ret = Float32[]
+		for i in 2:_len
+			tmpVal = getfield(res,i)
+			push!(ret, tmpVal)
+			if i in need_log2
+				if tmpVal < 0
+					push!( ret, -log2(abs(tmpVal)+1) )
+				else
+					push!( ret, log2(tmpVal+1) )
+				end
+			end
+		end
+		return ret
+		end
 	function result2vector(res::ResultCalculations)::Vector{Float32}
 		ret = Vector{Float32}(undef, _len-1)
 		for i in 2:_len
