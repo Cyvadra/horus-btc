@@ -119,7 +119,7 @@ includePrev = 6
 	test_x = deepcopy(oriX[tmpMidN+1:end])
 	test_y = deepcopy(oriY[tmpMidN+1:end])
 
-modelWidth    = 768
+modelWidth    = 256
 nEpoch        = 800
 nThrottle     = 30
 
@@ -136,7 +136,7 @@ m = Chain(
 ps = params(m);
 
 
-opt        = ADAM(1e-9)
+opt        = ADADelta(0.9, 1e-9)
 tx, ty     = (test_x[5], test_y[5])
 evalcb     = () -> @show loss(tx, ty)
 loss(x, y) = Flux.Losses.mse(m(x), y)
