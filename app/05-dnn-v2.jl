@@ -26,7 +26,17 @@ includePrev = 6
 		vol   = d.Volume[]
 		);
 	df = df[1:findfirst(x->iszero(x), d.Timestamps[])-1, :];
-	df[!,:mid] = (2df.open + df.close + 3df.high + 3df.low) ./ 9;
+	df[!, :mid]   = (2df.open + df.close + 3df.high + 3df.low) ./ 9;
+	df[!, :ma5]  = deepcopy(df.close)
+	for i in 7:nrow(df)
+		df[i, :ma5] = sum(df.close[i-5:i-1]) / 5
+	end
+	df[!, :ma10]  = deepcopy(df.close)
+	for i in 11:nrow(df)
+		df[i, :ma10] = sum(df.close[i-10:i-1]) / 10
+	end
+	df.ma5 = df.ma5 ./ df.close .- 1
+	df.ma10 = df.ma10 ./ df.close .- 1
 	GC.gc()
 
 # Definition of Y : 5m, 10m, 15m, 20m, 30m
@@ -34,7 +44,7 @@ includePrev = 6
 	function GenerateYAtRowI(i::Int)::Vector{Float32}
 		ts  = df[i,:timestamp]
     bp  = GetBTCPriceWhen(ts)
-		res = GetBTCPriceWhen(ts:ts+3600) ./ bp .- 1.0 .* 100
+		res = GetBTCPriceWhen(ts:ts+3600) ./ bp .- 1.0
 		return [
 			# sim 10m
 			sort(res[300:900])[300],
@@ -47,6 +57,9 @@ includePrev = 6
 			# sim 45m
 			sort(res[1800:3600])[900],
 		]
+		end
+	function GenerateHistAtRowI(i::Int)::Vector{Float32}
+		return [df[i, :ma5], df[i, :ma10]]
 		end
 
 
@@ -87,11 +100,15 @@ includePrev = 6
 
 	oriX = GenerateXAtIndexI.(collect(x_base_index:x_last_index))
 	oriY = GenerateYAtRowI.(collect(y_base_index:y_last_index))
+	tmpHist = GenerateHistAtRowI.(collect(y_base_index:y_last_index))
+	for i in 1:length(oriX)
+		append!(oriX[i], tmpHist[i])
+		end
 
 	tmpList = sum.(oriY)
 	sortedTmpList = sort(tmpList)[21:end-20]
 	tmpVal  = mean(sortedTmpList)
-	while abs(tmpVal) > 1e-3
+	while abs(tmpVal) > 1.0
 		if tmpVal < 0
 			if rand() < 0.8
 				popfirst!(sortedTmpList)
@@ -119,20 +136,18 @@ includePrev = 6
 	test_x = deepcopy(oriX[tmpMidN+1:end])
 	test_y = deepcopy(oriY[tmpMidN+1:end])
 
-modelWidth    = 256
-nEpoch        = 800
-nThrottle     = 30
-
-
-
 yLength   = length(Y[end])
 inputSize = length(X[1])
 data      = zip(training_x, training_y)
 
+nEpoch    = 800
+nThrottle = 20
+
 m = Chain(
-		Dense(inputSize, modelWidth),
-		Dense(modelWidth, yLength),
-	)
+		Dense(inputSize, 128),
+		Dense(128, 32),
+		Dense(32, yLength),
+	)	
 ps = params(m);
 
 
