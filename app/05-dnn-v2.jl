@@ -58,9 +58,6 @@ includePrev = 6
 			sort(res[1800:3600])[900],
 		]
 		end
-	function GenerateHistAtRowI(i::Int)::Vector{Float32}
-		return [df[i, :ma5], df[i, :ma10]]
-		end
 
 
 
@@ -69,9 +66,15 @@ includePrev = 6
 	Previous $includePrev data, auto-configure weight
 =#
 	function GenerateXAtIndexI(i::Int)::Vector{Float32}
-		return vcat(result2vector_expand.(
+		ts1 = resultsCalculated[i - includePrev + 1].timestamp
+		ts2 = resultsCalculated[i].timestamp
+		ma  = TableTick.GetFieldMA10(ts2ind(ts1):15:ts2ind(ts2))
+		ma  = ma ./ TableTick.GetFieldClose(ts2ind(ts2)) .- 1.0
+		ret = vcat(result2vector_expand.(
 			resultsCalculated[i - includePrev + 1 : i]
 			)...)
+		append!(ret, ma)
+		return ret
 		end
 
 
@@ -100,10 +103,6 @@ includePrev = 6
 
 	oriX = GenerateXAtIndexI.(collect(x_base_index:x_last_index))
 	oriY = GenerateYAtRowI.(collect(y_base_index:y_last_index))
-	tmpHist = GenerateHistAtRowI.(collect(y_base_index:y_last_index))
-	for i in 1:length(oriX)
-		append!(oriX[i], tmpHist[i])
-		end
 
 	tmpList = sum.(oriY)
 	sortedTmpList = sort(tmpList)[21:end-20]
