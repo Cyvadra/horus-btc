@@ -141,7 +141,7 @@ inputSize = length(X[1])
 data      = zip(training_x, training_y)
 
 nEpoch    = 800
-nThrottle = 20
+nThrottle = 10
 
 m = Chain(
 		Dense(inputSize, 128),
@@ -159,9 +159,15 @@ loss(x, y) = Flux.Losses.mse(m(x), y)
 Flux.train!(loss, ps, data, opt)
 @show loss(tx, ty)
 
+prev_loss = loss(tx, ty)
+ps_saved  = deepcopy(collect(ps))
 for epoch = 1:nEpoch
 	@info "Epoch $(epoch) / $nEpoch"
 	Flux.train!(loss, ps, data, opt, cb = Flux.throttle(evalcb, nThrottle))
+	if loss(tx, ty) < 0.8*prev_loss
+		ps_saved  = deepcopy(collect(ps))
+		prev_loss = loss(tx, ty)
+	end
 	end
 
 
