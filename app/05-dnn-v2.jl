@@ -44,20 +44,20 @@ includePrev = 6
 	function GenerateYAtRowI(i::Int)::Vector{Float32}
 		ts  = df[i,:timestamp]
     bp  = GetBTCPriceWhen(ts)
-		res = GetBTCPriceWhen(ts:ts+3600) ./ bp .- 1.0
+		res = GetBTCPriceWhen(ts:ts+1800) ./ bp .- 1.0
+		res = res * 1e5
+		# sorted = sort(res)
 		return [
-			# 5m
-			res[300],
-			# sim 10m
-			sort(res[300:900])[300],
-			# 15m
-			res[900],
-			# sim 20m
-			sort(res[900:1800])[450],
+			# low
+			# sorted[12],
+			# high
+			# sorted[end-11],
+			# 10m
+			res[600],
+			# 20m
+			res[1200],
 			# 30m
 			res[1800],
-			# sim 45m
-			sort(res[1800:3600])[900],
 		]
 		end
 
@@ -104,12 +104,13 @@ includePrev = 6
 	@assert y_last_index - y_base_index == x_last_index - x_base_index
 
 	oriX = GenerateXAtIndexI.(collect(x_base_index:x_last_index))
+	map(x->push!(x, (rand()-0.5)/10000), oriX) # add constant
 	oriY = GenerateYAtRowI.(collect(y_base_index:y_last_index))
 
 	tmpList = sum.(oriY)
 	sortedTmpList = sort(tmpList)[21:end-20]
 	tmpVal  = mean(sortedTmpList)
-	while abs(tmpVal) > 1e-5
+	while abs(tmpVal) > 1.0
 		if tmpVal < 0
 			popfirst!(sortedTmpList)
 			if sortedTmpList[end] > abs(sortedTmpList[1]) && rand() > 0.5
@@ -143,9 +144,9 @@ nEpoch    = 800
 nThrottle = 10
 
 m = Chain(
-		Dense(inputSize, 256),
+		Dense(inputSize, 512),
+		Dense(512, 256),
 		Dense(256, 128),
-		Dense(128, 128),
 		Dense(128, 64),
 		Dense(64, yLength),
 	)	
