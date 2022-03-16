@@ -46,6 +46,8 @@ includePrev = 6
     bp  = GetBTCPriceWhen(ts)
 		res = GetBTCPriceWhen(ts:ts+3600) ./ bp .- 1.0
 		return [
+			# 5m
+			res[300],
 			# sim 10m
 			sort(res[300:900])[300],
 			# 15m
@@ -107,17 +109,15 @@ includePrev = 6
 	tmpList = sum.(oriY)
 	sortedTmpList = sort(tmpList)[21:end-20]
 	tmpVal  = mean(sortedTmpList)
-	while abs(tmpVal) > 1.0
+	while abs(tmpVal) > 1e-5
 		if tmpVal < 0
-			if rand() < 0.8
-				popfirst!(sortedTmpList)
-			else
+			popfirst!(sortedTmpList)
+			if sortedTmpList[end] > abs(sortedTmpList[1]) && rand() > 0.5
 				pop!(sortedTmpList)
 			end
 		elseif tmpVal > 0
-			if rand() < 0.8
-				pop!(sortedTmpList)
-			else
+			pop!(sortedTmpList)
+			if abs(sortedTmpList[1]) > sortedTmpList[end] && rand() > 0.5
 				popfirst!(sortedTmpList)
 			end
 		end
