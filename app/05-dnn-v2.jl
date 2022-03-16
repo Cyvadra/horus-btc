@@ -159,14 +159,15 @@ loss(x, y) = Flux.Losses.mse(m(x), y)
 Flux.train!(loss, ps, data, opt)
 @show loss(tx, ty)
 
-prev_loss = loss(tx, ty)
+prev_loss = [ Flux.Losses.mse(m(training_x[i]), training_y[i]) for i in 1:length(training_x) ] |> mean
 ps_saved  = deepcopy(collect(ps))
 for epoch = 1:nEpoch
 	@info "Epoch $(epoch) / $nEpoch"
 	Flux.train!(loss, ps, data, opt, cb = Flux.throttle(evalcb, nThrottle))
-	if loss(tx, ty) < 0.8*prev_loss
+	this_loss = [ Flux.Losses.mse(m(training_x[i]), training_y[i]) for i in 1:length(training_x) ] |> mean
+	if this_loss < 0.8*prev_loss
 		ps_saved  = deepcopy(collect(ps))
-		prev_loss = loss(tx, ty)
+		prev_loss = this_loss
 	end
 	end
 
