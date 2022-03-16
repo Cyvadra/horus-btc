@@ -44,20 +44,14 @@ includePrev = 6
 	function GenerateYAtRowI(i::Int)::Vector{Float32}
 		ts  = df[i,:timestamp]
     bp  = GetBTCPriceWhen(ts)
-		res = GetBTCPriceWhen(ts:ts+1800) ./ bp .- 1.0
-		res = res * 1e5
 		# sorted = sort(res)
-		return [
-			# low
-			# sorted[12],
-			# high
-			# sorted[end-11],
-			# 10m
-			res[600],
-			# 20m
-			res[1200],
-			# 30m
-			res[1800],
+		return 1e5 * [
+			# 1h
+			GetBTCPriceWhen(ts+3600) / bp - 1.0,
+			# 2h
+			GetBTCPriceWhen(ts+7200) / bp - 1.0,
+			# 3h
+			GetBTCPriceWhen(ts+10800) / bp - 1.0,
 		]
 		end
 
@@ -70,12 +64,14 @@ includePrev = 6
 	function GenerateXAtIndexI(i::Int)::Vector{Float32}
 		ts1 = resultsCalculated[i - includePrev + 1].timestamp
 		ts2 = resultsCalculated[i].timestamp
-		ma  = TableTick.GetFieldMA10(ts2ind(ts1):15:ts2ind(ts2))
-		ma  = ma ./ TableTick.GetFieldClose(ts2ind(ts2)) .- 1.0
-		ret = vcat(result2vector_expand.(
-			resultsCalculated[i - includePrev + 1 : i]
-			)...)
-		append!(ret, ma)
+		price = TableTick.GetFieldClose(ts2ind(ts2))
+		ret = vcat(
+			[ vcat(
+					result2vector_expand(resultsCalculated[j]),
+					resultsCalculated[j].timestamp |> ts2ind |> TableTick.GetFieldMA10 |> x->x/price-1.0,
+				)
+				for j in i - includePrev + 1 : i
+			]...)
 		return ret
 		end
 
@@ -104,13 +100,13 @@ includePrev = 6
 	@assert y_last_index - y_base_index == x_last_index - x_base_index
 
 	oriX = GenerateXAtIndexI.(collect(x_base_index:x_last_index))
-	map(x->push!(x, (rand()-0.5)/10000), oriX) # add constant
+	map(x->push!(x, (rand()-0.5)/1e7), oriX) # add constant
 	oriY = GenerateYAtRowI.(collect(y_base_index:y_last_index))
 
 	tmpList = sum.(oriY)
 	sortedTmpList = sort(tmpList)[21:end-20]
 	tmpVal  = mean(sortedTmpList)
-	while abs(tmpVal) > 1.0
+	while abs(tmpVal) > 6.0
 		if tmpVal < 0
 			popfirst!(sortedTmpList)
 			if sortedTmpList[end] > abs(sortedTmpList[1]) && rand() > 0.5
@@ -140,20 +136,17 @@ yLength   = length(Y[end])
 inputSize = length(X[1])
 data      = zip(training_x, training_y)
 
-nEpoch    = 800
-nThrottle = 10
+nTolerance = 100
+minEpsilon = 1e-15
+nThrottle  = 10
 
 m = Chain(
-		Dense(inputSize, 512),
-		Dense(512, 256),
-		Dense(256, 128),
-		Dense(128, 64),
-		Dense(64, yLength),
+		Dense(inputSize, yLength),
 	)	
 ps = params(m);
 
 
-opt        = ADADelta(0.9, 3e-11)
+opt        = ADADelta(1e-6)
 tx, ty     = (test_x[5], test_y[5])
 evalcb     = () -> @show loss(tx, ty)
 loss(x, y) = Flux.Losses.mse(m(x), y)
@@ -163,14 +156,40 @@ Flux.train!(loss, ps, data, opt)
 
 prev_loss = [ Flux.Losses.mse(m(training_x[i]), training_y[i]) for i in 1:length(training_x) ] |> mean
 ps_saved  = deepcopy(collect(ps))
-for epoch = 1:nEpoch
-	@info "Epoch $(epoch) / $nEpoch"
-	Flux.train!(loss, ps, data, opt, cb = Flux.throttle(evalcb, nThrottle))
+nCounter  = 0
+tmpFlag   = true
+while true
+	Flux.train!(loss, ps, data, opt)
 	this_loss = [ Flux.Losses.mse(m(training_x[i]), training_y[i]) for i in 1:length(training_x) ] |> mean
 	if this_loss < 0.8*prev_loss
 		ps_saved  = deepcopy(collect(ps))
 		prev_loss = this_loss
+		println()
+		print("New best loss $prev_loss")
+		nCounter  = 0
+		tmpFlag   = true
+	else
+		print(".")
+		nCounter += 1
+		if nCounter > nTolerance
+			if tmpFlag == false
+				e = opt.epsilon * 1.5
+				println()
+				print("Increase epsilon to $e")
+				opt = ADADelta(e)
+				nCounter = 0
+			elseif opt.epsilon > minEpsilon
+				e = opt.epsilon/8
+				println()
+				print("Updated epsilon to $e")
+				opt = ADADelta(e)
+				nCounter = 0
+				tmpFlag  = false
+			else
+				break
+			end
+		end
 	end
-	end
+end
 
 
