@@ -144,14 +144,16 @@ nEpoch    = 800
 nThrottle = 10
 
 m = Chain(
-		Dense(inputSize, 128),
-		Dense(128, 32),
-		Dense(32, yLength),
+		Dense(inputSize, 256),
+		Dense(256, 128),
+		Dense(128, 128),
+		Dense(128, 64),
+		Dense(64, yLength),
 	)	
 ps = params(m);
 
 
-opt        = ADADelta(0.9, 1e-9)
+opt        = ADADelta(0.9, 3e-11)
 tx, ty     = (test_x[5], test_y[5])
 evalcb     = () -> @show loss(tx, ty)
 loss(x, y) = Flux.Losses.mse(m(x), y)
