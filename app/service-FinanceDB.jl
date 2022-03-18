@@ -37,6 +37,18 @@ function GetBTCPriceWhen(ts)::Float32
 function GetBTCPriceWhen(ts::Union{Vector,UnitRange})::Vector{Float32}
 	return TableTick.GetFieldClose(ts2ind.(ts))
 	end
+function GetBTCHighWhen(ts)::Float32
+	return TableTick.GetFieldHigh(ts2ind(ts))
+	end
+function GetBTCHighWhen(ts::Union{Vector,UnitRange})::Vector{Float32}
+	return TableTick.GetFieldHigh(ts2ind.(ts))
+	end
+function GetBTCLowWhen(ts)::Float32
+	return TableTick.GetFieldLow(ts2ind(ts))
+	end
+function GetBTCLowWhen(ts::Union{Vector,UnitRange})::Vector{Float32}
+	return TableTick.GetFieldLow(ts2ind.(ts))
+	end
 
 
 function syncBitcoin()

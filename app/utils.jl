@@ -2,6 +2,7 @@
 using ProgressMeter
 using JSON
 using Dates
+using Statistics
 
 # Method: Smooth Timestamp
 	function Smooth!(tsList::Vector{Int32})::Vector{Int32}
@@ -57,3 +58,29 @@ using Dates
 		println(json(ans,2))
 		end
 
+# Statistics
+	function safe_log2(x)
+		if x > 0
+			return log2(x+1)
+		else
+			return -log2(abs(x)+1)
+		end
+		end
+	function safe_log10(x)
+		if x > 0
+			return log10(x+1)
+		else
+			return -log10(abs(x)+1)
+		end
+		end
+	function normalize(v::Vector, n_remove=20)
+		s = sort(v)
+		vMin, vMax = s[n_remove], s[end-n_remove]
+		v = map(x->x < vMin ? vMin : x, v)
+		v = map(x->x > vMax ? vMax : x, v)
+		v = v .- vMin
+		m = max(v...) + min(v...) / 2
+		v = v .- 0.5m
+		v ./= 0.5m
+		return v
+		end

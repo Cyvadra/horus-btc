@@ -46,12 +46,8 @@ includePrev = 6
     bp  = GetBTCPriceWhen(ts)
 		# sorted = sort(res)
 		return 1e5 * [
-			# 1h
-			GetBTCPriceWhen(ts+3600) / bp - 1.0,
-			# 2h
-			GetBTCPriceWhen(ts+7200) / bp - 1.0,
-			# 3h
-			GetBTCPriceWhen(ts+10800) / bp - 1.0,
+			max(GetBTCLowWhen(ts:ts+10800)...) / bp - 1.0,
+			max(GetBTCHighWhen(ts:ts+10800)...) / bp - 1.0,
 		]
 		end
 
@@ -106,7 +102,7 @@ includePrev = 6
 	tmpList = sum.(oriY)
 	sortedTmpList = sort(tmpList)[21:end-20]
 	tmpVal  = mean(sortedTmpList)
-	while abs(tmpVal) > 6.0
+	while abs(tmpVal) > 1000.0
 		if tmpVal < 0
 			popfirst!(sortedTmpList)
 			if sortedTmpList[end] > abs(sortedTmpList[1]) && rand() > 0.5
@@ -138,15 +134,16 @@ data      = zip(training_x, training_y)
 
 nTolerance = 100
 minEpsilon = 1e-15
-nThrottle  = 10
+nThrottle  = 30
 
 m = Chain(
-		Dense(inputSize, yLength),
+		Dense(inputSize, 256),
+		Dense(256, yLength),
 	)	
 ps = params(m);
 
 
-opt        = ADADelta(1e-6)
+opt        = ADADelta(0.9, 1e-9)
 tx, ty     = (test_x[5], test_y[5])
 evalcb     = () -> @show loss(tx, ty)
 loss(x, y) = Flux.Losses.mse(m(x), y)
@@ -159,7 +156,7 @@ ps_saved  = deepcopy(collect(ps))
 nCounter  = 0
 tmpFlag   = true
 while true
-	Flux.train!(loss, ps, data, opt)
+	Flux.train!(loss, ps, data, opt; cb = Flux.throttle(evalcb, nThrottle))
 	this_loss = [ Flux.Losses.mse(m(training_x[i]), training_y[i]) for i in 1:length(training_x) ] |> mean
 	if this_loss < 0.8*prev_loss
 		ps_saved  = deepcopy(collect(ps))
@@ -176,13 +173,13 @@ while true
 				e = opt.epsilon * 1.5
 				println()
 				print("Increase epsilon to $e")
-				opt = ADADelta(e)
+				opt.epsilon *= 1.5
 				nCounter = 0
 			elseif opt.epsilon > minEpsilon
 				e = opt.epsilon/8
 				println()
 				print("Updated epsilon to $e")
-				opt = ADADelta(e)
+				opt.epsilon /= 8
 				nCounter = 0
 				tmpFlag  = false
 			else
