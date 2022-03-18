@@ -2,8 +2,8 @@
 
 ### Todos:
 1. [ ] Implementation of the whole pipeline.
-3. [ ] Check AddressService's validity.
-5. [ ] Apply current model.
+3. [ ] Put stuff online.
+5. [ ] Check AddressService's validity.
 
 ### Done:
 1. [x] Benchmark: GetBlockCoins, Address2StateDiff
