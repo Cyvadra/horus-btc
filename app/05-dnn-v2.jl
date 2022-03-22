@@ -3,7 +3,6 @@ using DataFrames
 using FinanceDB
 using Dates
 using JLD2
-using Statistics
 include("./utils.jl")
 include("./struct-ResultCalculations.jl")
 resultsCalculated = ResultCalculations[]
@@ -24,8 +23,38 @@ for i in 2:numPrevResultsMA
 	resultsMA[i] = mean(resultsCalculated[1:i-1])
 	end
 for i in numPrevResultsMA+1:tmpLen
-	resultsMa[i] = mean(resultsCalculated[i-numPrevResultsMA:i-1])
+	resultsMA[i] = mean(resultsCalculated[i-numPrevResultsMA:i-1])
 	end
+[ resultsMA[i].timestamp = resultsCalculated[i].timestamp for i in 1:tmpLen ];
+
+# Definition of X
+#	Previous $includePrev data, auto-configure weight
+	function CheckX()::Nothing
+		numGaps = round(Int, 
+			(resultsCalculated[end].timestamp - resultsCalculated[1].timestamp) / 
+			(resultsCalculated[3].timestamp - resultsCalculated[2].timestamp)
+			)
+		@assert numGaps+1 == length(resultsCalculated)
+		return nothing
+		end
+	function GenerateXAtIndexI(i::Int)::Vector{Float32}
+		tmpRange = i - includePrev + 1 : i
+		ret = [ 
+			( flat(resultsCalculated[j]) .+ 1e-9 ) ./ 
+			( flat(resultsMA[j]) .+ 1e-9 )
+			for j in tmpRange
+		]
+		ret = vcat(ret...)
+		append!(ret,
+			[
+				(resultsCalculated[j].timestamp |> ts2ind |> TableTick.GetFieldClose) / 
+				(resultsCalculated[j].timestamp |> ts2ind |> TableTick.GetFieldMA10)
+				for j in tmpRange
+			]
+		)
+		return ret
+		end
+	CheckX()
 
 # Load market data
 	# todo: use middle number instead of mean
@@ -63,34 +92,6 @@ for i in numPrevResultsMA+1:tmpLen
 			max(GetBTCLowWhen(ts:ts+10800)...) / bp - 1.0,
 			max(GetBTCHighWhen(ts:ts+10800)...) / bp - 1.0,
 		]
-		end
-
-
-
-# Definition of X
-#=
-	Previous $includePrev data, auto-configure weight
-=#
-	function CheckX()::Nothing
-		numGaps = round(Int, 
-			(resultsCalculated[end].timestamp - resultsCalculated[1].timestamp) / 
-			(resultsCalculated[3].timestamp - resultsCalculated[2].timestamp)
-			)
-		@assert numGaps+1 == length(resultsCalculated)
-		return nothing
-		end
-	function GenerateXAtIndexI(i::Int)::Vector{Float32}
-		ts1 = resultsCalculated[i - includePrev + 1].timestamp
-		ts2 = resultsCalculated[i].timestamp
-		price = TableTick.GetFieldClose(ts2ind(ts2))
-		ret = vcat(
-			[ vcat(
-					result2vector_expand(resultsCalculated[j]),
-					resultsCalculated[j].timestamp |> ts2ind |> TableTick.GetFieldMA10 |> x->x/price-1.0,
-				)
-				for j in i - includePrev + 1 : i
-			]...)
-		return ret
 		end
 
 

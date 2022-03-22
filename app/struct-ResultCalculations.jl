@@ -145,6 +145,13 @@
 		end
 		return ret
 		end
+	function flat(res::ResultCalculations)::Vector{Float32}
+		ret = Vector{Float32}(undef, _len-1)
+		[ ret[i-1] = getfield(res,i) for i in 2:_len ];
+		return ret
+		end
+
+
 
 using Statistics
 
