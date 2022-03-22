@@ -57,6 +57,14 @@ includePrev = 6
 #=
 	Previous $includePrev data, auto-configure weight
 =#
+	function CheckX()::Nothing
+		numGaps = round(Int, 
+			(resultsCalculated[end].timestamp - resultsCalculated[1].timestamp) / 
+			(resultsCalculated[3].timestamp - resultsCalculated[2].timestamp)
+			)
+		@assert numGaps+1 == length(resultsCalculated)
+		return nothing
+		end
 	function GenerateXAtIndexI(i::Int)::Vector{Float32}
 		ts1 = resultsCalculated[i - includePrev + 1].timestamp
 		ts2 = resultsCalculated[i].timestamp
