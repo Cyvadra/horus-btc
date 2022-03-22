@@ -88,7 +88,7 @@ for i in numPrevResultsMA+1:tmpLen
 		ts  = df[i,:timestamp]
     bp  = GetBTCPriceWhen(ts)
 		# sorted = sort(res)
-		return 1e5 * [
+		return 1e3 * [
 			max(GetBTCLowWhen(ts:ts+10800)...) / bp - 1.0,
 			max(GetBTCHighWhen(ts:ts+10800)...) / bp - 1.0,
 		]
@@ -155,24 +155,31 @@ yLength   = length(Y[end])
 inputSize = length(X[1])
 data      = zip(training_x, training_y)
 
-nTolerance = 100
+nTolerance = 30
 minEpsilon = 1e-15
-nThrottle  = 30
+nThrottle  = 15
+modelWidth = 256
 
 m = Chain(
-		Dense(inputSize, 256),
-		Dense(256, yLength),
+		Dense(inputSize, modelWidth),
+		Dense(modelWidth, modelWidth),
+		Dense(modelWidth, yLength),
 	)	
 ps = params(m);
 
 
-opt        = ADADelta(0.9, 1e-9)
-tx, ty     = (test_x[5], test_y[5])
-evalcb     = () -> @show loss(tx, ty)
-loss(x, y) = Flux.Losses.mse(m(x), y)
-@show loss(tx, ty)
-Flux.train!(loss, ps, data, opt)
-@show loss(tx, ty)
+opt        = ADADelta(0.9, 1e-11);
+tx, ty     = (test_x[5], test_y[5]);
+evalcb     = () -> @show loss(tx, ty);
+loss(x, y) = Flux.Losses.mse(m(x), y);
+@info "Initial Loss: $(loss(tx, ty))"
+
+# show baseline
+tmpLen     = length(training_y[1]);
+tmpBase    = [ mean(map(x->x[i], training_y)) for i in 1:tmpLen ];
+tmpLoss    = mean([ Flux.Losses.mse(tmpBase, training_y[i]) for i in 1:length(training_y) ]);
+@info "Baseline Loss: $tmpLoss"
+
 
 prev_loss = [ Flux.Losses.mse(m(training_x[i]), training_y[i]) for i in 1:length(training_x) ] |> mean
 ps_saved  = deepcopy(collect(ps))
@@ -193,10 +200,10 @@ while true
 		nCounter += 1
 		if nCounter > nTolerance
 			if tmpFlag == false
-				e = opt.epsilon * 1.5
+				e = opt.epsilon * 1.25
 				println()
 				print("Increase epsilon to $e")
-				opt.epsilon *= 1.5
+				opt.epsilon *= 1.25
 				nCounter = 0
 			elseif opt.epsilon > minEpsilon
 				e = opt.epsilon/8
