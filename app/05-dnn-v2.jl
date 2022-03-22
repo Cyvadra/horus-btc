@@ -119,7 +119,7 @@ for i in numPrevResultsMA+1:tmpLen
 	@assert y_last_index - y_base_index == x_last_index - x_base_index
 
 	oriX = GenerateXAtIndexI.(collect(x_base_index:x_last_index))
-	map(x->push!(x, (rand()-0.5)/1e7), oriX) # add constant
+	# constant removed since market data has been added into X
 	oriY = GenerateYAtRowI.(collect(y_base_index:y_last_index))
 
 	tmpList = sum.(oriY)
