@@ -155,7 +155,7 @@ yLength   = length(Y[end])
 inputSize = length(X[1])
 data      = zip(training_x, training_y)
 
-nTolerance = 30
+nTolerance = 20
 minEpsilon = 1e-15
 nThrottle  = 15
 modelWidth = 256
@@ -188,11 +188,11 @@ tmpFlag   = true
 while true
 	Flux.train!(loss, ps, data, opt; cb = Flux.throttle(evalcb, nThrottle))
 	this_loss = [ Flux.Losses.mse(m(training_x[i]), training_y[i]) for i in 1:length(training_x) ] |> mean
-	if this_loss < 0.8*prev_loss
+	if this_loss < 0.95 * prev_loss
 		ps_saved  = deepcopy(collect(ps))
 		prev_loss = this_loss
 		println()
-		print("New best loss $prev_loss")
+		println("New best loss $prev_loss")
 		nCounter  = 0
 		tmpFlag   = true
 	else
@@ -202,13 +202,13 @@ while true
 			if tmpFlag == false
 				e = opt.epsilon * 1.25
 				println()
-				print("Increase epsilon to $e")
+				println("Increase epsilon to $e")
 				opt.epsilon *= 1.25
 				nCounter = 0
 			elseif opt.epsilon > minEpsilon
 				e = opt.epsilon/8
 				println()
-				print("Updated epsilon to $e")
+				println("Updated epsilon to $e")
 				opt.epsilon /= 8
 				nCounter = 0
 				tmpFlag  = false
