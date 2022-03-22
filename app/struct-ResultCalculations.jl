@@ -78,7 +78,8 @@
 		amountRealizedLossBillion::Float64
 		end
 	_types = Vector{DataType}(collect(ResultCalculations.types))
-	_names = string.(collect(fieldnames(ResultCalculations)))
+	_syms  = collect(fieldnames(ResultCalculations))
+	_names = string.(_syms)
 	_len   = length(_types)
 
 #= Data Pretreatment
@@ -145,5 +146,21 @@
 		return ret
 		end
 
+using Statistics
+
+import Statistics:mean
+function mean(v::Vector{ResultCalculations})::ResultCalculations
+	ret = ResultCalculations(zeros(_len)...)
+	for i in 1:length(_syms)
+		s = _syms[i]
+		tmpVal = mean(getfield.(v, s))
+		if typeof(tmpVal) !== _types[i]
+			tmpVal = round(_types[i], tmpVal)
+		end
+		setfield!(ret, s, tmpVal)
+	end
+	# modify ts yourself
+	return ret
+	end
 
 
