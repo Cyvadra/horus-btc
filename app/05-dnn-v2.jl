@@ -89,7 +89,7 @@ for i in numPrevResultsMA+1:tmpLen
     bp  = GetBTCPriceWhen(ts)
 		# sorted = sort(res)
 		return [
-			max(GetBTCLowWhen(ts:ts+10800)...) / bp,
+			min(GetBTCLowWhen(ts:ts+10800)...) / bp,
 			max(GetBTCHighWhen(ts:ts+10800)...) / bp,
 		]
 		end
@@ -119,6 +119,7 @@ for i in numPrevResultsMA+1:tmpLen
 	@assert y_last_index - y_base_index == x_last_index - x_base_index
 
 	oriX = GenerateXAtIndexI.(collect(x_base_index:x_last_index))
+	[ push!(oriX[i], 1.0) for i in 1:length(oriX) ];
 	# constant removed since market data has been added into X
 	oriY = GenerateYAtRowI.(collect(y_base_index:y_last_index))
 
