@@ -88,9 +88,9 @@ for i in numPrevResultsMA+1:tmpLen
 		ts  = df[i,:timestamp]
     bp  = GetBTCPriceWhen(ts)
 		# sorted = sort(res)
-		return 1e3 * [
-			max(GetBTCLowWhen(ts:ts+10800)...) / bp - 1.0,
-			max(GetBTCHighWhen(ts:ts+10800)...) / bp - 1.0,
+		return [
+			max(GetBTCLowWhen(ts:ts+10800)...) / bp,
+			max(GetBTCHighWhen(ts:ts+10800)...) / bp,
 		]
 		end
 
@@ -125,7 +125,7 @@ for i in numPrevResultsMA+1:tmpLen
 	tmpList = sum.(oriY)
 	sortedTmpList = sort(tmpList)[21:end-20]
 	tmpVal  = mean(sortedTmpList)
-	while abs(tmpVal) > 1000.0
+	while abs(tmpVal) > 100.0
 		if tmpVal < 0
 			popfirst!(sortedTmpList)
 			if sortedTmpList[end] > abs(sortedTmpList[1]) && rand() > 0.5
@@ -168,7 +168,7 @@ m = Chain(
 ps = params(m);
 
 
-opt        = ADADelta(0.9, 1e-11);
+opt        = ADADelta(0.9, 1e-9);
 tx, ty     = (test_x[5], test_y[5]);
 evalcb     = () -> @show loss(tx, ty);
 loss(x, y) = Flux.Losses.mse(m(x), y);
