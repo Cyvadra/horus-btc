@@ -3,6 +3,8 @@ using DataFrames
 using FinanceDB
 using Dates
 using JLD2
+using Statistics
+include("./utils.jl")
 include("./struct-ResultCalculations.jl")
 resultsCalculated = ResultCalculations[]
 resultsCalculated = JLD2.load("/mnt/data/tmp/results.2020.08.jld2", "results")
@@ -12,6 +14,18 @@ for i in 1:length(resultsCalculated)
 	end
 
 includePrev = 6
+numPrevResultsMA = 24 # 72 hours
+
+resultsMA   = deepcopy(resultsCalculated)
+resultsStd  = deepcopy(resultsCalculated)
+tmpLen      = length(resultsCalculated)
+# Generate MA
+for i in 2:numPrevResultsMA
+	resultsMA[i] = mean(resultsCalculated[1:i-1])
+	end
+for i in numPrevResultsMA+1:tmpLen
+	resultsMa[i] = mean(resultsCalculated[i-numPrevResultsMA:i-1])
+	end
 
 # Load market data
 	# todo: use middle number instead of mean
