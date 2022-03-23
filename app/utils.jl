@@ -1,5 +1,4 @@
 
-using ProgressMeter
 using JSON
 using Dates
 using Statistics
@@ -10,9 +9,7 @@ using Statistics
 		startPos    = 2                 # [1,1,2,2,2] ==> 1,3
 		i           = max(3,findfirst(x->x!==lastTs,tsList))
 		prevI       = startPos
-		prog        = ProgressMeter.Progress(length(tsList)-i)
 		while !isnothing(i)
-			next!(prog; step=i-prevI)
 			if tsList[i] > lastTs     # trigger smooth
 				if i > startPos+1
 					cacheDiff = lastTs - tsList[startPos-1]
