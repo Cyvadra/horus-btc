@@ -108,6 +108,7 @@ include("./service-Results-H3.jl");
 
 # Online Calculations
 	function SyncResults()::Nothing
+		syncBitcoin()
 		SyncBlockInfo()
 		ResyncBlockTimestamps()
 		lastTs    = GetLastProcessedTimestamp()
@@ -136,6 +137,11 @@ include("./service-Results-H3.jl");
 		println(JSON.json(r,2))
 		end
 
-
-
+using Genie
+route("/sync") do
+    SyncResults()
+    tmpVal = TableResults.Findlast(x->!iszero(x), :timestamp)
+    TableResults.GetRow.(tmpVal-39:tmpVal) |> json
+end
+up(8023)
 
