@@ -131,7 +131,10 @@ include("./service-Results-H3.jl");
 		end
 
 # for test
-	# function GetAddressInfo(addr::AbstractString)
+	function GetAddressInfo(addr::AbstractString)::Nothing
+		r = AddressService.GetRow(ReadID(addr))
+		println(JSON.json(r,2))
+		end
 
 
 
