@@ -9,6 +9,6 @@ Plots.plot([]);
 
 [ Plots.plot!(map(x->x[i], actual); label="actual"*string(i), color="red", alpha=0.6) for i in 1:length(actual[1]) ];
 
-Plots.plot!()
+Plots.plot!(ones(length(predict)); label="baseline", color="black")
 
 
