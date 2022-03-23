@@ -6,6 +6,7 @@ include("./service-FinanceDB.jl");
 include("./service-mongo.jl");
 include("./service-block_timestamp.jl");
 include("./middleware-calc_addr_diff.jl");
+include("./service-Results-H3.jl");
 
 # Init
 	AddressService.Open(false) # shall always
@@ -111,10 +112,12 @@ include("./middleware-calc_addr_diff.jl");
 	fromTs = lastTs + intervalSecs - lastTs % intervalSecs
 	toTs   = currentTs - currentTs % intervalSecs - 1
 	AlignToTimestamp(lastTs, fromTs)
-	results   = ResultCalculations[]
 	for ts in fromTs:intervalSecs:toTs
 		@info unix2dt(ts)
-		append!(results, CalculateResults(ts, ts+intervalSecs))
+		TableResults.SetRow(
+			ts |> ts2resultsInd,
+			CalculateResults(ts, ts+intervalSecs)[1]
+		)
 		AlignToTimestamp(ts, ts+intervalSecs)
 	end
 

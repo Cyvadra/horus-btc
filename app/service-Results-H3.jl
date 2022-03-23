@@ -17,4 +17,7 @@ function ts2resultsInd(ts)
 	end
 	end
 
-
+function GetLastResultsTimestamp()::Int32
+	tmpVal = TableResults.Findlast(x->!iszero(x), :timestamp)
+	return max( TableResults.GetFieldTimestamp(tmpVal-3000:tmpVal)... )
+	end
