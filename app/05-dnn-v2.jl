@@ -159,21 +159,20 @@ data      = zip(training_x, training_y)
 nTolerance = 20
 minEpsilon = 1e-15
 nThrottle  = 15
-modelWidth = 256
+modelWidth = 2inputSize
 
 m = Chain(
 		Dense(inputSize, modelWidth),
 		Dense(modelWidth, modelWidth),
 		Dense(modelWidth, yLength),
-	)	
+	)
 ps = params(m);
 
 
-opt        = ADADelta(0.9, 1e-9);
+opt        = ADAM(2e-8);
 tx, ty     = (test_x[5], test_y[5]);
 evalcb     = () -> @show loss(tx, ty);
 loss(x, y) = Flux.Losses.mse(m(x), y);
-@info "Initial Loss: $(loss(tx, ty))"
 
 # show baseline
 tmpLen     = length(training_y[1]);
@@ -181,11 +180,11 @@ tmpBase    = [ mean(map(x->x[i], training_y)) for i in 1:tmpLen ];
 tmpLoss    = mean([ Flux.Losses.mse(tmpBase, training_y[i]) for i in 1:length(training_y) ]);
 @info "Baseline Loss: $tmpLoss"
 
-
-prev_loss = [ Flux.Losses.mse(m(training_x[i]), training_y[i]) for i in 1:length(training_x) ] |> mean
-ps_saved  = deepcopy(collect(ps))
-nCounter  = 0
-tmpFlag   = true
+prev_loss = [ Flux.Losses.mse(m(training_x[i]), training_y[i]) for i in 1:length(training_x) ] |> mean;
+ps_saved  = deepcopy(collect(ps));
+@info "Initial Loss: $prev_loss"
+nCounter  = 0;
+tmpFlag   = true;
 while true
 	Flux.train!(loss, ps, data, opt; cb = Flux.throttle(evalcb, nThrottle))
 	this_loss = [ Flux.Losses.mse(m(training_x[i]), training_y[i]) for i in 1:length(training_x) ] |> mean
@@ -193,27 +192,29 @@ while true
 		ps_saved  = deepcopy(collect(ps))
 		prev_loss = this_loss
 		println()
-		println("New best loss $prev_loss")
+		@info "New best loss $prev_loss"
 		nCounter  = 0
 		tmpFlag   = true
 	else
-		print(".")
+		@info "loop $nCounter/$nTolerance, loss $this_loss"
 		nCounter += 1
 		if nCounter > nTolerance
 			if tmpFlag == false
 				e = opt.epsilon * 1.25
 				println()
-				println("Increase epsilon to $e")
+				@info "Increase epsilon to $e"
 				opt.epsilon *= 1.25
 				nCounter = 0
 			elseif opt.epsilon > minEpsilon
 				e = opt.epsilon/8
 				println()
-				println("Updated epsilon to $e")
+				@info "Updated epsilon to $e"
 				opt.epsilon /= 8
 				nCounter = 0
+				nTolerance += 5
 				tmpFlag  = false
 			else
+				@info "Done!"
 				break
 			end
 		end
