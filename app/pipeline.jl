@@ -20,6 +20,7 @@ include("./service-Results-H3.jl");
 # Sync BlockPairs
 # this loop will auto throw error when all synchronized
 	function SyncBlockInfo()::Int
+		println("Synchronizing Block Info")
 		latestBlockHeight = 1
 		while true
 			try
@@ -31,29 +32,28 @@ include("./service-Results-H3.jl");
 				return latestBlockHeight
 			end
 		end
+		println()
 		return latestBlockHeight
 		end
 	SyncBlockInfo()
 	ResyncBlockTimestamps()
 
 # Timeline alignment
-	function AlignToTimestamp(fromTs, lastTs)::Nothing
-		lastProcessedBlockN = Timestamp2LastBlockN(fromTs)
+	function AlignToTimestamp(lastTs, fromTs)::Nothing
+		lastProcessedBlockN = Timestamp2LastBlockN(lastTs)
 		ts = BlockNum2Timestamp(lastProcessedBlockN)
-		while ts < lastTs
-			if ts + 86400 < lastTs
+		while ts < fromTs
+			if ts + 86400 < fromTs
 				ts += 86400
 			else
-				ts = lastTs
+				ts = fromTs
 			end
-			@info "Fetching tx till $(unix2datetime(ts)+Hour(8))"
-			@info now()
+			@info "$(now()) Fetching tx till $(unix2datetime(ts)+Hour(8))"
 			toN = Timestamp2LastBlockN(ts)
 			arrayDiff = Address2StateDiff(lastProcessedBlockN, toN)
-			@info "Merging state"
-			@info now()
+			@info "$(now()) Merging state $lastProcessedBlockN -> $toN"
 			MergeAddressState!(arrayDiff, GetBTCPriceWhen(ts))
-			@info "merged"
+			@info "$(now()) merged"
 			tmpTs = max( AddressService.GetFieldTimestampLastActive.( map(x->x.AddressId, arrayDiff) )... )
 			@assert Timestamp2LastBlockN(tmpTs) == Timestamp2LastBlockN(ts)
 		end
@@ -107,22 +107,32 @@ include("./service-Results-H3.jl");
 		end
 
 # Online Calculations
-	lastTs    = GetLastProcessedTimestamp()
-	currentTs = round( Int, now()-Hour(8) |> datetime2unix )
-	fromTs = lastTs + intervalSecs - lastTs % intervalSecs
-	toTs   = currentTs - currentTs % intervalSecs - 1
-	AlignToTimestamp(lastTs, fromTs)
-	for ts in fromTs:intervalSecs:toTs
-		@info unix2dt(ts)
-		TableResults.SetRow(
-			ts |> ts2resultsInd,
-			CalculateResults(ts, ts+intervalSecs)[1]
-		)
-		AlignToTimestamp(ts, ts+intervalSecs)
-	end
+	function SyncResults()::Nothing
+		SyncBlockInfo()
+		ResyncBlockTimestamps()
+		lastTs    = GetLastProcessedTimestamp()
+		currentTs = round( Int, now()-Hour(8) |> datetime2unix )
+		fromTs = lastTs + intervalSecs - lastTs % intervalSecs
+		toTs   = currentTs - currentTs % intervalSecs - 1
+		if toTs - fromTs < intervalSecs
+			return nothing
+		else
+			@info "Synchronizing from $(unix2dt(fromTs)) to $(unix2dt(toTs))"
+		end
+		AlignToTimestamp(lastTs, fromTs)
+		for ts in fromTs:intervalSecs:toTs
+			TableResults.SetRow(
+				ts |> ts2resultsInd,
+				CalculateResults(ts, ts+intervalSecs)[1]
+			)
+			AlignToTimestamp(ts, ts+intervalSecs)
+		end
+		return nothing
+		end
 
+# for test
+	# function GetAddressInfo(addr::AbstractString)
 
-# Todo: partitions, test
 
 
 
