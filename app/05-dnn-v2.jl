@@ -45,10 +45,25 @@ for i in numPrevResultsMA+1:tmpLen
 			for j in tmpRange
 		]
 		ret = vcat(ret...)
+		tmpTs = resultsCalculated[j].timestamp |> ts2ind
 		append!(ret,
 			[
-				(resultsCalculated[j].timestamp |> ts2ind |> TableTick.GetFieldClose) / 
-				(resultsCalculated[j].timestamp |> ts2ind |> TableTick.GetFieldMA10)
+				(tmpTs |> TableTick.GetFieldClose) / 
+				(tmpTs |> TableTick.GetFieldMA10)
+				for j in tmpRange
+			]
+		)
+		append!(ret,
+			[
+				(tmpTs |> TableTick.GetFieldHigh) / 
+				(tmpTs |> TableTick.GetFieldMA10)
+				for j in tmpRange
+			]
+		)
+		append!(ret,
+			[
+				(tmpTs |> TableTick.GetFieldLow) / 
+				(tmpTs |> TableTick.GetFieldMA10)
 				for j in tmpRange
 			]
 		)
