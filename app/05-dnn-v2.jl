@@ -45,7 +45,7 @@ for i in numPrevResultsMA+1:tmpLen
 			for j in tmpRange
 		]
 		ret = vcat(ret...)
-		tmpTs = resultsCalculated[j].timestamp |> ts2ind
+		tmpTs = resultsCalculated[i].timestamp |> ts2ind
 		append!(ret,
 			[
 				(tmpTs |> TableTick.GetFieldClose) / 
@@ -161,7 +161,7 @@ for i in numPrevResultsMA+1:tmpLen
 	# filter X
 	tmpList = sum(oriX) ./ length(oriX)
 	tmpIndsX = map(x->
-		mean( abs.(x - tmpList) ) < 1.0,
+		mean( abs.(x .- tmpList) ) < 1.0,
 		oriX
 		)
 
