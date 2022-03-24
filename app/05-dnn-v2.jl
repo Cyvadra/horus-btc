@@ -138,6 +138,7 @@ for i in numPrevResultsMA+1:tmpLen
 	# constant removed since market data has been added into X
 	oriY = GenerateYAtRowI.(collect(y_base_index:y_last_index))
 
+	# filter Y
 	tmpList = sum.(oriY)
 	sortedTmpList = sort(tmpList)[21:end-20]
 	tmpVal  = mean(sortedTmpList)
@@ -155,8 +156,16 @@ for i in numPrevResultsMA+1:tmpLen
 		end
 		tmpVal = mean(sortedTmpList)
 	end
+	tmpIndsY = map(x->sortedTmpList[1] <= sum(x) <= sortedTmpList[end], oriY)
 
-	tmpInds = map(x->sortedTmpList[1] <= sum(x) <= sortedTmpList[end], oriY)
+	# filter X
+	tmpList = sum(oriX) ./ length(oriX)
+	tmpIndsX = map(x->
+		mean( abs.(x - tmpList) ) < 1.0,
+		oriX
+		)
+
+	tmpInds = tmpIndsX .&& tmpIndsY
 	X = oriX[tmpInds]
 	Y = oriY[tmpInds]
 
@@ -221,12 +230,12 @@ while true
 				opt.epsilon *= 1.25
 				nCounter = 0
 			elseif opt.epsilon > minEpsilon
-				e = opt.epsilon/8
+				e = opt.epsilon/2
 				println()
 				@info "Updated epsilon to $e"
-				opt.epsilon /= 8
+				opt.epsilon /= 2
 				nCounter = 0
-				nTolerance += 5
+				nTolerance += 2
 				tmpFlag  = false
 			else
 				@info "Done!"
