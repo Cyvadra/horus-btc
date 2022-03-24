@@ -8,6 +8,10 @@ include("./service-block_timestamp.jl");
 include("./middleware-calc_addr_diff.jl");
 include("./service-Results-H3.jl");
 
+using ThreadSafeDicts # private
+
+	PipelineLocks = ThreadSafeDict{String, Bool}()
+
 # Init
 	AddressService.Open(false) # shall always
 
@@ -107,7 +111,12 @@ include("./service-Results-H3.jl");
 		end
 
 # Online Calculations
+	PipelineLocks["synchronizing"] = false
 	function SyncResults()::Nothing
+		if PipelineLocks["synchronizing"]
+			return nothing
+		end
+		PipelineLocks["synchronizing"] = true
 		syncBitcoin()
 		SyncBlockInfo()
 		ResyncBlockTimestamps()
@@ -116,6 +125,7 @@ include("./service-Results-H3.jl");
 		fromTs = lastTs + intervalSecs - lastTs % intervalSecs
 		toTs   = currentTs - currentTs % intervalSecs - 1
 		if toTs - fromTs < intervalSecs
+			PipelineLocks["synchronizing"] = false
 			return nothing
 		else
 			@info "Synchronizing from $(unix2dt(fromTs)) to $(unix2dt(toTs))"
@@ -128,6 +138,7 @@ include("./service-Results-H3.jl");
 			)
 			AlignToTimestamp(ts, ts+intervalSecs)
 		end
+		PipelineLocks["synchronizing"] = false
 		return nothing
 		end
 
