@@ -137,11 +137,17 @@ include("./service-Results-H3.jl");
 		println(JSON.json(r,2))
 		end
 
-using Genie
-route("/sync") do
+# first complete state
+	@info "$(now()) Synchronizing..."
+	SyncResults()
+	@info "$(now()) Synchronized."
+
+# then bring up service
+	using Genie
+	route("/sync") do
     SyncResults()
     tmpVal = TableResults.Findlast(x->!iszero(x), :timestamp)
-    TableResults.GetRow.(tmpVal-39:tmpVal) |> json
-end
-up(8023)
+    values.( TableResults.GetRow.(tmpVal-39:tmpVal) ) |> json
+		end
+	up(8023)
 
