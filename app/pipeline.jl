@@ -52,8 +52,13 @@ using ThreadSafeDicts # private
 			else
 				ts = fromTs
 			end
-			@info "$(now()) Fetching tx till $(unix2datetime(ts)+Hour(8))"
 			toN = Timestamp2LastBlockN(ts)
+			if toN <= lastProcessedBlockN
+				@info "Nothing to do from $lastProcessedBlockN to $toN"
+				return nothing
+			else
+				@info "$(now()) Fetching tx till $(unix2datetime(ts)+Hour(8))"
+			end
 			arrayDiff = Address2StateDiff(lastProcessedBlockN, toN)
 			@info "$(now()) Merging state $lastProcessedBlockN -> $toN"
 			MergeAddressState!(arrayDiff, GetBTCPriceWhen(ts))
