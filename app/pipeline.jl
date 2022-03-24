@@ -164,7 +164,12 @@ using ThreadSafeDicts # private
     SyncResults()
     tmpVal = TableResults.Findlast(x->!iszero(x), :timestamp)
     tmpRet = TableResults.GetRow.(tmpVal-39:tmpVal) |> json |> JSON.Parser.parse
-    values.(tmpRet) |> json
+    tmpSyms = collect(fieldnames(ResultCalculations))
+    ret = Dict{String, Vector}()
+    for sym in tmpSyms
+    	ret[string(sym)] = map(x->getfield(x, sym), tmpRet)
+    end
+    json(ret,2)
 		end
 	up(8023)
 
