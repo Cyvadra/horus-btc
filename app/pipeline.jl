@@ -163,7 +163,8 @@ using ThreadSafeDicts # private
 	route("/sync") do
     SyncResults()
     tmpVal = TableResults.Findlast(x->!iszero(x), :timestamp)
-    values.( TableResults.GetRow.(tmpVal-39:tmpVal) ) |> json
+    tmpRet = TableResults.GetRow.(tmpVal-39:tmpVal) |> json |> JSON.Parser.parse
+    values.(tmpRet) |> json
 		end
 	up(8023)
 
