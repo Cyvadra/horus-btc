@@ -167,17 +167,18 @@ using ThreadSafeDicts # private
 	plotly()
 	htmlCachePath = "/tmp/julia-online-plot.html"
 	route("/sync") do
+		t = now()
 		SyncResults()
+		"done in " * string( (now() - t).value / 1000 ) * "secs"
+		end
+	route("/view") do
 		tmpVal  = TableResults.Findlast(x->!iszero(x), :timestamp)
 		tmpRet  = TableResults.GetRow.(tmpVal-39:tmpVal)
 		tmpSyms = collect(fieldnames(ResultCalculations))
 		listTs  = map(x->x.timestamp, tmpRet)
 		res = Dict{Symbol, Vector}()
 		for sym in tmpSyms[2:end]
-			tmpList = Float64.(map(x->getfield(x, sym), tmpRet))
-			tmpVal  = 30mean(tmpList)
-			tmpList = [ tmpVal + sum(tmpList[1:i]) for i in 1:length(tmpList) ]
-			res[sym] = tmpList
+			res[sym] = map(x->getfield(x, sym), tmpRet)
 		end
 		Plots.plot([]);
 		for p in res
@@ -188,7 +189,7 @@ using ThreadSafeDicts # private
 				alpha = 0.5,
 			)
 		end
-		prices = GetBTCPriceWhen(listTs) .* 100
+		prices = GetBTCPriceWhen(listTs)
 		Plots.plot!(listTs,
 			prices;
 			label = "market",
@@ -198,5 +199,8 @@ using ThreadSafeDicts # private
 		Plots.savefig(htmlCachePath)
 		return read(htmlCachePath, String)
 		end
+
+
+
 	up(8023)
 
