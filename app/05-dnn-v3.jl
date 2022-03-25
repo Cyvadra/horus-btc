@@ -1,6 +1,5 @@
 using Flux
 using DataFrames
-using FinanceDB
 using Dates
 using JLD2
 include("./utils.jl")
@@ -84,3 +83,32 @@ include("./service-Results-H3.jl")
 		return nothing
 		end
 	CheckX()
+
+# Definition of Y
+	function GenerateYAtIndexI(i::Int)::Vector{Float32}
+		ts1 = resultsCalculated[i].timestamp
+		ts2 = resultsCalculated[i+1].timestamp
+		tmpHigh  = GetBTCHighWhen(ts1:ts2)
+		tmpLow   = GetBTCLowWhen(ts1:ts2)
+		tmpClose = GetBTCPriceWhen(ts2)
+		return [tmpHigh, tmpLow, tmpClose]
+		end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
