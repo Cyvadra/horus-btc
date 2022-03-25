@@ -162,12 +162,12 @@ using ThreadSafeDicts # private
 # then bring up service
 	using Genie
 	using DataFrames
-	using Plots
-	using Plotly; plotly()
+	using PlotlyJS
 	using Statistics
-	nPlotPrev     = 39
+	nPlotPrev     = round(Int, 24 / 3 * 5)
 	htmlCachePath = "/tmp/julia-online-plot.html"
 	displatRange  = 0:1000
+	plotMaskName  = "_"*join(collect('a':'z'))*"_"
 	route("/sync") do
 		t = now()
 		SyncResults()
@@ -178,30 +178,65 @@ using ThreadSafeDicts # private
 		tmpRet  = TableResults.GetRow.(tmpVal-nPlotPrev:tmpVal)
 		tmpSyms = collect(fieldnames(ResultCalculations))
 		listTs  = map(x->x.timestamp, tmpRet)
-		res = Dict{Symbol, Vector}()
+		traces = GenericTrace[]
 		for sym in tmpSyms[2:end]
+			if occursin("amountRecentD3", string(sym))
+				continue
+			end
 			tmpList  = map(x->getfield(x, sym), tmpRet)
-			tmpList  = normalise(tmpList, displatRange)
-			res[sym] = tmpList
-		end
-		Plots.plot([]);
-		for p in res
-			Plots.plot!(
-				listTs, p[2];
-				label = string(p[1]),
-				color = "skyblue",
-				alpha = 0.5,
+			# tmpList  = normalise(tmpList, displatRange)
+			push!(traces, 
+				PlotlyJS.scatter(x = listTs, y = tmpList,
+					name = plotMaskName,
+					marker_color = "skyblue",
+				)
 			)
 		end
-		prices = GetBTCPriceWhen(listTs)
-		prices = normalise(prices, displatRange)
-		Plots.plot!(listTs,
-			prices;
-			label = "market",
-			color = "red",
-			alpha = 0.8,
+		# prices = GetBTCPriceWhen(listTs)
+		# prices = normalise(prices, displatRange)
+		# push!(traces, 
+		# 	PlotlyJS.scatter(x = listTs, y = prices,
+		# 		name = "market", marker_color = "red", alpha = 0.8, yaxis = "market")
+		# )
+		f = open(htmlCachePath, "w")
+		PlotlyJS.savefig(f,
+			PlotlyJS.plot(
+				traces,
+				Layout(
+					title_text = string(unix2dt(listTs[end])),
+					xaxis_title_text = "timestamp",
+				)
+			);
+			format = "html"
 		)
-		Plots.savefig(htmlCachePath)
+		close(f)
+		return read(htmlCachePath, String)
+		end
+	route("/market") do
+		tmpVal  = TableResults.Findlast(x->!iszero(x), :timestamp)
+		tmpRet  = TableResults.GetRow.(tmpVal-nPlotPrev:tmpVal)
+		listTs  = map(x->x.timestamp, tmpRet)
+		f = open(htmlCachePath, "w")
+		PlotlyJS.savefig(f,
+			PlotlyJS.plot(
+				GenericTrace[
+					PlotlyJS.scatter(
+						x = listTs, y = GetBTCHighWhen(listTs),
+						name = "market", marker_color = "blue",
+					),
+					PlotlyJS.scatter(
+						x = listTs, y = GetBTCLowWhen(listTs),
+						name = plotMaskName, marker_color = "blue",
+					)
+				],
+				Layout(
+					title_text = string(unix2dt(listTs[end])),
+					xaxis_title_text = "timestamp",
+				)
+			);
+			format = "html"
+		)
+		close(f)
 		return read(htmlCachePath, String)
 		end
 
