@@ -160,16 +160,43 @@ using ThreadSafeDicts # private
 
 # then bring up service
 	using Genie
+	using DataFrames
+	using Plots
+	using Plotly
+	using Statistics
+	plotly()
+	htmlCachePath = "/tmp/julia-online-plot.html"
 	route("/sync") do
-    SyncResults()
-    tmpVal = TableResults.Findlast(x->!iszero(x), :timestamp)
-    tmpRet = TableResults.GetRow.(tmpVal-39:tmpVal) |> json |> JSON.Parser.parse
-    tmpSyms = collect(fieldnames(ResultCalculations))
-    ret = Dict{String, Vector}()
-    for sym in tmpSyms
-    	ret[string(sym)] = map(x->getfield(x, sym), tmpRet)
-    end
-    json(ret,2)
+		SyncResults()
+		tmpVal  = TableResults.Findlast(x->!iszero(x), :timestamp)
+		tmpRet  = TableResults.GetRow.(tmpVal-39:tmpVal)
+		tmpSyms = collect(fieldnames(ResultCalculations))
+		listTs  = map(x->x.timestamp, tmpRet)
+		res = Dict{Symbol, Vector}()
+		for sym in tmpSyms[2:end]
+			tmpList = Float64.(map(x->getfield(x, sym), tmpRet))
+			tmpVal  = 30mean(tmpList)
+			tmpList = [ tmpVal + sum(tmpList[1:i]) for i in 1:length(tmpList) ]
+			res[sym] = tmpList
+		end
+		Plots.plot([]);
+		for p in res
+			Plots.plot!(
+				listTs, p[2];
+				label = string(p[1]),
+				color = "skyblue",
+				alpha = 0.5,
+			)
+		end
+		prices = GetBTCPriceWhen(listTs) .* 100
+		Plots.plot!(listTs,
+			prices;
+			label = "market",
+			color = "red",
+			alpha = 0.8,
+		)
+		Plots.savefig(htmlCachePath)
+		return read(htmlCachePath, String)
 		end
 	up(8023)
 
