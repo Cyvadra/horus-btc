@@ -167,6 +167,7 @@ using ThreadSafeDicts # private
 	using Statistics
 	nPlotPrev     = 39
 	htmlCachePath = "/tmp/julia-online-plot.html"
+	displatRange  = 0:1000
 	route("/sync") do
 		t = now()
 		SyncResults()
@@ -179,7 +180,9 @@ using ThreadSafeDicts # private
 		listTs  = map(x->x.timestamp, tmpRet)
 		res = Dict{Symbol, Vector}()
 		for sym in tmpSyms[2:end]
-			res[sym] = map(x->getfield(x, sym), tmpRet)
+			tmpList  = map(x->getfield(x, sym), tmpRet)
+			tmpList  = normalise(tmpList, displatRange)
+			res[sym] = tmpList
 		end
 		Plots.plot([]);
 		for p in res
@@ -191,6 +194,7 @@ using ThreadSafeDicts # private
 			)
 		end
 		prices = GetBTCPriceWhen(listTs)
+		prices = normalise(prices, displatRange)
 		Plots.plot!(listTs,
 			prices;
 			label = "market",

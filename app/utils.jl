@@ -70,14 +70,53 @@ using Statistics
 			return -log10(abs(x)+1)
 		end
 		end
-	function normalize(v::Vector, n_remove=20)
+	function normalise(v::Vector, rng::UnitRange)::Vector
+		v = deepcopy(v) .+ 0.00
 		s = sort(v)
-		vMin, vMax = s[n_remove], s[end-n_remove]
-		v = map(x->x < vMin ? vMin : x, v)
-		v = map(x->x > vMax ? vMax : x, v)
-		v = v .- vMin
-		m = max(v...) + min(v...) / 2
-		v = v .- 0.5m
-		v ./= 0.5m
+		vMin, vMax = s[1], s[end]
+		vBias = vMax - vMin
+		v .-= vMin
+		v ./= vBias / (rng[end] - rng[1])
+		v .+= rng[1]
 		return v
 		end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	# function normalize(v::Vector, n_remove=20)
+	# 	s = sort(v)
+	# 	vMin, vMax = s[n_remove], s[end-n_remove]
+	# 	v = map(x->x < vMin ? vMin : x, v)
+	# 	v = map(x->x > vMax ? vMax : x, v)
+	# 	v = v .- vMin
+	# 	m = max(v...) + min(v...) / 2
+	# 	v = v .- 0.5m
+	# 	v ./= 0.5m
+	# 	return v
+	# 	end
+
+
+
+
+
+
+
+
+
+
+
+
