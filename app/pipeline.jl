@@ -33,6 +33,7 @@ using ThreadSafeDicts # private
 				push!(BlockPairs, Pair{Int32, Int32}(latestBlockHeight+1, ts))
 				print("$(latestBlockHeight+1)\t")
 			catch
+				println()
 				return latestBlockHeight
 			end
 		end
@@ -162,9 +163,9 @@ using ThreadSafeDicts # private
 	using Genie
 	using DataFrames
 	using Plots
-	using Plotly
+	using Plotly; plotly()
 	using Statistics
-	plotly()
+	nPlotPrev     = 39
 	htmlCachePath = "/tmp/julia-online-plot.html"
 	route("/sync") do
 		t = now()
@@ -173,7 +174,7 @@ using ThreadSafeDicts # private
 		end
 	route("/view") do
 		tmpVal  = TableResults.Findlast(x->!iszero(x), :timestamp)
-		tmpRet  = TableResults.GetRow.(tmpVal-39:tmpVal)
+		tmpRet  = TableResults.GetRow.(tmpVal-nPlotPrev:tmpVal)
 		tmpSyms = collect(fieldnames(ResultCalculations))
 		listTs  = map(x->x.timestamp, tmpRet)
 		res = Dict{Symbol, Vector}()
