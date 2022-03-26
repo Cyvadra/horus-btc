@@ -55,8 +55,10 @@ function syncBitcoin()
 	# get derivative
 	nextPos = findfirst(x->iszero(x), TableTick.TickDict[:Timestamp])
 	ts  = TableTick.GetFieldTimestamp(nextPos-1)
+	tmpN = ceil(Int, time()/100) * 100
+	tmpN = min(tmpN, 1000)
 	# fetch data
-	url = "https://www.binance.com/api/v3/klines?startTime=$(ts)000&limit=1000&symbol=BTCUSDT&interval=1m"
+	url = "https://www.binance.com/api/v3/klines?startTime=$(ts)000&limit=$tmpN&symbol=BTCUSDT&interval=1m"
 	run(pipeline(
 		`proxychains4 curl $url`;
 		stdout=cacheMarket,
