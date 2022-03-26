@@ -192,12 +192,12 @@ using ThreadSafeDicts # private
 				)
 			)
 		end
-		# prices = GetBTCPriceWhen(listTs)
-		# prices = normalise(prices, displatRange)
-		# push!(traces, 
-		# 	PlotlyJS.scatter(x = listTs, y = prices,
-		# 		name = "market", marker_color = "red", alpha = 0.8, yaxis = "market")
-		# )
+		prices = GetBTCPriceWhen(listTs)
+		prices = normalise(prices, 100000:777000)
+		push!(traces, 
+			PlotlyJS.scatter(x = listTs, y = prices,
+				name = "market", marker_color = "red", alpha = 0.8, yaxis = "market")
+		)
 		f = open(htmlCachePath, "w")
 		PlotlyJS.savefig(f,
 			PlotlyJS.plot(
