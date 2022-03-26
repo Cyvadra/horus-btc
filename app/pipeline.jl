@@ -168,12 +168,23 @@ using ThreadSafeDicts # private
 	htmlCachePath = "/tmp/julia-online-plot.html"
 	displatRange  = 0:1000
 	plotMaskName  = "_"*join(collect('a':'z'))*"_"
+	hiddenList = String[
+		"amountRecentD3", "numTotalRows", "amountTotalTransfer",
+		"numWakeupW1Sending", "numWakeupW1Byuing",
+		"numWakeupM1Sending", "numWakeupM1Byuing",
+		"amountRecentD3Sending", "amountRecentD3Buying",
+		"numRecentD3Sending", "numRecentD3Buying",
+	]
+	switchView = true
 	route("/sync") do
 		t = now()
 		SyncResults()
 		"done in " * string( (now() - t).value / 1000 ) * "secs"
 		end
 	route("/view") do
+		if !switchView
+			return ""
+		end
 		tmpVal  = TableResults.Findlast(x->!iszero(x), :timestamp)
 		tmpRet  = TableResults.GetRow.(tmpVal-nPlotPrev:tmpVal)
 		tmpSyms = collect(fieldnames(ResultCalculations))
@@ -192,7 +203,7 @@ using ThreadSafeDicts # private
 			)
 		traces = GenericTrace[]
 		for sym in tmpSyms[2:end]
-			if occursin("amountRecentD3", string(sym))
+			if string(sym) in hiddenList
 				continue
 			end
 			tmpList  = map(x->getfield(x, sym), tmpRet)
@@ -205,10 +216,10 @@ using ThreadSafeDicts # private
 			)
 		end
 		prices = GetBTCPriceWhen(listTs)
-		prices = normalise(prices, 100000:777000)
+		prices = normalise(prices, 100000:555000)
 		push!(traces, 
 			PlotlyJS.scatter(x = listTs, y = prices,
-				name = "market", marker_color = "red", alpha = 0.8, yaxis = "market")
+				name = "actual", marker_color = "black", yaxis = "actual")
 		)
 		f = open(htmlCachePath, "w")
 		PlotlyJS.savefig(f,
