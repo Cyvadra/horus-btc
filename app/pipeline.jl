@@ -178,6 +178,18 @@ using ThreadSafeDicts # private
 		tmpRet  = TableResults.GetRow.(tmpVal-nPlotPrev:tmpVal)
 		tmpSyms = collect(fieldnames(ResultCalculations))
 		listTs  = map(x->x.timestamp, tmpRet)
+		basePrice = GetBTCPriceWhen(listTs[end])
+		latestH   = 10Float16(
+			reduce( max,
+				GetBTCHighWhen(listTs[end]:round(Int,time()))
+				) / basePrice - 1.0
+			)
+		latestL   = 10Float16(
+			reduce( min,
+				filter(x->x>0,
+					GetBTCLowWhen(listTs[end]:round(Int,time()))
+			) ) / basePrice - 1.0
+			)
 		traces = GenericTrace[]
 		for sym in tmpSyms[2:end]
 			if occursin("amountRecentD3", string(sym))
@@ -203,7 +215,7 @@ using ThreadSafeDicts # private
 			PlotlyJS.plot(
 				traces,
 				Layout(
-					title_text = string(unix2dt(listTs[end])),
+					title_text = string(unix2dt(listTs[end])) * " $(latestL)‰ $(latestH)‰",
 					xaxis_title_text = "timestamp",
 				)
 			);
