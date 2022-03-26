@@ -130,7 +130,7 @@ using ThreadSafeDicts # private
 		currentTs = round( Int, now()-Hour(8) |> datetime2unix )
 		fromTs = lastTs + intervalSecs - lastTs % intervalSecs
 		toTs   = currentTs - currentTs % intervalSecs - 1
-		if toTs - fromTs < intervalSecs
+		if toTs - fromTs < intervalSecs - 1
 			PipelineLocks["synchronizing"] = false
 			return nothing
 		else
@@ -187,7 +187,7 @@ using ThreadSafeDicts # private
 			# tmpList  = normalise(tmpList, displatRange)
 			push!(traces, 
 				PlotlyJS.scatter(x = listTs, y = tmpList,
-					name = plotMaskName,
+					name = string(sym),
 					marker_color = "skyblue",
 				)
 			)
@@ -217,6 +217,18 @@ using ThreadSafeDicts # private
 		tmpRet  = TableResults.GetRow.(tmpVal-nPlotPrev:tmpVal)
 		listTs  = map(x->x.timestamp, tmpRet)
 		f = open(htmlCachePath, "w")
+		basePrice = GetBTCPriceWhen(listTs[end])
+		latestH = Float16(
+			reduce( max,
+				GetBTCHighWhen(listTs[end]:round(Int,time()))
+				) / basePrice - 1.0
+			)
+		latestL = Float16(
+			reduce( min,
+				filter(x->x>0,
+					GetBTCLowWhen(listTs[end]:round(Int,time()))
+			) ) / basePrice - 1.0
+			)
 		PlotlyJS.savefig(f,
 			PlotlyJS.plot(
 				GenericTrace[
@@ -230,7 +242,7 @@ using ThreadSafeDicts # private
 					)
 				],
 				Layout(
-					title_text = string(unix2dt(listTs[end])),
+					title_text = string(unix2dt(listTs[end])) * " $latestL% $latestH%",
 					xaxis_title_text = "timestamp",
 				)
 			);
