@@ -119,11 +119,11 @@ using ThreadSafeDicts # private
 # Online Calculations
 	PipelineLocks["synchronizing"] = false
 	function SyncResults()::Nothing
+		syncBitcoin()
 		if PipelineLocks["synchronizing"]
 			return nothing
 		end
 		PipelineLocks["synchronizing"] = true
-		syncBitcoin()
 		SyncBlockInfo()
 		ResyncBlockTimestamps()
 		lastTs    = GetLastProcessedTimestamp()
