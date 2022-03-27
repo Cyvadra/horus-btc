@@ -174,22 +174,26 @@ using ThreadSafeDicts # private
 		"numWakeupM1Sending", "numWakeupM1Byuing",
 		"amountRecentD3Sending", "amountRecentD3Buying",
 		"numRecentD3Sending", "numRecentD3Buying",
+		"numTotalActive",
 	]
 	switchView = true
+	priceRange = 10000:100000
 	route("/sync") do
 		t = now()
 		SyncResults()
 		"done in " * string( (now() - t).value / 1000 ) * "secs"
 		end
 	route("/view") do
+		n = min(2000, parse(Int, Genie.params(:num, nPlotPrev)))
 		if !switchView
 			return ""
 		end
 		tmpVal  = TableResults.Findlast(x->!iszero(x), :timestamp)
-		tmpRet  = TableResults.GetRow.(tmpVal-nPlotPrev:tmpVal)
+		tmpRet  = TableResults.GetRow.(tmpVal-n:tmpVal)
 		tmpSyms = collect(fieldnames(ResultCalculations))
 		listTs  = map(x->x.timestamp, tmpRet)
 		basePrice = GetBTCPriceWhen(listTs[end])
+		baseList  = map(x->x.numTotalActive, tmpRet) ./ 1e5
 		latestH   = 10Float16(
 			reduce( max,
 				GetBTCHighWhen(listTs[end]:round(Int,time()))
@@ -206,17 +210,20 @@ using ThreadSafeDicts # private
 			if string(sym) in hiddenList
 				continue
 			end
-			tmpList  = map(x->getfield(x, sym), tmpRet)
+			tmpList  = map(x->getfield(x, sym), tmpRet) ./ baseList
+			if occursin("amountRealized", string(sym))
+				tmpList .*= 1e5
+			end
 			# tmpList  = normalise(tmpList, displatRange)
 			push!(traces, 
 				PlotlyJS.scatter(x = listTs, y = tmpList,
 					name = string(sym),
-					marker_color = "skyblue",
+					# marker_color = "skyblue",
 				)
 			)
 		end
 		prices = GetBTCPriceWhen(listTs)
-		prices = normalise(prices, 100000:555000)
+		prices = normalise(prices, priceRange)
 		push!(traces, 
 			PlotlyJS.scatter(x = listTs, y = prices,
 				name = "actual", marker_color = "black", yaxis = "actual")
