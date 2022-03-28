@@ -184,7 +184,12 @@ using ThreadSafeDicts # private
 		"done in " * string( (now() - t).value / 1000 ) * "secs"
 		end
 	route("/view") do
-		n = min(2000, parse(Int, Genie.params(:num, nPlotPrev)))
+		try
+			parse(Int, Genie.params(:num, string(nPlotPrev)))
+		catch
+			return ""
+		end
+		n = min(2000, parse(Int, Genie.params(:num, string(nPlotPrev))))
 		if !switchView
 			return ""
 		end
