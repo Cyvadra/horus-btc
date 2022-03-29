@@ -250,11 +250,15 @@ using ThreadSafeDicts # private
 		end
 	route("/sequence") do
 		s = Genie.params(:session, "")
+		if length(s) < 10
+			@warn s
+			return ""
+			end
 		if !CheckScript(s)
 			return ""
 			end
 		tmpVal  = TableResults.Findlast(x->!iszero(x), :timestamp)
-		tmpRet  = TableResults.GetRow.(tmpVal-n:tmpVal)
+		tmpRet  = TableResults.GetRow.(tmpVal-50:tmpVal)
 		listTs  = map(x->x.timestamp, tmpRet)
 		basePrice = GetBTCPriceWhen(listTs[end])
 		latestH   = reduce( max,
