@@ -164,6 +164,7 @@ using ThreadSafeDicts # private
 	using DataFrames
 	using PlotlyJS
 	using Statistics
+	include("./auth.jl")
 	nPlotPrev     = round(Int, 24 / 3 * 5)
 	htmlCachePath = "/tmp/julia-online-plot.html"
 	displatRange  = 0:1000
@@ -246,6 +247,31 @@ using ThreadSafeDicts # private
 		)
 		close(f)
 		return read(htmlCachePath, String)
+		end
+	route("/sequence") do
+		s = Genie.params(:session, "")
+		if !CheckScript(s)
+			return ""
+			end
+		tmpVal  = TableResults.Findlast(x->!iszero(x), :timestamp)
+		tmpRet  = TableResults.GetRow.(tmpVal-n:tmpVal)
+		listTs  = map(x->x.timestamp, tmpRet)
+		basePrice = GetBTCPriceWhen(listTs[end])
+		latestH   = reduce( max,
+			GetBTCHighWhen(listTs[end]:round(Int,time()))
+			)
+		latestL   = reduce( min,
+			filter(x->x>0,
+				GetBTCLowWhen(listTs[end]:round(Int,time()))
+			)
+			)
+		prices = GetBTCPriceWhen(listTs)
+		return json(Dict(
+				"results"   => tmpRet,
+				"prices"    => prices,
+				"latestL"   => latestL,
+				"latestH"   => latestH,
+			))
 		end
 	route("/market") do
 		tmpVal  = TableResults.Findlast(x->!iszero(x), :timestamp)
