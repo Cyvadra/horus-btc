@@ -15,7 +15,9 @@ deciphertext = decrypt(dec, ciphertext)
 
 function CheckScript(s::String)::Bool
 	ts = round(Int, time())
-	s  = decrypt(authMethod, authString, Vector{UInt8}(s))
+	s  = hex2bytes(s)
+	s  = decrypt(authMethod, authString, s)
+	s  = String(s)[1:10]
 	s  = parse(Int, s)
 	if ts - 10 <= s <= ts + 10
 		return true
@@ -24,7 +26,11 @@ function CheckScript(s::String)::Bool
 	end
 	end
 
-
+function GenerateScript()::String
+	txt = string(round(Int, time()))
+	txt *= join(rand('0':'9',6))
+	return encrypt(authMethod, authString, txt) |> bytes2hex
+	end
 
 
 
