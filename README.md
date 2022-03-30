@@ -1,17 +1,15 @@
 # horus
 
 ### Todos:
-1. [ ] Implementation of the whole pipeline.
-3. [ ] Put stuff online.
-5. [ ] Check AddressService's validity.
+1. [x] Implementation of the whole pipeline.
+3. [x] Put stuff online.
+5. [x] Check AddressService's validity.
+7. [ ] Feature: Different alignment of timestamp, so as to generate more data (after version update)t
 
 ### Done:
 1. [x] Benchmark: GetBlockCoins, Address2StateDiff
 
 ### Pending:
-3. [ ] Train latest model.
-7. [ ] Feature: Different alignment of timestamp, so as to generate more data (after version update)
-9. [ ] Add MA to dnn input. FinanceDB rewrite might be required.
 1. [x] Rewrite MmapDB, remove Mmap dependency.
 11. [x] Online AddressService.
 5. [x] FinanceDB: online data loading.
@@ -20,7 +18,9 @@
 - [x] Original version might have missing value(records).
 
 ### Cancelled:
+3. [ ] Train latest model.
 5. [ ] Modify address2id.ng.jl, save string list to files, IOStream instead of IOBuffer, to reduce huge mem occupation.
+9. [x] Add MA to dnn input. FinanceDB rewrite might be required.
 5. [x] Batch calculation failed due to same performance and lower accuracy.
 3. [x] Timestamp-snapshot supported Mmap database ==> Update Address Service.
 
