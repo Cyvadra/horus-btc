@@ -91,7 +91,6 @@ function syncBitcoin()
 			now() - Hour(8) - Minute(30)
 		)
 	)
-	@info "synchronized to $(unix2datetime(prevTs)+Hour(8))"
 	if sysTimestamp > prevTs
 		sleep(1)
 		return syncBitcoin()

@@ -71,7 +71,6 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 	cacheAmount = Vector{Float64}()
 	cacheTs     = Vector{Int32}()
 	function CalculateResultOnBlock(n)::ResultCalculations
-		ret = Vector{ResultCalculations}()
 		empty!(cacheAddrId)
 		empty!(cacheTagNew)
 		empty!(cacheAmount)
@@ -97,7 +96,7 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 			))
 		res = DoCalculations(cacheAddrId, cacheTagNew, cacheAmount, cacheTs)
 		res.timestamp = cacheTs[end]
-		return ret
+		return res
 		end
 
 # Online Calculations
@@ -111,7 +110,7 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 		SyncBlockInfo()
 		ResyncBlockTimestamps()
 		lastTs    = GetLastProcessedTimestamp()
-		currentTs = round(Int, time()) |> dt2unix
+		currentTs = round(Int, time())
 		fromBlock = Timestamp2FirstBlockN(lastTs+10)
 		toBlock   = Timestamp2LastBlockN(currentTs)
 		if toBlock <= fromBlock
