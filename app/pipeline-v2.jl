@@ -73,46 +73,37 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 	include("./procedure-calculations.jl")
 
 # Period predict
-	intervalSecs = 10800
 	cacheAddrId = Vector{UInt32}()
 	cacheTagNew = Vector{Bool}()
 	cacheAmount = Vector{Float64}()
 	cacheTs     = Vector{Int32}()
-	function CalculateResults(fromTs, toTs)::Vector{ResultCalculations} # (fromTs, toTs]
-		@assert fromTs % intervalSecs == 0
-		@assert toTs % intervalSecs == 0
-		toTs -= 1
+	function CalculateResultOnBlock(n)::ResultCalculations
 		ret = Vector{ResultCalculations}()
-		for ts in fromTs:intervalSecs:toTs
-			fromBlockN = Timestamp2LastBlockN(ts)
-			toBlockN   = Timestamp2LastBlockN(ts+intervalSecs)
-			empty!(cacheAddrId)
-			empty!(cacheTagNew)
-			empty!(cacheAmount)
-			empty!(cacheTs)
-			for n in fromBlockN:toBlockN
-				coins = GetCoinsByMintHeight(n)
-				append!(coins, GetCoinsBySpentHeight(n))
-				Random.shuffle!(shuffleRng, coins)
-				addrs = map(x->GenerateID(x["address"]), coins)
-				append!(cacheAddrId, addrs)
-				append!(cacheTagNew, isNew(addrs))
-				append!(cacheAmount,
-					map(x->
-						x["mintHeight"] == n ?
-						bitcoreInt2Float64(x["value"]) :
-						- bitcoreInt2Float64(x["value"])
-						, coins)
-					)
-				append!(cacheTs,
-					fill(BlockNum2Timestamp(n), length(coins))
-					)
-			end
-			Smooth!(cacheTs)
-			res = DoCalculations(cacheAddrId, cacheTagNew, cacheAmount, cacheTs)
-			res.timestamp = ts+intervalSecs
-			push!(ret, res)
-		end
+		empty!(cacheAddrId)
+		empty!(cacheTagNew)
+		empty!(cacheAmount)
+		empty!(cacheTs)
+		ts    = BlockNum2Timestamp(n)
+		coins = GetCoinsByMintHeight(n)
+		append!(coins, GetCoinsBySpentHeight(n))
+		Random.shuffle!(shuffleRng, coins)
+		addrs = map(x->GenerateID(x["address"]), coins)
+		append!(cacheAddrId, addrs)
+		append!(cacheTagNew, isNew(addrs))
+		append!(cacheAmount,
+			map(x->
+				x["mintHeight"] == n ?
+				bitcoreInt2Float64(x["value"]) :
+				- bitcoreInt2Float64(x["value"])
+				, coins)
+			)
+		tmpTs = BlockNum2Timestamp(n-1)
+		tmpInterval = (ts - tmpTs) / length(coins)
+		append!(cacheTs, round.(Int32,
+			[ tmpTs + tmpInterval*i for i in 1:length(coins) ]
+			))
+		res = DoCalculations(cacheAddrId, cacheTagNew, cacheAmount, cacheTs)
+		res.timestamp = cacheTs[end]
 		return ret
 		end
 
