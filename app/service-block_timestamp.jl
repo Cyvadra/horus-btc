@@ -45,4 +45,10 @@ function SyncBlockTimestamps()
 	JLD2.save(tsFile, "BlockTimestamps", BlockTimestamps)
 	return nothing
 	end
+function GetLastBlockNum()::Int
+	return BlockPairs[end][1]
+	end
+function GetLastBlockTs()::Int32
+	return BlockPairs[end][2]
+	end
 atexit(SyncBlockTimestamps)
