@@ -44,29 +44,22 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 	ResyncBlockTimestamps()
 
 # Timeline alignment
-	function AlignToTimestamp(lastTs, fromTs)::Nothing
-		lastProcessedBlockN = Timestamp2LastBlockN(lastTs)
-		ts = BlockNum2Timestamp(lastProcessedBlockN)
-		while ts < fromTs
-			if ts + 86400 < fromTs
-				ts += 86400
-			else
-				ts = fromTs
-			end
-			toN = Timestamp2LastBlockN(ts)
-			if toN <= lastProcessedBlockN
-				@info "Nothing to do from $lastProcessedBlockN to $toN"
-				return nothing
-			else
-				@info "$(now()) Fetching tx till $(unix2datetime(ts)+Hour(8))"
-			end
-			arrayDiff = Address2StateDiff(lastProcessedBlockN, toN)
-			@info "$(now()) Merging state $lastProcessedBlockN -> $toN"
-			MergeAddressState!(arrayDiff, GetBTCPriceWhen(ts))
-			@info "$(now()) merged"
-			tmpTs = max( AddressService.GetFieldTimestampLastActive.( map(x->x.AddressId, arrayDiff) )... )
-			@assert Timestamp2LastBlockN(tmpTs) == Timestamp2LastBlockN(ts)
+	function RecordAddrDiffOnBlock(toN)::Nothing
+		lastProcessedBlockN = GetLastProcessedTimestamp() |> Timestamp2LastBlockN
+		if toN <= lastProcessedBlockN
+			@info "Nothing to do on $toN"
+			return nothing
+		else
+			@info "$(now()) Fetching tx on $toN..."
 		end
+		# calc price
+		ts = BlockNum2Timestamp(toN)
+		tmpPrice  = GetBTCPriceWhen(ts-6:ts+6) |> sort |> x->x[7]
+		arrayDiff = Address2StateDiff(lastProcessedBlockN, toN)
+		MergeAddressState!(arrayDiff, tmpPrice)
+		@info "$(now()) $toN merged."
+		tmpTs = max( AddressService.GetFieldTimestampLastActive.( map(x->x.AddressId, arrayDiff) )... )
+		@assert Timestamp2LastBlockN(tmpTs) == Timestamp2LastBlockN(ts)
 		return nothing
 		end
 
@@ -118,22 +111,21 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 		SyncBlockInfo()
 		ResyncBlockTimestamps()
 		lastTs    = GetLastProcessedTimestamp()
-		currentTs = round( Int, now()-Hour(8) |> datetime2unix )
-		fromTs = lastTs + intervalSecs - lastTs % intervalSecs
-		toTs   = currentTs - currentTs % intervalSecs - 1
-		if toTs - fromTs < intervalSecs - 1
+		currentTs = round(Int, time()) |> dt2unix
+		fromBlock = Timestamp2FirstBlockN(lastTs+10)
+		toBlock   = Timestamp2LastBlockN(currentTs)
+		if toBlock <= fromBlock
 			PipelineLocks["synchronizing"] = false
 			return nothing
 		else
-			@info "Synchronizing from $(unix2dt(fromTs)) to $(unix2dt(toTs))"
+			@info "Synchronizing from $fromBlock to $toBlock"
 		end
-		AlignToTimestamp(lastTs, fromTs)
-		for ts in fromTs:intervalSecs:toTs
+		for n in fromBlock:toBlock
 			TableResults.SetRow(
-				ts |> ts2resultsInd,
-				CalculateResults(ts, ts+intervalSecs)[1]
+				n,
+				CalculateResultOnBlock(n)
 			)
-			AlignToTimestamp(ts, ts+intervalSecs)
+			RecordAddrDiffOnBlock(n)
 		end
 		PipelineLocks["synchronizing"] = false
 		return nothing
