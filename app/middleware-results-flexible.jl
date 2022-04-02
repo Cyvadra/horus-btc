@@ -4,7 +4,6 @@ using MmapDB, Dates
 MmapDB.Init("/mnt/data/results-flexible/")
 
 include("./struct-ResultCalculations.jl")
-include("./service-block_timestamp.jl")
 
 TableResults = MmapDB.GenerateCode(ResultCalculations)
 TableResults.Open(true) # shared = true
@@ -22,3 +21,4 @@ function GetLastResultsTimestamp()::Int32
 function GetResultsWhen(ts)::ResultCalculations
 	return Timestamp2LastBlockN(ts) |> TableResults.GetRow
 	end
+
