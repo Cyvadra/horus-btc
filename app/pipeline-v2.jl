@@ -7,6 +7,7 @@ include("./service-mongo.jl");
 include("./service-block_timestamp.jl");
 include("./middleware-calc_addr_diff.jl");
 include("./middleware-results-flexible.jl");
+include("./procedure-calculations.jl");
 
 using ThreadSafeDicts # private repo
 
@@ -62,8 +63,6 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 		@assert Timestamp2LastBlockN(tmpTs) == Timestamp2LastBlockN(ts)
 		return nothing
 		end
-
-	include("./procedure-calculations.jl")
 
 # Period predict
 	function CalculateResultOnBlock(n)::ResultCalculations
