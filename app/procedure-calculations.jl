@@ -136,9 +136,7 @@
 				_len,
 				estAmount,
 				iszero(estAmount) ? 0 : biasAmount / estAmount,
-				length(unique(
-						cacheAddrId[][ cacheTagNew[] ]
-					)) / _len,
+				safe_sum(cacheTagNew[]) / length(cacheAddrId[]),
 				numOutput / _len,
 				numInput / _len,
 			)
