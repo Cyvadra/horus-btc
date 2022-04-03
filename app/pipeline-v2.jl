@@ -67,12 +67,10 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 # Period predict
 	function CalculateResultOnBlock(n)::ResultCalculations
 		ts    = BlockNum2Timestamp(n)
-		coins = GetCoinsByMintHeight(n)
-		append!(coins, GetCoinsBySpentHeight(n))
-		if length(coins) < 2
-			@warn "$(now()) EMPTY BLOCK $n !!!"
-			return ResultCalculations(zeros(length(ResultCalculations.types))...)
-			end
+		coins = vcat(
+			GetCoinsByMintHeight(n),
+			GetCoinsBySpentHeight(n)
+			)
 		Random.shuffle!(shuffleRng, coins)
 		addrs = map(x->GenerateID(x["address"]), coins)
 		cacheAddrId = addrs
@@ -120,6 +118,21 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 			RecordAddrDiffOnBlock(n)
 		end
 		PipelineLocks["synchronizing"] = false
+		return nothing
+		end
+
+# for initialization
+	function InitHistory()::Nothing
+		ts = TableTick.GetRow(1).Timestamp
+		toBlock = Timestamp2FirstBlockN(ts)
+		TableResults.SetRow(1, CalculateResultOnBlock(2))
+		@showprogress for n in 2:toBlock
+			TableResults.SetRow(
+				n,
+				CalculateResultOnBlock(n)
+			)
+			RecordAddrDiffOnBlock(n)
+		end
 		return nothing
 		end
 
