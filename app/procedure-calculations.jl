@@ -33,6 +33,12 @@
 			M3  = Month(3),
 			M6  = Month(6),
 		)
+	function safe_sum(arr)
+		if isempty(arr)
+			return 0
+		end
+		return sum(arr)
+		end
 
 	mutable struct CalcCell
 		resultType::DataType
@@ -122,14 +128,14 @@
 	function CalcAddressComparative(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressComparative
 		_len = length(cacheTs[])
 		biasAmount = sum(cacheAmount[])
-		estAmount  = (sum(abs.(cacheAmount[])) - biasAmount) / 2
+		estAmount  = (safe_sum(abs.(cacheAmount[])) - biasAmount) / 2
 		numOutput  = sum(cacheAmount[] .< 0)
 		numInput   = _len - numOutput
 		ret = CellAddressComparative(
 				length( unique(cacheAddrId[]) ),
 				_len,
 				estAmount,
-				biasAmount / estAmount,
+				iszero(estAmount) ? 0 : biasAmount / estAmount,
 				length(unique(
 						cacheAddrId[][ cacheTagNew[] ]
 					)) / _len,
@@ -156,17 +162,17 @@
 			wpa95 = map(x-> -1.1 < x <= -0.95, concretePercents),
 			)
 		ret = CellAddressDirection(
-				sum(tmpIndexes.cpb10),
-				sum(tmpIndexes.cpb25),
-				sum(tmpIndexes.cpb50),
-				sum(tmpIndexes.cpb80),
-				sum(tmpIndexes.cpb95),
-				sum(cacheTagNew[]),
-				sum(tmpIndexes.wpb10),
-				sum(tmpIndexes.wpb25),
-				sum(tmpIndexes.wpb50),
-				sum(tmpIndexes.wpa80),
-				sum(tmpIndexes.wpa95),
+				safe_sum(tmpIndexes.cpb10),
+				safe_sum(tmpIndexes.cpb25),
+				safe_sum(tmpIndexes.cpb50),
+				safe_sum(tmpIndexes.cpb80),
+				safe_sum(tmpIndexes.cpb95),
+				safe_sum(cacheTagNew[]),
+				safe_sum(tmpIndexes.wpb10),
+				safe_sum(tmpIndexes.wpb25),
+				safe_sum(tmpIndexes.wpb50),
+				safe_sum(tmpIndexes.wpa80),
+				safe_sum(tmpIndexes.wpa95),
 
 				reduce(+, concreteAmounts[tmpIndexes.cpb10]),
 				reduce(+, concreteAmounts[tmpIndexes.cpb25]),
@@ -212,18 +218,18 @@
 			)
 		concreteAmounts = abs.(concreteAmounts)
 		ret = CellAddressAccumulation(
-				sum(tmpIndexes.recentD3Sending),
-				sum(tmpIndexes.wakeupW1Sending),
-				sum(tmpIndexes.wakeupM1Sending),
-				sum(tmpIndexes.recentD3Buying),
-				sum(tmpIndexes.wakeupW1Buying),
-				sum(tmpIndexes.wakeupM1Buying),
-				sum(tmpIndexes.contiD1Sending),
-				sum(tmpIndexes.contiD3Sending),
-				sum(tmpIndexes.contiW1Sending),
-				sum(tmpIndexes.contiD1Buying),
-				sum(tmpIndexes.contiD3Buying),
-				sum(tmpIndexes.contiW1Buying),
+				safe_sum(tmpIndexes.recentD3Sending),
+				safe_sum(tmpIndexes.wakeupW1Sending),
+				safe_sum(tmpIndexes.wakeupM1Sending),
+				safe_sum(tmpIndexes.recentD3Buying),
+				safe_sum(tmpIndexes.wakeupW1Buying),
+				safe_sum(tmpIndexes.wakeupM1Buying),
+				safe_sum(tmpIndexes.contiD1Sending),
+				safe_sum(tmpIndexes.contiD3Sending),
+				safe_sum(tmpIndexes.contiW1Sending),
+				safe_sum(tmpIndexes.contiD1Buying),
+				safe_sum(tmpIndexes.contiD3Buying),
+				safe_sum(tmpIndexes.contiW1Buying),
 				
 				reduce(+,concreteAmounts[tmpIndexes.recentD3Sending]),
 				reduce(+,concreteAmounts[tmpIndexes.wakeupW1Sending]),
@@ -246,13 +252,17 @@
 		concreteBalances = abs.(AddressService.GetFieldBalance(
 			cacheAddrId[][ concreteIndexes ]))
 		concreteAmounts  = abs.(cacheAmount[][ concreteIndexes ])
+		if isempty(concreteBalances)
+			concreteBalances = zeros(10)
+			concreteAmounts  = zeros(10)
+		end
 		sortedBalances = sort(concreteBalances)[1:floor(Int, 0.99*end)]
 		ret = CellAddressSupplier(
 				sum(sortedBalances) / length(sortedBalances),
 				Statistics.std(sortedBalances),
 				sortedBalances[floor(Int, 0.2*end)],
 				sortedBalances[floor(Int, 0.4*end)],
-				sortedBalances[round(Int, 0.5*end)],
+				sortedBalances[floor(Int, 0.5*end)],
 				sortedBalances[ceil(Int, 0.6*end)],
 				sortedBalances[ceil(Int, 0.8*end)],
 				sortedBalances[ceil(Int, 0.95*end)],
