@@ -156,6 +156,36 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 	SyncResults()
 	@info "$(now()) Synchronized."
 
+# generate windowed view
+	# may need more accuracy
+	function GenerateWindowedView(intervalSecs::T=3600, fromTs::T, toTs::T)::Vector{ResultCalculations} where T <: Signed
+		ret = ResultCalculations[]
+		for ts in fromTs+intervalSecs:intervalSecs:toTs
+			tmpRes = TableResults.GetRow(
+				Timestamp2FirstBlockN(ts-intervalSecs):Timestamp2LastBlockN(ts)
+			)
+			tmpLen = length(tmpRes)
+			tmpSum = reduce(+, tmpRes)
+			tmpSum.timestamp = ts
+			# CellAddressComparative
+			tmpSum.percentBiasReference /= tmpLen
+			tmpSum.percentNumNew /= tmpLen
+			tmpSum.percentNumSending /= tmpLen
+			tmpSum.percentNumReceiving /= tmpLen
+			# CellAddressSupplier
+			tmpSum.balanceSupplierMean /= tmpLen
+			tmpSum.balanceSupplierStd /= tmpLen
+			tmpSum.balanceSupplierPercent20 /= tmpLen
+			tmpSum.balanceSupplierPercent40 /= tmpLen
+			tmpSum.balanceSupplierMiddle /= tmpLen
+			tmpSum.balanceSupplierPercent60 /= tmpLen
+			tmpSum.balanceSupplierPercent80 /= tmpLen
+			tmpSum.balanceSupplierPercent95 /= tmpLen
+			push!(ret, tmpSum)
+		end
+		return ret
+	end
+
 # then bring up service
 	using Genie
 	using DataFrames
