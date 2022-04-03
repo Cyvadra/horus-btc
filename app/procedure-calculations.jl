@@ -256,10 +256,10 @@
 				append!(concreteAmounts, zeros(10))
 			else
 				for j in 1:5
-					pushfirst!(concreteBalances, concreteBalances[1])
-					pushfirst!(concreteAmounts, concreteAmounts[1])
-					push!(concreteBalances, concreteBalances[end])
-					push!(concreteAmounts, concreteAmounts[end])
+					pushfirst!(concreteBalances, rand(concreteBalances))
+					pushfirst!(concreteAmounts, rand(concreteAmounts))
+					push!(concreteBalances, rand(concreteBalances))
+					push!(concreteAmounts, rand(concreteAmounts))
 				end
 			end
 		end
