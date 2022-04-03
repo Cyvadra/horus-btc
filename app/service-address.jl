@@ -1,7 +1,7 @@
 
 using MmapDB
 
-MmapDB.Init("/mnt/data/AddressServiceDB/")
+MmapDB.Init("/mnt/data/AddressServiceDB-v2/")
 
 mutable struct AddressStatistics
 	# timestamp
