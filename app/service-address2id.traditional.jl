@@ -8,16 +8,18 @@ const TAG_MAX = "maximum"
 AddressStringDict[TAG_MAX] = 930830585
 AddressStringLock = Threads.SpinLock()
 
-
-@show now()
+tmpCache = Dict{Bool, String}()
+@info "$(now()) loading address list..."
 f = open("/mnt/data/bitcore/addr.latest.txt", "r")
-l = readline(f)
-while !isnothing(l)
-	s = split(l,'\t')
+tmpCache[true] = readline(f)
+prog = Progress(930830585)
+while !isnothing(tmpCache[true])
+	s = split(tmpCache[true],'\t')
 	AddressStringDict[s[1]] = parse(UInt32, s[2])
-	l = readline(f)
+	tmpCache[true] = readline(f)
+	next!(prog)
 	end
-@show now()
+@info "$(now()) loaded, doing gc"
 close(f)
 GC.gc()
 
