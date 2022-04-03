@@ -66,15 +66,7 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 	include("./procedure-calculations.jl")
 
 # Period predict
-	cacheAddrId = Vector{UInt32}()
-	cacheTagNew = Vector{Bool}()
-	cacheAmount = Vector{Float64}()
-	cacheTs     = Vector{Int32}()
 	function CalculateResultOnBlock(n)::ResultCalculations
-		empty!(cacheAddrId)
-		empty!(cacheTagNew)
-		empty!(cacheAmount)
-		empty!(cacheTs)
 		ts    = BlockNum2Timestamp(n)
 		coins = GetCoinsByMintHeight(n)
 		append!(coins, GetCoinsBySpentHeight(n))
@@ -84,20 +76,18 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 			end
 		Random.shuffle!(shuffleRng, coins)
 		addrs = map(x->GenerateID(x["address"]), coins)
-		append!(cacheAddrId, addrs)
-		append!(cacheTagNew, isNew(addrs))
-		append!(cacheAmount,
-			map(x->
-				x["mintHeight"] == n ?
-				bitcoreInt2Float64(x["value"]) :
-				- bitcoreInt2Float64(x["value"])
-				, coins)
-			)
+		cacheAddrId = addrs
+		cacheTagNew = isNew(addrs)
+		cacheAmount = map(x->
+			x["mintHeight"] == n ?
+			bitcoreInt2Float64(x["value"]) :
+			- bitcoreInt2Float64(x["value"])
+			, coins)
 		tmpTs = BlockNum2Timestamp(n-1)
 		tmpInterval = (ts - tmpTs) / length(coins)
-		append!(cacheTs, round.(Int32,
+		cacheTs = round.(Int32,
 			[ tmpTs + tmpInterval*i for i in 1:length(coins) ]
-			))
+		)
 		res = DoCalculations(cacheAddrId, cacheTagNew, cacheAmount, cacheTs)
 		res.timestamp = cacheTs[end]
 		return res
