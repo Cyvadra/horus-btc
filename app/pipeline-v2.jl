@@ -123,16 +123,25 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 
 # for initialization
 	function InitHistory()::Nothing
-		ts = TableTick.GetRow(1).Timestamp
-		toBlock = Timestamp2FirstBlockN(ts)
-		TableResults.SetRow(1, CalculateResultOnBlock(2))
+		baseTs = TableTick.GetRow(1).Timestamp
+		toBlock = Timestamp2FirstBlockN(baseTs)
+		tmpVal  = GetBTCPriceWhen(baseTs) / toBlock
+		tmpPrices = [ i*tmpVal for i in 1:toBlock ]
+		MergeAddressState!( Address2StateDiff(0,1), tmpVal )
 		@showprogress for n in 2:toBlock
 			TableResults.SetRow(
 				n,
 				CalculateResultOnBlock(n)
 			)
-			RecordAddrDiffOnBlock(n)
+			# calc price
+			ts = BlockNum2Timestamp(n)
+			arrayDiff = Address2StateDiff(n-1, n)
+			MergeAddressState!(arrayDiff, tmpPrices[n])
+			@info "$(now()) $n merged."
+			tmpTs = max( AddressService.GetFieldTimestampLastActive.( map(x->x.AddressId, arrayDiff) )... )
+			@assert Timestamp2LastBlockN(tmpTs) == Timestamp2LastBlockN(ts)
 		end
+		TableResults.SetRow(1, TableResults.GetRow(2))
 		return nothing
 		end
 
