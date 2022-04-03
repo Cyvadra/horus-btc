@@ -158,7 +158,7 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 
 # generate windowed view
 	# may need more accuracy
-	function GenerateWindowedView(intervalSecs::T=3600, fromTs::T, toTs::T)::Vector{ResultCalculations} where T <: Signed
+	function GenerateWindowedView(intervalSecs::T, fromTs::T, toTs::T)::Vector{ResultCalculations} where T <: Signed
 		ret = ResultCalculations[]
 		for ts in fromTs+intervalSecs:intervalSecs:toTs
 			tmpRes = TableResults.GetRow(
@@ -185,6 +185,18 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 		end
 		return ret
 	end
+	function GenerateWindowedViewH1(fromDate::DateTime, toDate::DateTime)::Vector{ResultCalculations}
+		return GenerateWindowedView(3600, dt2unix(fromDate), dt2unix(toDate))
+		end
+	function GenerateWindowedViewH2(fromDate::DateTime, toDate::DateTime)::Vector{ResultCalculations}
+		return GenerateWindowedView(7200, dt2unix(fromDate), dt2unix(toDate))
+		end
+	function GenerateWindowedViewH3(fromDate::DateTime, toDate::DateTime)::Vector{ResultCalculations}
+		return GenerateWindowedView(10800, dt2unix(fromDate), dt2unix(toDate))
+		end
+	function GenerateWindowedViewH12(fromDate::DateTime, toDate::DateTime)::Vector{ResultCalculations}
+		return GenerateWindowedView(43200, dt2unix(fromDate), dt2unix(toDate))
+		end
 
 # then bring up service
 	using Genie
