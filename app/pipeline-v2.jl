@@ -102,7 +102,7 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 		ResyncBlockTimestamps()
 		lastTs    = GetLastProcessedTimestamp()
 		currentTs = round(Int, time())
-		fromBlock = Timestamp2FirstBlockN(lastTs+10)
+		fromBlock = Timestamp2FirstBlockN(lastTs+1)
 		toBlock   = Timestamp2LastBlockN(currentTs)
 		if toBlock <= fromBlock
 			PipelineLocks["synchronizing"] = false
@@ -127,21 +127,22 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 		toBlock   = Timestamp2FirstBlockN(baseTs)
 		tmpPrice  = GetBTCPriceWhen(baseTs)
 		[ BlockPriceDict[i] = i * tmpPrice / toBlock for i in 1:toBlock ]; # overwrite middleware-calc_addr_diff.jl
-		MergeAddressState!( Address2StateDiff(0,1), zero(Float32) )
-		@showprogress for n in 2:toBlock
-			TableResults.SetRow(
-				n,
-				CalculateResultOnBlock(n)
+		# MergeAddressState!( Address2StateDiff(0,1), zero(Float32) )
+		lastBlockN = GetLastProcessedTimestamp() |> Timestamp2LastBlockN
+		tmpStep    = 1
+		@showprogress for n in lastBlockN:tmpStep:toBlock-tmpStep
+			tmpEnd = min(n+tmpStep, toBlock)
+			MergeAddressState!(
+				Address2StateDiff(n, tmpEnd),
+				BlockPriceDict[n]
 			)
-			# calc price
-			ts = BlockNum2Timestamp(n)
-			arrayDiff = Address2StateDiff(n-1, n)
-			MergeAddressState!(arrayDiff, BlockPriceDict[n])
-			tmpTs = max( AddressService.GetFieldTimestampLastActive.( map(x->x.AddressId, arrayDiff) )... )
-			@assert Timestamp2LastBlockN(tmpTs) == Timestamp2LastBlockN(ts)
 		end
-		TableResults.SetRow(1, TableResults.GetRow(2))
 		return nothing
+		end
+	if false
+		InitHistory()
+		AddressService.SaveCopy("/mnt/data/AddressServiceDB-backup/")
+		SyncResults()
 		end
 
 # for test
