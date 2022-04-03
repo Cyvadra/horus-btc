@@ -1,22 +1,28 @@
 
 using ProgressMeter
 using Dates
+using ThreadsX
 
 AddressStringDict = Dict{String,UInt32}()
 const NUM_NOT_EXIST = UInt32(0)
 const TAG_MAX = "maximum"
-AddressStringDict[TAG_MAX] = 930830585
+AddressStringDict_TAG_MAX = 930830585
 AddressStringLock = Threads.SpinLock()
 
 
-@show now()
+@info "$(now()) reading txt into memory..."
 f = readlines("/mnt/data/bitcore/addr.latest.txt")
-@show now()
-@showprogress for l in f
-	s = split(l,'\t')
-	AddressStringDict[s[1]] = parse(UInt32, s[2])
+@info "$(now()) doing convertion..."
+function lambdaAddressDict(x)
+	tmpVal = split(x,'\t')
+	return tmpVal[1], parse(UInt32, tmpVal[2])
 	end
-@show now()
+@info "$(now()) generating pairs..."
+f = ThreadsX.map(x->lambdaAddressDict(x), f)
+@info "$(now()) generate dict"
+AddressStringDict = Dict{String,UInt32}(f)
+f[TAG_MAX] = AddressStringDict_TAG_MAX
+@info "$(now()) AddressService loaded!"
 empty!(f)
 f = nothing
 varinfo(r"f")
