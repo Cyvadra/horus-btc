@@ -78,6 +78,10 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 		ts    = BlockNum2Timestamp(n)
 		coins = GetCoinsByMintHeight(n)
 		append!(coins, GetCoinsBySpentHeight(n))
+		if length(coins) < 2
+			@warn "$(now()) EMPTY BLOCK $n !!!"
+			return ResultCalculations(zeros(length(ResultCalculations.types))...)
+			end
 		Random.shuffle!(shuffleRng, coins)
 		addrs = map(x->GenerateID(x["address"]), coins)
 		append!(cacheAddrId, addrs)
