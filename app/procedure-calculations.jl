@@ -250,9 +250,18 @@
 		concreteBalances = abs.(AddressService.GetFieldBalance(
 			cacheAddrId[][ concreteIndexes ]))
 		concreteAmounts  = abs.(cacheAmount[][ concreteIndexes ])
-		if isempty(concreteBalances)
-			concreteBalances = zeros(10)
-			concreteAmounts  = zeros(10)
+		if length(concreteBalances) < 10
+			if isempty(concreteBalances)
+				append!(concreteBalances, zeros(10))
+				append!(concreteAmounts, zeros(10))
+			else
+				for j in 1:5
+					pushfirst!(concreteBalances, concreteBalances[1])
+					pushfirst!(concreteAmounts, concreteAmounts[1])
+					push!(concreteBalances, concreteBalances[end])
+					push!(concreteAmounts, concreteAmounts[end])
+				end
+			end
 		end
 		sortedBalances = sort(concreteBalances)[1:floor(Int, 0.99*end)]
 		ret = CellAddressSupplier(
