@@ -12,18 +12,12 @@ include("./procedure-calculations.jl");
 using ThreadSafeDicts # private repo
 
 PipelineLocks = ThreadSafeDict{String, Bool}()
+PipelineLocks["synchronizing"] = false
 
 # Init
 	AddressService.Open(false) # shall always
 
-# Get latest timestamp
-	# function GetLastProcessedBlockN()::Int
-	# 	return Int(Timestamp2LastBlockN(GetLastProcessedTimestamp()))
-	# 	end
-	# lastProcessedBlockN = GetLastProcessedBlockN()
-
 # Sync BlockPairs
-# this loop will auto throw error when all synchronized
 	function SyncBlockInfo()::Int
 		println("Synchronizing Block Info")
 		latestBlockHeight = 1
@@ -41,8 +35,6 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 		println()
 		return latestBlockHeight
 		end
-	SyncBlockInfo()
-	ResyncBlockTimestamps()
 
 # Timeline alignment
 	function RecordAddrDiffOnBlock(toN)::Nothing
@@ -91,7 +83,6 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 		end
 
 # Online Calculations
-	PipelineLocks["synchronizing"] = false
 	function SyncResults()::Nothing
 		syncBitcoin()
 		if PipelineLocks["synchronizing"]
@@ -139,11 +130,6 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 		end
 		return nothing
 		end
-	if false
-		InitHistory()
-		AddressService.SaveCopy("/mnt/data/AddressServiceDB-backup/")
-		SyncResults()
-		end
 
 # for test
 	function GetAddressInfo(addr::AbstractString)::Nothing
@@ -157,7 +143,7 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 	@info "$(now()) Synchronized."
 
 # generate windowed view
-	# may need more accuracy
+	# haven't considered gaps between blocks
 	function GenerateWindowedView(intervalSecs::T, fromTs::T, toTs::T)::Vector{ResultCalculations} where T <: Signed
 		ret = ResultCalculations[]
 		for ts in fromTs+intervalSecs:intervalSecs:toTs
@@ -289,7 +275,7 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 					)
 				],
 				Layout(
-					title_text = string(unix2dt(listTs[end])) * " $latestL% $latestH%",
+					title_text = string(unix2dt(listTs[end])) * " $latestL $latestH",
 					xaxis_title_text = "timestamp",
 				)
 			);
@@ -300,6 +286,12 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 		end
 
 
-
+	function lambdaSync()
+		InitHistory()
+		AddressService.SaveCopy("/mnt/data/AddressServiceDB-backup/")
+		SyncResults()
+		end
+	SyncBlockInfo()
+	ResyncBlockTimestamps()
 	up(8023)
 
