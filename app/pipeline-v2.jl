@@ -182,8 +182,8 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 			tmpSum.balanceSupplierPercent80 /= tmpLen
 			tmpSum.balanceSupplierPercent95 /= tmpLen
 			push!(ret, tmpSum)
-		end
-		return ret
+	end
+	return ret
 	end
 	function GenerateWindowedViewH1(fromDate::DateTime, toDate::DateTime)::Vector{ResultCalculations}
 		return GenerateWindowedView(3600, dt2unix(fromDate), dt2unix(toDate))
@@ -193,6 +193,9 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 		end
 	function GenerateWindowedViewH3(fromDate::DateTime, toDate::DateTime)::Vector{ResultCalculations}
 		return GenerateWindowedView(10800, dt2unix(fromDate), dt2unix(toDate))
+		end
+	function GenerateWindowedViewH6(fromDate::DateTime, toDate::DateTime)::Vector{ResultCalculations}
+		return GenerateWindowedView(21600, dt2unix(fromDate), dt2unix(toDate))
 		end
 	function GenerateWindowedViewH12(fromDate::DateTime, toDate::DateTime)::Vector{ResultCalculations}
 		return GenerateWindowedView(43200, dt2unix(fromDate), dt2unix(toDate))
