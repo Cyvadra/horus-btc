@@ -226,6 +226,7 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 		SyncResults()
 		"done in " * string( (now() - t).value / 1000 ) * "secs"
 		end
+	numSequenceReturn = 50
 	route("/sequence") do
 		s = Genie.params(:session, "")
 		if length(s) < 10
@@ -235,8 +236,10 @@ PipelineLocks = ThreadSafeDict{String, Bool}()
 		if !CheckScript(s)
 			return ""
 			end
-		tmpVal  = TableResults.Findlast(x->!iszero(x), :timestamp)
-		tmpRet  = TableResults.GetRow.(tmpVal-50:tmpVal)
+		tmpSecs = 21600
+		tmpTs   = TableResults.Findlast(x->!iszero(x), :timestamp)
+		tmpTs   = (tmpTs - tmpTs % tmpSecs) + tmpSecs
+		tmpRet  = GenerateWindowedViewH6(tmpTs-numSequenceReturn*tmpSecs, tmpTs)
 		listTs  = map(x->x.timestamp, tmpRet)
 		basePrice = GetBTCPriceWhen(listTs[end])
 		latestH   = reduce( max,
