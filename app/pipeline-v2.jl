@@ -13,6 +13,7 @@ using ThreadSafeDicts # private repo
 
 PipelineLocks = ThreadSafeDict{String, Bool}()
 PipelineLocks["synchronizing"] = false
+PipelineLocks["emergency_break"] = false
 
 # Init
 	AddressService.Open(false) # shall always
@@ -120,8 +121,11 @@ PipelineLocks["synchronizing"] = false
 		[ BlockPriceDict[i] = i * tmpPrice / toBlock for i in 1:toBlock ]; # overwrite middleware-calc_addr_diff.jl
 		# MergeAddressState!( Address2StateDiff(0,1), zero(Float32) )
 		lastBlockN = GetLastProcessedTimestamp() |> Timestamp2LastBlockN
-		tmpStep    = 1
+		tmpStep    = 10
 		@showprogress for n in lastBlockN:tmpStep:toBlock-tmpStep
+			if PipelineLocks["emergency_break"]
+				break
+			end
 			tmpEnd = min(n+tmpStep, toBlock)
 			MergeAddressState!(
 				Address2StateDiff(n, tmpEnd),
