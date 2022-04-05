@@ -18,17 +18,17 @@ end
 
 TableTick = MmapDB.GenerateCode(Tick)
 TableTick.Open(true)
-baseTs = TableTick.GetFieldTimestamp(1) - 60
+const baseTickTs = TableTick.GetFieldTimestamp(1) - 60
 
 function ts2ind(ts)::Int32
-	if ts - baseTs < 60
+	if ts - baseTickTs < 60
 		return 1
 	else
-		return floor(Int32, (ts - baseTs)/60)
+		return floor(Int32, (ts - baseTickTs)/60)
 	end
 	end
 function ind2ts(i)
-	return round(Int, baseTs+i*60)
+	return round(Int, baseTickTs+i*60)
 	end
 
 function GetBTCPriceWhen(ts)::Float32
