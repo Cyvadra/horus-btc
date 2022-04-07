@@ -35,7 +35,23 @@ function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff} # 
 		counter
 	)
 	if isnothing(counterNext)
-		counterNext = 2
+		if length(coinsAll) == 1
+			push!(ret, AddressDiff(
+				GenerateID(coinsAll[counter]["address"]),
+				coinsAll[counter]["mintHeight"] |> BlockNum2Timestamp,
+				0,
+				coinsAll[counter]["value"] |> bitcoreInt2Float64,
+				0,
+				1,
+				0,
+				(coinsAll[counter]["value"] |> bitcoreInt2Float64) * GetBTCPriceWhen(BlockNum2Timestamp(coinsAll[counter]["mintHeight"])),
+				0,
+				0,
+				))
+			return ret
+		else
+			throw("enexpected $toBlock")
+		end
 	end
 	while !isnothing(counterNext)
 		counterNext -= 1
@@ -117,6 +133,9 @@ function MergeAddressState!(arrayDiff::Vector{AddressDiff}, coinPrice::Float32):
 		baseState.AveragePurchasePrice = baseState.UsdtPayed4Input / baseState.AmountIncomeTotal
 		baseState.UsdtNetRealized = baseState.UsdtReceived4Output - baseState.UsdtPayed4Input
 		baseState.Balance = baseState.AmountIncomeTotal - baseState.AmountExpenseTotal
+		if baseState.Balance < 0
+			throw(d.AddressId)
+		end
 		baseState.UsdtNetUnrealized = baseState.Balance * (coinPrice - baseState.AveragePurchasePrice)
 		AddressService.SetRow(d.AddressId, baseState)
 		counter += 1
