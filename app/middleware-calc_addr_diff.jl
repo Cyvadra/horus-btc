@@ -143,6 +143,60 @@ function MergeAddressState!(arrayDiff::Vector{AddressDiff}, coinPrice::Float32):
 	return counter
 	end
 
+function MergeBlock2AddressState(n::Int)::Nothing
+	coinsAll = GetBlockCoins(n)
+	tmpId    = UInt32(0)
+	coinsIn  = filter(x->x["mintHeight"]==n, coinsAll)
+	coinsOut = filter(x->x["spentHeight"]==n, coinsAll)
+	ts       = n |> BlockNum2Timestamp
+	tmpPrice = GetPriceAtBlockN(n)
+	tmpAmount= 0.0
+	for c in coinsIn
+		tmpId = GenerateID(c["address"])
+		tmpAmount = bitcoreInt2Float64(c["value"])
+		if isNew(tmpId)
+			AddressService.SetFieldTimestampCreated(tmpId, ts)
+		end
+		AddressService.SetFieldTimestampLastActive(tmpId, ts)
+		AddressService.SetFieldTimestampLastReceived(tmpId, ts)
+		AddressService.SetFieldDiffAmountIncomeTotal(tmpId, tmpAmount)
+		AddressService.SetFieldDiffNumTxInTotal(tmpId, 1)
+		AddressService.SetFieldDiffUsdtPayed4Input(tmpId, tmpPrice * tmpAmount)
+		AddressService.SetFieldAveragePurchasePrice(tmpId,
+			AddressService.GetFieldUsdtPayed4Input(tmpId) /
+			AddressService.GetFieldAmountIncomeTotal(tmpId)
+			)
+		AddressService.SetFieldUsdtNetRealized(tmpId,
+			AddressService.GetFieldUsdtReceived4Output(tmpId) - AddressService.GetFieldUsdtPayed4Input(tmpId)
+			)
+		AddressService.SetFieldBalance(tmpId,
+			AddressService.GetFieldAmountIncomeTotal(tmpId) - AddressService.GetFieldAmountExpenseTotal(tmpId)
+			)
+	end
+	for c in coinsOut
+		tmpId = GenerateID(c["address"])
+		tmpAmount = bitcoreInt2Float64(c["value"])
+		if isNew(tmpId)
+			AddressService.SetFieldTimestampCreated(tmpId, ts)
+		end
+		AddressService.SetFieldTimestampLastActive(tmpId, ts)
+		AddressService.SetFieldTimestampLastPayed(tmpId, ts)
+		AddressService.SetFieldDiffAmountExpenseTotal(tmpId, tmpAmount)
+		AddressService.SetFieldDiffNumTxOutTotal(tmpId, 1)
+		AddressService.SetFieldDiffUsdtReceived4Output(tmpId, tmpPrice * tmpAmount)
+		AddressService.SetFieldLastSellPrice(tmpId, tmpPrice)
+		AddressService.SetFieldUsdtNetRealized(tmpId,
+			AddressService.GetFieldUsdtReceived4Output(tmpId) - AddressService.GetFieldUsdtPayed4Input(tmpId)
+			)
+		AddressService.SetFieldBalance(tmpId,
+			AddressService.GetFieldAmountIncomeTotal(tmpId) - AddressService.GetFieldAmountExpenseTotal(tmpId)
+			)
+	end
+	return nothing
+	end
+
+
+
 BlockPriceDict = Dict{Int, Float32}()
 function SyncBlockPriceDict(fromN, toN)::Nothing
 	for h in fromN:toN
