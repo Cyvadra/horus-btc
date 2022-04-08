@@ -13,7 +13,6 @@ using ThreadSafeDicts # private repo
 
 PipelineLocks = ThreadSafeDict{String, Bool}()
 PipelineLocks["synchronizing"] = false
-PipelineLocks["emergency_break"] = false
 
 # Init
 	AddressService.Open(false) # shall always
@@ -115,22 +114,17 @@ PipelineLocks["emergency_break"] = false
 
 # for initialization
 	function InitHistory()::Nothing
-		baseTs    = TableTick.GetRow(1).Timestamp
+		baseTs    = DateTime(2019,1,1,0,0) |> dt2unix
 		toBlock   = Timestamp2FirstBlockN(baseTs)
-		tmpPrice  = GetBTCPriceWhen(baseTs)
-		[ BlockPriceDict[i] = i * tmpPrice / toBlock for i in 1:toBlock ]; # overwrite middleware-calc_addr_diff.jl
-		# MergeAddressState!( Address2StateDiff(0,1), zero(Float32) )
-		lastBlockN = GetLastProcessedTimestamp() |> Timestamp2LastBlockN
-		tmpStep    = 10
-		@showprogress for n in lastBlockN:tmpStep:toBlock-tmpStep
-			if PipelineLocks["emergency_break"]
-				break
+		tmpBlock  = TableTick.GetRow(1).Timestamp |> Timestamp2FirstBlockN
+		tmpPrice  = GetBTCPriceWhen(tmpBlock)
+		[ BlockPriceDict[i] = i * tmpPrice / toBlock for i in 1:tmpBlock ]; # overwrite dict in middleware-calc_addr_diff.jl
+		lastBlockN = GetLastProcessedTimestamp() |> Timestamp2LastBlockN |> x->x+1
+		for n in lastBlockN:toBlock
+			MergeBlock2AddressState(n)
+			if rand() < 0.1
+				print("$n \t")
 			end
-			tmpEnd = min(n+tmpStep, toBlock)
-			MergeAddressState!(
-				Address2StateDiff(n, tmpEnd),
-				BlockPriceDict[n]
-			)
 		end
 		return nothing
 		end
