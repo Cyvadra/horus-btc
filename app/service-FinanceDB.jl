@@ -53,12 +53,15 @@ function GetBTCLowWhen(ts::Union{Vector,UnitRange})::Vector{Float32}
 
 function syncBitcoin()
 	# get derivative
-	nextPos = findfirst(x->iszero(x), TableTick.TickDict[:Timestamp])
-	ts  = TableTick.GetFieldTimestamp(nextPos-1)
-	tmpN = ceil(Int, time()/100) * 100
+	prevTs = TableTick.Findfirst(x->iszero(x), :Timestamp) |> x->x-1 |> TableTick.GetFieldTimestamp
+	tmpN = (round(Int,time()) - round(Int,time()) % 60) - prevTs
+	tmpN = ceil(Int, tmpN / 60)
 	tmpN = min(tmpN, 1000)
+	if tmpN < 2
+		return prevTs
+	end
 	# fetch data
-	url = "https://www.binance.com/api/v3/klines?startTime=$(ts)000&limit=$tmpN&symbol=BTCUSDT&interval=1m"
+	url = "https://www.binance.com/api/v3/klines?startTime=$(prevTs)000&limit=$tmpN&symbol=BTCUSDT&interval=1m"
 	run(pipeline(
 		`proxychains4 curl $url`;
 		stdout=cacheMarket,
@@ -67,7 +70,6 @@ function syncBitcoin()
 	ret = JSON.Parser.parse(read(cacheMarket, String))[2:end]
 	rm(cacheMarket)
 	# write data
-	prevTs = TableTick.GetFieldTimestamp(nextPos-1)
 	for i in 1:length(ret)
 		currentTs = floor(Int, ret[i][1]/1000)
 		if !iszero(currentTs - prevTs - 60)
