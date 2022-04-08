@@ -101,12 +101,12 @@ PipelineLocks["synchronizing"] = false
 		else
 			@info "Synchronizing from $fromBlock to $toBlock"
 		end
-		for n in fromBlock:toBlock
+		@showprogress for n in fromBlock:toBlock
 			TableResults.SetRow(
 				n,
 				CalculateResultOnBlock(n)
 			)
-			RecordAddrDiffOnBlock(n)
+			MergeBlock2AddressState(n)
 		end
 		PipelineLocks["synchronizing"] = false
 		return nothing
