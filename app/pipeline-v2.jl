@@ -215,10 +215,10 @@ PipelineLocks["synchronizing"] = false
 		if !CheckScript(s)
 			return ""
 			end
-		tmpSecs = 21600
+		tmpSecs = round(Int, 3600 * 2)
 		tmpTs   = TableResults.Findlast(x->!iszero(x), :timestamp)
 		tmpTs   = (tmpTs - tmpTs % tmpSecs) + tmpSecs
-		tmpRet  = GenerateWindowedViewH6(tmpTs-numSequenceReturn*tmpSecs, tmpTs)
+		tmpRet  = GenerateWindowedViewH2(tmpTs-numSequenceReturn*tmpSecs, tmpTs)
 		listTs  = map(x->x.timestamp, tmpRet)
 		basePrice = GetBTCPriceWhen(listTs[end])
 		latestH   = reduce( max,
