@@ -33,7 +33,7 @@ function GetView()
 	tmpRet = d["results"]
 	listTs = map(x->x["timestamp"], tmpRet)
 	# baseList  = map(x->x["numTotalActive"], tmpRet)
-	tmpFields = tmpRet[1] |> keys |> collect
+	tmpFields = tmpRet[1] |> keys |> collect |> sort
 	traces = GenericTrace[]
 	for sym in tmpFields
 		if sym in hiddenList
