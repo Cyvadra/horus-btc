@@ -208,6 +208,7 @@ PipelineLocks["synchronizing"] = false
 	numSequenceReturn = 50
 	route("/sequence") do
 		s = Genie.params(:session, "")
+		n = parse(Int, Genie.params(:num, "3"))
 		if length(s) < 10
 			@warn s
 			return ""
@@ -219,7 +220,7 @@ PipelineLocks["synchronizing"] = false
 		tmpTs   = GetLastResultsTimestamp()
 		tmpTs   = (tmpTs - tmpTs % tmpSecs)
 		tmpDt   = unix2dt(tmpTs)
-		tmpRet  = GenerateWindowedViewH2(tmpDt-Day(3), tmpDt)
+		tmpRet  = GenerateWindowedViewH2(tmpDt-Day(n), tmpDt)
 		listTs  = map(x->x.timestamp, tmpRet)
 		basePrice = GetBTCPriceWhen(listTs[end])
 		latestH   = reduce( max,
