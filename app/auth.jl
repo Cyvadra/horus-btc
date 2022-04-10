@@ -19,7 +19,7 @@ function CheckScript(s::String)::Bool
 	s  = decrypt(authMethod, authString, s)
 	s  = String(s)[1:10]
 	s  = parse(Int, s)
-	if ts - 1 <= s <= ts + 1
+	if ts - 3 <= s <= ts + 3
 		return true
 	else
 		return false
