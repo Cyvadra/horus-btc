@@ -6,14 +6,7 @@ using PlotlyJS
 using Dates
 
 serviceURL = "http://localhost:8080/sequence"
-hiddenList = String[
-		"amountRecentD3", "numTotalRows", "amountTotalTransfer",
-		"numWakeupW1Sending", "numWakeupW1Byuing",
-		"numWakeupM1Sending", "numWakeupM1Byuing",
-		"amountRecentD3Sending", "amountRecentD3Buying",
-		"numRecentD3Sending", "numRecentD3Buying",
-		"numTotalActive", "timestamp"
-	]
+
 
 HTTP.get("http://baidu.com") # precompile HTTP
 function normalise(v::Vector, rng::UnitRange)::Vector
@@ -27,8 +20,10 @@ function normalise(v::Vector, rng::UnitRange)::Vector
 	return v
 	end
 
-priceRange = 10000:100000
+singleHeight = 100
+percentCross = 0
 function GetView()
+	tmpHeightBase = singleHeight
 	d = String(HTTP.get(serviceURL*"?session=$(GenerateScript())").body) |> JSON.Parser.parse
 	tmpRet = d["results"]
 	listTs = map(x->x["timestamp"], tmpRet)
@@ -36,21 +31,16 @@ function GetView()
 	tmpFields = tmpRet[1] |> keys |> collect |> sort
 	traces = GenericTrace[]
 	for sym in tmpFields
-		if sym in hiddenList
-			continue
-		end
 		tmpList  = map(x->x[sym], tmpRet) #./ baseList
-		if occursin("amountRealized", string(sym))
-			tmpList .*= 1e5
-		end
-		# tmpList  = normalise(tmpList, displatRange)
+		tmpList  = normalise(tmpList, tmpHeightBase:tmpHeightBase+singleHeight)
 		push!(traces, 
 			PlotlyJS.scatter(x = listTs, y = tmpList,
 				name = string(sym),
 			)
 		)
+		tmpHeightBase += singleHeight
 	end
-	prices = normalise(d["prices"], priceRange)
+	prices = normalise(d["prices"], singleHeight:tmpHeightBase)
 	push!(traces, 
 		PlotlyJS.scatter(x = listTs, y = prices,
 			name = "actual", marker_color = "black", yaxis = "actual")
