@@ -165,19 +165,19 @@ PipelineLocks["synchronizing"] = false
 	return ret
 	end
 	function GenerateWindowedViewH1(fromDate::DateTime, toDate::DateTime)::Vector{ResultCalculations}
-		return GenerateWindowedView(3600, dt2unix(fromDate), dt2unix(toDate))
+		return GenerateWindowedView(Int32(3600), dt2unix(fromDate), dt2unix(toDate))
 		end
 	function GenerateWindowedViewH2(fromDate::DateTime, toDate::DateTime)::Vector{ResultCalculations}
-		return GenerateWindowedView(7200, dt2unix(fromDate), dt2unix(toDate))
+		return GenerateWindowedView(Int32(7200), dt2unix(fromDate), dt2unix(toDate))
 		end
 	function GenerateWindowedViewH3(fromDate::DateTime, toDate::DateTime)::Vector{ResultCalculations}
-		return GenerateWindowedView(10800, dt2unix(fromDate), dt2unix(toDate))
+		return GenerateWindowedView(Int32(10800), dt2unix(fromDate), dt2unix(toDate))
 		end
 	function GenerateWindowedViewH6(fromDate::DateTime, toDate::DateTime)::Vector{ResultCalculations}
-		return GenerateWindowedView(21600, dt2unix(fromDate), dt2unix(toDate))
+		return GenerateWindowedView(Int32(21600), dt2unix(fromDate), dt2unix(toDate))
 		end
 	function GenerateWindowedViewH12(fromDate::DateTime, toDate::DateTime)::Vector{ResultCalculations}
-		return GenerateWindowedView(43200, dt2unix(fromDate), dt2unix(toDate))
+		return GenerateWindowedView(Int32(43200), dt2unix(fromDate), dt2unix(toDate))
 		end
 
 # then bring up service
@@ -216,9 +216,10 @@ PipelineLocks["synchronizing"] = false
 			return ""
 			end
 		tmpSecs = round(Int, 3600 * 2)
-		tmpTs   = TableResults.Findlast(x->!iszero(x), :timestamp)
-		tmpTs   = (tmpTs - tmpTs % tmpSecs) + tmpSecs
-		tmpRet  = GenerateWindowedViewH2(tmpTs-numSequenceReturn*tmpSecs, tmpTs)
+		tmpTs   = GetLastResultsTimestamp()
+		tmpTs   = (tmpTs - tmpTs % tmpSecs)
+		tmpDt   = unix2dt(tmpTs)
+		tmpRet  = GenerateWindowedViewH2(tmpDt-Day(3), tmpDt)
 		listTs  = map(x->x.timestamp, tmpRet)
 		basePrice = GetBTCPriceWhen(listTs[end])
 		latestH   = reduce( max,
