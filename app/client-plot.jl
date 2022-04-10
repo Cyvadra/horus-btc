@@ -124,8 +124,8 @@ function furtherCalculate!(d::Dict)::Dict
 
 singleHeight = 100
 percentCross = 0.95
-function GetData()::Dict
-	tmpUrl = serviceURL*"?session=$(GenerateScript())&num=5"
+function GetData(num::Int=5, intervalSecs::Int=7200)::Dict
+	tmpUrl = serviceURL*"?session=$(GenerateScript())&num=$num&interval=$intervalSecs"
 	d = String(HTTP.get(tmpUrl).body) |> JSON.Parser.parse
 	return d
 	end
