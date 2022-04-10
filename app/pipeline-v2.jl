@@ -79,16 +79,16 @@ PipelineLocks["synchronizing"] = false
 
 # Online Calculations
 	function SyncResults()::Nothing
+		SyncBlockInfo()
+		ResyncBlockTimestamps()
 		syncBitcoin()
 		if PipelineLocks["synchronizing"]
 			return nothing
 		end
 		PipelineLocks["synchronizing"] = true
-		SyncBlockInfo()
-		ResyncBlockTimestamps()
 		lastTs    = GetLastProcessedTimestamp()
 		currentTs = round(Int, time())
-		fromBlock = Timestamp2FirstBlockN(lastTs+1)
+		fromBlock = Timestamp2FirstBlockN(lastTs) + 1
 		toBlock   = Timestamp2LastBlockN(currentTs)
 		if toBlock <= fromBlock
 			PipelineLocks["synchronizing"] = false
@@ -207,6 +207,9 @@ PipelineLocks["synchronizing"] = false
 		end
 	numSequenceReturn = 50
 	route("/sequence") do
+		SyncBlockInfo()
+		ResyncBlockTimestamps()
+		syncBitcoin()
 		s = Genie.params(:session, "")
 		n = parse(Int, Genie.params(:num, "3"))
 		if length(s) < 10
