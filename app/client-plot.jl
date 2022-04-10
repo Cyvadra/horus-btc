@@ -7,6 +7,14 @@ using Dates
 
 serviceURL = "http://localhost:8080/sequence"
 
+hiddenList = String[
+	"amountRecentD3", "numTotalRows", "amountTotalTransfer",
+	"numWakeupW1Sending", "numWakeupW1Byuing",
+	"numWakeupM1Sending", "numWakeupM1Byuing",
+	"amountRecentD3Sending", "amountRecentD3Buying",
+	"numRecentD3Sending", "numRecentD3Buying",
+	"numTotalActive", "timestamp"
+	]
 translateDict = Dict{String,String}(
 	"amountChargePercentBelow10" => "大户充值",
 	"amountChargePercentBelow25" => "大额充值25",
@@ -106,7 +114,7 @@ function plotfit(v::Vector, rng::UnitRange, baseY)::Vector
 
 
 singleHeight = 100
-percentCross = 0.9
+percentCross = 0.92
 function GetData()::Dict
 	tmpUrl = serviceURL*"?session=$(GenerateScript())&num=5"
 	d = String(HTTP.get(tmpUrl).body) |> JSON.Parser.parse
@@ -144,5 +152,40 @@ function GetView(d::Dict)
 		)
 	)
 	end
-
-
+function GetView()
+	GetView(GetData())
+	end
+function GetViewTraditional()
+	d = String(HTTP.get(serviceURL*"?session=$(GenerateScript())").body) |> JSON.Parser.parse
+	tmpRet = d["results"]
+	listTs = map(x->x["timestamp"], tmpRet)
+	# baseList  = map(x->x["numTotalActive"], tmpRet)
+	tmpFields = tmpRet[1] |> keys |> collect
+	traces = GenericTrace[]
+	for sym in tmpFields
+		if sym in hiddenList
+			continue
+		end
+		tmpList  = map(x->x[sym], tmpRet) #./ baseList
+		if occursin("amountRealized", string(sym))
+			tmpList .*= 1e5
+		end
+		push!(traces, 
+			PlotlyJS.scatter(x = listTs, y = tmpList,
+				name = translateDict[string(sym)],
+			)
+		)
+	end
+	prices = normalise(d["prices"], priceRange)
+	push!(traces, 
+		PlotlyJS.scatter(x = listTs, y = prices,
+			name = "actual", marker_color = "black", yaxis = "actual")
+	)
+	PlotlyJS.plot(
+		traces,
+		Layout(
+			title_text = string(unix2datetime(listTs[end])+Hour(8)) * " $(d["latestH"]) $(d["latestL"])",
+			xaxis_title_text = "timestamp",
+		)
+	)
+	end
