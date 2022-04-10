@@ -212,6 +212,7 @@ PipelineLocks["synchronizing"] = false
 		syncBitcoin()
 		s = Genie.params(:session, "")
 		n = parse(Int, Genie.params(:num, "3"))
+		tmpWindow = parse(Int, Genie.params(:interval, "7200"))
 		if length(s) < 10
 			@warn s
 			return ""
@@ -219,11 +220,18 @@ PipelineLocks["synchronizing"] = false
 		if !CheckScript(s)
 			return ""
 			end
-		tmpSecs = round(Int, 3600 * 2)
+		tmpSecs = tmpWindow
 		tmpTs   = GetLastResultsTimestamp()
 		tmpTs   = (tmpTs - tmpTs % tmpSecs)
+		if time() - tmpTs > tmpWindow / 2
+			if time() - tmpTs > tmpWindow
+				tmpTs += tmpWindow
+			else
+				tmpTs += round(Int, tmpWindow/2)
+			end
+		end
 		tmpDt   = unix2dt(tmpTs)
-		tmpRet  = GenerateWindowedViewH2(tmpDt-Day(n), tmpDt)
+		tmpRet  = GenerateWindowedView(Int32(tmpWindow), dt2unix(tmpDt-Day(n)), dt2unix(tmpDt))
 		listTs  = map(x->x.timestamp, tmpRet)
 		basePrice = GetBTCPriceWhen(listTs[end])
 		latestH   = reduce( max,
