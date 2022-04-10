@@ -92,12 +92,28 @@ function normalise(v::Vector, rng::UnitRange)::Vector
 	v .+= rng[1]
 	return v
 	end
+function plotfit(v::Vector, rng::UnitRange, baseY)::Vector
+	v = deepcopy(v) .+ 0.00
+	s = sort(v)
+	vMin, vMax = s[1], s[end]
+	vBias = vMax - vMin
+	v .-= vMin
+	v ./= vBias / (rng[end] - rng[1])
+	v .+= rng[1]
+	v .+= baseY - sort(v)[ceil(Int,length(v)/2)]
+	return v
+	end
+
 
 singleHeight = 100
-percentCross = 0
-function GetView()
-	tmpHeightBase = singleHeight
-	d = String(HTTP.get(serviceURL*"?session=$(GenerateScript())").body) |> JSON.Parser.parse
+percentCross = 0.9
+function GetData()::Dict
+	tmpUrl = serviceURL*"?session=$(GenerateScript())&num=5"
+	d = String(HTTP.get(tmpUrl).body) |> JSON.Parser.parse
+	return d
+	end
+function GetView(d::Dict)
+	tmpHeightBase = round(Int, singleHeight*percentCross)
 	tmpRet = d["results"]
 	listTs = map(x->x["timestamp"], tmpRet)
 	# baseList  = map(x->x["numTotalActive"], tmpRet)
@@ -105,13 +121,15 @@ function GetView()
 	traces = GenericTrace[]
 	for sym in tmpFields
 		tmpList  = map(x->x[sym], tmpRet) #./ baseList
-		tmpList  = normalise(tmpList, tmpHeightBase:tmpHeightBase+singleHeight)
+		tmpList  = plotfit(tmpList, 0:singleHeight, tmpHeightBase)
 		push!(traces, 
 			PlotlyJS.scatter(x = listTs, y = tmpList,
-				name = translateDic[string(sym)],
+				name = translateDict[string(sym)],
 			)
 		)
-		tmpHeightBase += singleHeight
+		tmpHeightBase += ceil(Int,
+			singleHeight * (1-percentCross)
+			)
 	end
 	prices = normalise(d["prices"], singleHeight:tmpHeightBase)
 	push!(traces, 
