@@ -232,7 +232,14 @@ PipelineLocks["synchronizing"] = false
 		end
 		tmpDt   = unix2dt(tmpTs)
 		tmpRet  = GenerateWindowedView(Int32(tmpWindow), dt2unix(tmpDt-Day(n)), dt2unix(tmpDt))
-		listTs  = map(x->x.timestamp, tmpRet)
+		# ===== convert tmpRet =====
+		tmpSyms = tmpRet[1] |> keys |> collect
+		anoRet  = Dict{String,Vector}()
+		for s in tmpSyms
+			anoRet[string(s)] = map(x->getfield(x,s), tmpRet)
+		end
+		# ===== end convert =====
+		listTs  = anoRet["timestamp"]
 		basePrice = GetBTCPriceWhen(listTs[end])
 		latestH   = reduce( max,
 			GetBTCHighWhen(listTs[end]:round(Int,time()))
@@ -244,7 +251,7 @@ PipelineLocks["synchronizing"] = false
 			)
 		prices = GetBTCPriceWhen(listTs)
 		return json(Dict(
-				"results"   => tmpRet,
+				"results"   => anoRet,
 				"prices"    => prices,
 				"latestL"   => latestL,
 				"latestH"   => latestH,

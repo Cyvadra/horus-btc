@@ -115,9 +115,7 @@ function plotfit(v::Vector, rng::UnitRange, baseY)::Vector
 
 translateDict["大户提现"] = "大户提现"
 function furtherCalculate!(d::Dict)::Dict
-	for x in d["results"]
-		setindex!(x, x["amountSupplierBalanceAbove95"] - x["amountWithdrawPercentAbove95"], "大户提现")
-	end
+	d["results"]["大户提现"] = d["results"]["amountSupplierBalanceAbove95"] - d["results"]["amountWithdrawPercentAbove95"]
 	return d
 	end
 
@@ -132,16 +130,16 @@ function GetData(num::Int=5, intervalSecs::Int=7200)::Dict
 function GetView(d::Dict)
 	tmpHeightBase = round(Int, singleHeight*percentCross)
 	tmpRet = d["results"]
-	listTs = map(x->x["timestamp"], tmpRet)
+	listTs = tmpRet["timestamp"]
 	# baseList  = map(x->x["numTotalActive"], tmpRet)
-	tmpFields = tmpRet[1] |> keys |> collect |> sort
+	tmpKeys = tmpRet |> keys |> collect |> sort
 	traces = GenericTrace[]
-	for sym in tmpFields
-		tmpList  = map(x->x[sym], tmpRet) #./ baseList
+	for s in tmpKeys
+		tmpList  = tmpRet[s] #./ baseList
 		tmpList  = plotfit(tmpList, 0:singleHeight, tmpHeightBase)
 		push!(traces, 
 			PlotlyJS.scatter(x = listTs, y = tmpList,
-				name = translateDict[string(sym)],
+				name = translateDict[s],
 			)
 		)
 		tmpHeightBase += ceil(Int,
@@ -170,21 +168,21 @@ function GetViewTraditional()
 	d = GetData()
 	furtherCalculate!(d)
 	tmpRet = d["results"]
-	listTs = map(x->x["timestamp"], tmpRet)
+	listTs = tmpRet["timestamp"]
 	# baseList  = map(x->x["numTotalActive"], tmpRet)
-	tmpFields = tmpRet[1] |> keys |> collect
+	tmpFields = tmpRet |> keys |> collect |> sort
 	traces = GenericTrace[]
-	for sym in tmpFields
-		if sym in hiddenList
+	for s in tmpFields
+		if s in hiddenList
 			continue
 		end
-		tmpList  = map(x->x[sym], tmpRet) #./ baseList
-		if occursin("amountRealized", string(sym))
+		tmpList  = tmpRet[s] #./ baseList
+		if occursin("amountRealized", s)
 			tmpList .*= 1e5
 		end
 		push!(traces, 
 			PlotlyJS.scatter(x = listTs, y = tmpList,
-				name = translateDict[string(sym)],
+				name = translateDict[s],
 			)
 		)
 	end
