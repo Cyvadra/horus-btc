@@ -109,9 +109,26 @@ function plotfit(v::Vector, rng::UnitRange, baseY)::Vector
 	v .-= vMin
 	v ./= vBias / (rng[end] - rng[1])
 	v .+= rng[1]
-	v .+= baseY - sort(v)[ceil(Int,length(v)/2)]
+	s = sort(v)
+	v .+= baseY - (s[end]+s[1])/2
 	return v
 	end
+function tobias(v::Vector, numCut::Int=5)::Vector
+	v = deepcopy(v) .+ 0.00
+	s = sort(v)
+	for i in 1:length(v)
+		if v[i] < s[numCut]
+			v[i] = s[numCut]
+		end
+		if v[i] > s[end-numCut+1]
+			v[i] = s[end-numCut+1]
+		end
+	end
+	tmpMid = s[ceil(Int,length(v)/2)]
+	tmpRet = (v .- tmpMid) ./ tmpMid
+	plotfit(tmpRet, -100:100, 0)
+	end
+
 
 translateDict["大户提现"] = "大户提现"
 function furtherCalculate!(d::Dict)::Dict
