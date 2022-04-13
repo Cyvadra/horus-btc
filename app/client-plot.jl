@@ -121,14 +121,13 @@ function furtherCalculate!(d::Dict)::Dict
 
 
 singleHeight = 100
-percentCross = 0.95
 function GetData(num::Int=5, intervalSecs::Int=7200)::Dict
 	tmpUrl = serviceURL*"?session=$(GenerateScript())&num=$num&interval=$intervalSecs"
 	d = String(HTTP.get(tmpUrl).body) |> JSON.Parser.parse
 	return d
 	end
 function GetView(d::Dict)
-	tmpHeightBase = round(Int, singleHeight*percentCross)
+	tmpHeightBase = singleHeight
 	tmpRet = d["results"]
 	listTs = tmpRet["timestamp"]
 	# baseList  = map(x->x["numTotalActive"], tmpRet)
@@ -136,17 +135,14 @@ function GetView(d::Dict)
 	traces = GenericTrace[]
 	for s in tmpKeys
 		tmpList  = tmpRet[s] #./ baseList
-		tmpList  = plotfit(tmpList, 0:singleHeight, tmpHeightBase)
+		tmpList  = plotfit(tmpList, -singleHeight:singleHeight, 0)
 		push!(traces, 
 			PlotlyJS.scatter(x = listTs, y = tmpList,
 				name = translateDict[s],
 			)
 		)
-		tmpHeightBase += ceil(Int,
-			singleHeight * (1-percentCross)
-			)
 	end
-	prices = normalise(d["prices"], singleHeight:tmpHeightBase)
+	prices = plotfit(d["prices"], -singleHeight:singleHeight, 0)
 	push!(traces, 
 		PlotlyJS.scatter(x = listTs, y = prices,
 			name = "actual", marker_color = "black", yaxis = "actual")
