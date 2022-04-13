@@ -3,6 +3,9 @@ include("./auth.jl")
 using HTTP
 using JSON
 using PlotlyJS
+using Plots, Plotly; plotly(); plot(rand(10));
+using DataFrames
+using Statistics
 using Dates
 
 serviceURL = "http://localhost:8080/sequence"
@@ -113,20 +116,20 @@ function plotfit(v::Vector, rng::UnitRange, baseY)::Vector
 	v .+= baseY - (s[end]+s[1])/2
 	return v
 	end
-function tobias(v::Vector, numCut::Int=5)::Vector
+function tobias(v::Vector, rng::UnitRange=-100:100)::Vector
 	v = deepcopy(v) .+ 0.00
 	s = sort(v)
 	for i in 1:length(v)
-		if v[i] < s[numCut]
-			v[i] = s[numCut]
+		if v[i] < s[5]
+			v[i] = s[5]
 		end
-		if v[i] > s[end-numCut+1]
-			v[i] = s[end-numCut+1]
+		if v[i] > s[end-5+1]
+			v[i] = s[end-5+1]
 		end
 	end
 	tmpMid = s[ceil(Int,length(v)/2)]
 	tmpRet = (v .- tmpMid) ./ tmpMid
-	plotfit(tmpRet, -100:100, 0)
+	plotfit(tmpRet, rng, 0)
 	end
 
 
@@ -172,6 +175,43 @@ function GetView(d::Dict)
 		)
 	)
 	end
+function GetViewStd(d::Dict)
+	tmpRet = d["results"]
+	listTs = deepcopy(tmpRet["timestamp"])
+	baseList  = tmpRet["amountTotalTransfer"]
+	delete!(tmpRet, "timestamp")
+	delete!(tmpRet, "amountTotalTransfer")
+	tmpRet = d["results"]
+	listTs = tmpRet["timestamp"]
+	tmpKeys = tmpRet |> keys |> collect |> sort
+	traces = GenericTrace[]
+	for s in tmpKeys
+		tmpList  = tmpRet[s] ./ baseList
+		tmpList  = plotfit(tmpList, -singleHeight:singleHeight, 0)
+		push!(traces, 
+			PlotlyJS.scatter(
+				x = listTs,
+				y = tmpList,
+				name = translateDict[s],
+				mode = "markers",
+				# marker_size = rand(1:20),
+			)
+		)
+	end
+	prices = plotfit(d["prices"], -singleHeight:singleHeight, 0)
+	push!(traces, 
+		PlotlyJS.scatter(x = listTs, y = prices,
+			name = "actual", marker_color = "black", yaxis = "actual")
+	)
+	PlotlyJS.plot(
+		traces,
+		Layout(
+			title_text = string(unix2datetime(listTs[end])+Hour(8)) * " $(d["latestH"]) $(d["latestL"])",
+			xaxis_title_text = "timestamp",
+		)
+	)
+	end
+
 function GetView()
 	d = GetData()
 	furtherCalculate!(d)
