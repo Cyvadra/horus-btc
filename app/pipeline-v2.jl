@@ -206,10 +206,12 @@ PipelineLocks["synchronizing"] = false
 		"done in " * string( (now() - t).value / 1000 ) * "secs"
 		end
 	numSequenceReturn = 50
+	cacheTs = round(Int,time())
+	cacheDict = nothing
 	route("/sequence") do
-		SyncBlockInfo()
-		ResyncBlockTimestamps()
-		syncBitcoin()
+		global cacheTs
+		global cacheDict
+		# get params
 		s = Genie.params(:session, "")
 		n = parse(Int, Genie.params(:num, "3"))
 		tmpWindow = parse(Int, Genie.params(:interval, "7200"))
@@ -220,9 +222,18 @@ PipelineLocks["synchronizing"] = false
 		if !CheckScript(s)
 			return ""
 			end
-		tmpSecs = tmpWindow
+		# check cache
+		if round(Int,time()) - cacheTs < 60
+			return json(cacheDict)
+		else
+			cacheTs = round(Int,time())
+		end
+		# sync
+		SyncBlockInfo()
+		ResyncBlockTimestamps()
+		syncBitcoin()
 		tmpTs   = GetLastResultsTimestamp()
-		tmpTs   = (tmpTs - tmpTs % tmpSecs)
+		tmpTs   = (tmpTs - tmpTs % tmpWindow)
 		if time() - tmpTs > tmpWindow / 2
 			if time() - tmpTs > tmpWindow
 				tmpTs += tmpWindow
@@ -233,7 +244,7 @@ PipelineLocks["synchronizing"] = false
 		tmpDt   = unix2dt(tmpTs)
 		tmpRet  = GenerateWindowedView(Int32(tmpWindow), dt2unix(tmpDt-Day(n)), dt2unix(tmpDt))
 		# ===== convert tmpRet =====
-		tmpSyms = tmpRet[1] |> keys |> collect
+		tmpSyms = tmpRet[1] |> typeof |> fieldnames |> collect
 		anoRet  = Dict{String,Vector}()
 		for s in tmpSyms
 			anoRet[string(s)] = map(x->getfield(x,s), tmpRet)
@@ -250,12 +261,13 @@ PipelineLocks["synchronizing"] = false
 			)
 			)
 		prices = GetBTCPriceWhen(listTs)
-		return json(Dict(
+		cacheDict = Dict(
 				"results"   => anoRet,
 				"prices"    => prices,
 				"latestL"   => latestL,
 				"latestH"   => latestH,
-			))
+			)
+		return json(cacheDict)
 		end
 	route("/market") do
 		tmpVal  = TableResults.Findlast(x->!iszero(x), :timestamp)
