@@ -147,22 +147,30 @@ function GetData(num::Int=5, intervalSecs::Int=7200)::Dict
 	return d
 	end
 function GetView(d::Dict)
-	tmpHeightBase = singleHeight
 	tmpRet = d["results"]
 	listTs = tmpRet["timestamp"]
-	# baseList  = map(x->x["numTotalActive"], tmpRet)
+	baseList = tmpRet["amountTotalTransfer"]
+	delete!(tmpRet, "timestamp")
+	delete!(tmpRet, "amountTotalTransfer")
 	tmpKeys = tmpRet |> keys |> collect |> sort
 	traces = GenericTrace[]
 	for s in tmpKeys
 		tmpList  = tmpRet[s] #./ baseList
 		tmpList  = plotfit(tmpList, -singleHeight:singleHeight, 0)
 		push!(traces, 
-			PlotlyJS.scatter(x = listTs, y = tmpList,
+			PlotlyJS.scatter(
+				x = listTs, y = tmpList,
 				name = translateDict[s],
+				# marker_color = "rgba($(rand(133:255)), $(rand(133:255)), $(rand(133:255)), 0.7)"
 			)
 		)
 	end
 	prices = plotfit(d["prices"], -singleHeight:singleHeight, 0)
+	baseList = plotfit(baseList, -singleHeight:singleHeight, 0)
+	push!(traces, 
+		PlotlyJS.scatter(x = listTs, y = baseList,
+			name = "amount", marker_color = "red", yaxis = "amount")
+	)
 	push!(traces, 
 		PlotlyJS.scatter(x = listTs, y = prices,
 			name = "actual", marker_color = "black", yaxis = "actual")
@@ -199,9 +207,14 @@ function GetViewStd(d::Dict)
 		)
 	end
 	prices = plotfit(d["prices"], -singleHeight:singleHeight, 0)
+	baseList = plotfit(baseList, -singleHeight:singleHeight, 0)
 	push!(traces, 
 		PlotlyJS.scatter(x = listTs, y = prices,
 			name = "actual", marker_color = "black", yaxis = "actual")
+	)
+	push!(traces, 
+		PlotlyJS.scatter(x = listTs, y = baseList,
+			name = "amount", marker_color = "red", yaxis = "amount")
 	)
 	PlotlyJS.plot(
 		traces,
@@ -222,6 +235,7 @@ function GetViewTraditional()
 	furtherCalculate!(d)
 	tmpRet = d["results"]
 	listTs = tmpRet["timestamp"]
+	delete!(tmpRet, "timestamp")
 	# baseList  = map(x->x["numTotalActive"], tmpRet)
 	tmpFields = tmpRet |> keys |> collect |> sort
 	traces = GenericTrace[]
