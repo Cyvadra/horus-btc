@@ -118,16 +118,7 @@ function plotfit(v::Vector, rng::UnitRange, baseY)::Vector
 	end
 function tobias(v::Vector, rng::UnitRange=-100:100)::Vector
 	v = deepcopy(v) .+ 0.00
-	s = sort(v)
-	for i in 1:length(v)
-		if v[i] < s[5]
-			v[i] = s[5]
-		end
-		if v[i] > s[end-5+1]
-			v[i] = s[end-5+1]
-		end
-	end
-	tmpMid = s[ceil(Int,length(v)/2)]
+	tmpMid = sort(v)[ceil(Int,length(v)/2)]
 	tmpRet = (v .- tmpMid) ./ tmpMid
 	plotfit(tmpRet, rng, 0)
 	end
