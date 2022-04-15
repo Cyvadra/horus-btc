@@ -231,7 +231,7 @@ PipelineLocks["synchronizing"] = false
 		# sync
 		SyncBlockInfo()
 		ResyncBlockTimestamps()
-		syncBitcoin()
+		# syncBitcoin()
 		tmpTs   = GetLastResultsTimestamp()
 		tmpTs   = (tmpTs - tmpTs % tmpWindow)
 		if time() - tmpTs > tmpWindow / 2
