@@ -264,10 +264,10 @@ simpList = String[
 	"amountContinuousD1Buying", "amountContinuousD1Sending",
 	"amountContinuousD3Buying", "amountContinuousD3Sending",
 	"amountContinuousW1Buying", "amountContinuousW1Sending",
+	# 新户情况
+	"amountChargePercentEquals100", "balanceSupplierMean",
 	# 老户情况
-	"amountChargePercentBelow95", "balanceSupplierMean",
-	# 大户散户
-	"amountChargePercentEquals100", "amountSupplierBalanceAbove95",
+	"amountChargePercentBelow10", "amountSupplierBalanceAbove95",
 	]
 function SimpView(numDays::Int=3, intervalSecs::Int=7200)
 	d = GetData(numDays, intervalSecs)
