@@ -3,7 +3,6 @@ include("./auth.jl")
 using HTTP
 using JSON
 using PlotlyJS
-using Plots, Plotly; plotly(); plot(rand(10));
 using DataFrames
 using Statistics
 using Dates
@@ -116,11 +115,11 @@ function plotfit(v::Vector, rng::UnitRange, baseY)::Vector
 	v .+= baseY - (s[end]+s[1])/2
 	return v
 	end
-function tobias(v::Vector, rng::UnitRange=-100:100)::Vector
+function tobias(v::Vector, rng::UnitRange=-100:100, baseY::Int=0)::Vector
 	v = deepcopy(v) .+ 0.00
 	tmpMid = sort(v)[ceil(Int,length(v)/2)]
 	tmpRet = (v .- tmpMid) ./ tmpMid
-	plotfit(tmpRet, rng, 0)
+	plotfit(tmpRet, rng, baseY)
 	end
 
 
@@ -254,6 +253,65 @@ function GetViewTraditional()
 		Layout(
 			title_text = string(unix2datetime(listTs[end])+Hour(8)) * " $(d["latestH"]) $(d["latestL"])",
 			xaxis_title_text = "timestamp",
+		)
+	)
+	end
+
+simpList = String[
+	# 止盈止损
+	"amountRealizedLossBillion", "amountRealizedProfitBillion",
+	# 资金动向
+	"amountContinuousD1Buying", "amountContinuousD1Sending",
+	"amountContinuousD3Buying", "amountContinuousD3Sending",
+	"amountContinuousW1Buying", "amountContinuousW1Sending",
+	# 老户情况
+	"amountChargePercentBelow95", "balanceSupplierMean",
+	# 大户散户
+	"amountChargePercentEquals100", "amountSupplierBalanceAbove95",
+	]
+function SimpView(numDays::Int=3, intervalSecs::Int=7200)
+	d = GetData(numDays, intervalSecs)
+	tmpRet = d["results"]
+	listTs = map(
+		x-> string( unix2datetime(x) + Hour(8) ),
+		tmpRet["timestamp"]
+		)
+	listTs = map(
+		x-> x[end-10:end-9] * "-" * x[end-7:end-3],
+		listTs
+		)
+	baseList = tmpRet["amountTotalTransfer"]
+	tmpKeys = simpList
+	traces = GenericTrace[]
+	tmpBaseY = 0
+	for i in 1:length(tmpKeys)
+		s = tmpKeys[i]
+		tmpList = tmpRet[s]
+		tmpList = plotfit(tmpList, -100:100, tmpBaseY)
+		tmpColor = "red"
+		if i % 2 == 0
+			tmpColor = "blue"
+			tmpBaseY += 2singleHeight
+		end
+		push!(traces, 
+			PlotlyJS.scatter(
+				x = listTs, y = tmpList,
+				name = translateDict[s],
+				marker_color = tmpColor,
+			)
+		)
+	end
+	tmpBaseY -= singleHeight
+	prices = plotfit(d["prices"], 0:tmpBaseY, tmpBaseY/2)
+	push!(traces, 
+		PlotlyJS.scatter(x = listTs, y = prices,
+			name = "实际值", marker_color = "black", yaxis = "实际值")
+	)
+	PlotlyJS.plot(
+		traces,
+		Layout(
+			title_text = listTs[end] * " $(d["latestH"]) $(d["latestL"])",
+			xaxis_title_text = "时间",
 		)
 	)
 	end
