@@ -1,16 +1,17 @@
 # horus
 
 ### Todos:
-5. [ ] Feature: Rewrite interval logic, sync results with block instead of fixed interval, so as to improve flexibility and timeliness.
-7. [ ] Feature: Different alignment of timestamp, so as to generate more data (after version update)
+1. [ ] Update calculation service.
 
 ### Pending:
 11. [x] Separate AddressService?
 
 ### Done:
 1. [x] Rewrite MmapDB, remove Mmap dependency.
-1. [x] Benchmark: GetBlockCoins, Address2StateDiff
+1. [x] Benchmark: GetBlockCoins, Address2StateDiff.
 5. [x] FinanceDB: online data loading.
+5. [x] Feature: Rewrite interval logic, sync results with block instead of fixed interval, so as to improve flexibility and timeliness.
+7. [x] Feature: Different alignment of timestamp, so as to generate more data (after version update)
 
 ### Issues:
 
