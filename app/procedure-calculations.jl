@@ -96,6 +96,22 @@
 		amountSupplierBalanceBelow80::Float32
 		amountSupplierBalanceAbove95::Float32
 		end
+	mutable struct CellAddressBuyer
+		balanceBuyerMean::Float32
+		balanceBuyerStd::Float32
+		balanceBuyerPercent20::Float32
+		balanceBuyerPercent40::Float32
+		balanceBuyerMiddle::Float32
+		balanceBuyerPercent60::Float32
+		balanceBuyerPercent80::Float32
+		balanceBuyerPercent95::Float32
+		amountBuyerBalanceBelow20::Float32
+		amountBuyerBalanceBelow40::Float32
+		amountBuyerBalanceBelow60::Float32
+		amountBuyerBalanceBelow80::Float32
+		amountBuyerBalanceAbove80::Float32
+		amountBuyerBalanceAbove95::Float32
+		end
 	mutable struct CellAddressUsdtDiff
 		numRealizedProfit::Int32
 		numRealizedLoss::Int32
@@ -268,6 +284,56 @@
 			)
 		return ret
 		end
+	function CalcAddressBuyer(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressBuyer
+		buyerIndexes  = map(x->!x, cacheTagNew[])
+		buyerIndexes  = buyerIndexes .&& cacheAmount[] .> 0.0
+		buyerBalances = abs.(AddressService.GetFieldBalance(
+			cacheAddrId[][ buyerIndexes ]))
+		buyerAmounts  = cacheAmount[][ buyerIndexes ]
+		if length(buyerBalances) < 10
+			if isempty(buyerBalances)
+				append!(buyerBalances, zeros(10))
+				append!(buyerAmounts, zeros(10))
+			else
+				for j in 1:5
+					pushfirst!(buyerBalances, rand(buyerBalances))
+					pushfirst!(buyerAmounts, rand(buyerAmounts))
+					push!(buyerBalances, rand(buyerBalances))
+					push!(buyerAmounts, rand(buyerAmounts))
+				end
+			end
+		end
+		sortedBalances = sort(buyerBalances)[1:floor(Int, 0.95*end)]
+		ret = CellAddressBuyer(
+				sum(sortedBalances) / length(sortedBalances),
+				Statistics.std(sortedBalances),
+				sortedBalances[floor(Int, 0.2*end)],
+				sortedBalances[floor(Int, 0.4*end)],
+				sortedBalances[floor(Int, 0.5*end)],
+				sortedBalances[ceil(Int, 0.6*end)],
+				sortedBalances[ceil(Int, 0.8*end)],
+				sortedBalances[ceil(Int, 0.95*end)],
+				reduce(+, buyerAmounts[
+					map(x -> x <= sortedBalances[floor(Int, 0.2*end)], buyerBalances)
+					]),
+				reduce(+, buyerAmounts[
+					map(x -> x <= sortedBalances[floor(Int, 0.4*end)], buyerBalances)
+					]),
+				reduce(+, buyerAmounts[
+					map(x -> x <= sortedBalances[floor(Int, 0.6*end)], buyerBalances)
+					]),
+				reduce(+, buyerAmounts[
+					map(x -> x <= sortedBalances[floor(Int, 0.8*end)], buyerBalances)
+					]),
+				reduce(+, buyerAmounts[
+					map(x -> x >= sortedBalances[floor(Int, 0.8*end)], buyerBalances)
+					]),
+				reduce(+, buyerAmounts[
+					map(x -> x >= sortedBalances[ceil(Int, 0.95*end)], buyerBalances)
+					]),
+			)
+		return ret
+		end
 	function CalcAddressUsdtDiff(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressUsdtDiff
 		ret = CellAddressUsdtDiff(zeros(length(CellAddressUsdtDiff.types))...)
 		concreteIndexes  = map(x->!x, cacheTagNew[])
@@ -294,6 +360,8 @@
 		CellAddressAccumulation, CalcAddressAccumulation))
 	push!(Calculations, CalcCell(
 		CellAddressSupplier, CalcAddressSupplier))
+	push!(Calculations, CalcCell(
+		CalcAddressBuyer, CalcAddressBuyer))
 	push!(Calculations, CalcCell(
 		CellAddressUsdtDiff, CalcAddressUsdtDiff))
 
