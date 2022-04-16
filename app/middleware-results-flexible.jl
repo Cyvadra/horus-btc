@@ -3,6 +3,7 @@ using MmapDB, Dates
 
 MmapDB.Init("/mnt/data/results-flexible/")
 
+ResultCalculations
 include("./struct-ResultCalculations.jl")
 
 TableResults = MmapDB.GenerateCode(ResultCalculations)

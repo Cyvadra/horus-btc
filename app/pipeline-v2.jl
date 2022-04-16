@@ -6,8 +6,8 @@ include("./service-FinanceDB.jl");
 include("./service-mongo.jl");
 include("./service-block_timestamp.jl");
 include("./middleware-calc_addr_diff.jl");
-include("./middleware-results-flexible.jl");
 include("./procedure-calculations.jl");
+include("./middleware-results-flexible.jl");
 
 using ThreadSafeDicts # private repo
 
