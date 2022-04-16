@@ -365,7 +365,9 @@
 	push!(Calculations, CalcCell(
 		CellAddressUsdtDiff, CalcAddressUsdtDiff))
 
-	function GenerateCodeResultCalculations()
+	isdir("/tmp/julia-cache/") ? nothing : mkdir("/tmp/julia-cache/")
+
+	function GenerateAndLoadResultCalculations()::String
 		s = "mutable struct ResultCalculations\n"
 		for c in Calculations
 			tmpTypes = collect(c.resultType.types)
@@ -375,10 +377,14 @@
 			end
 		end
 		s *= "end"
+		tmpFileName = "/tmp/julia-cache/" * join(rand('a':'z',6)) * ".jl"
+		write(tmpFileName, s)
+		include(tmpFileName)
+		rm(tmpFileName)
 		return s
 		end
 
-	function GenerateCodeDoCalculations()
+	function GenerateAndLoadDoCalculations()::String
 		s = "
 	function DoCalculations(cacheAddrId::Vector{UInt32}, cacheTagNew::Vector{Bool}, cacheAmount::Vector{Float64}, cacheTs::Vector{Int32})::ResultCalculations
 		listTask = Vector{Task}(undef,length(Calculations))
@@ -406,9 +412,13 @@
 		s *= "
 		return ret
 		end"
-		tmpFileName = "/tmp/julia-cache/" * rand('a':'z',6) * ".jl"
+		tmpFileName = "/tmp/julia-cache/" * join(rand('a':'z',6)) * ".jl"
 		write(tmpFileName, s)
 		include(tmpFileName)
 		rm(tmpFileName)
-		return nothing
+		return s
 		end
+
+	GenerateAndLoadResultCalculations();
+	GenerateAndLoadDoCalculations();
+
