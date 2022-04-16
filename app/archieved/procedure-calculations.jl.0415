@@ -4,11 +4,34 @@
 	ResultCalculations
 	using Statistics
 
+	# sumAddrId
+	# sumTagNew
+	# sumAmount
+	# sumTs
+
 	seconds = (
 		Hour  = 3600,
 		Day   = 3600 * 24,
-		Week  = 3600 * 24 * 7,
 		Month = 3600 * 24 * 30,
+		)
+	intervals = (
+			m15 = Minute(15),
+			m20 = Minute(20),
+			m30 = Minute(30),
+			H1  = Hour(1), # main
+			H2  = Hour(2),
+			H3  = Hour(3),
+			H4  = Hour(4),
+			H6  = Hour(6),
+			H8  = Hour(8),
+			H12 = Hour(12),
+			D1  = Day(1),
+			D3  = Day(3),
+			D5  = Day(5),
+			W1  = Week(1),
+			M1  = Month(1),
+			M3  = Month(3),
+			M6  = Month(6),
 		)
 	function safe_sum(arr)
 		if isempty(arr)
