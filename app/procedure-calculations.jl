@@ -378,6 +378,8 @@
 		return s
 		end
 
+	function GenerateCodeDoCalculations()
+		s = "
 	function DoCalculations(cacheAddrId::Vector{UInt32}, cacheTagNew::Vector{Bool}, cacheAmount::Vector{Float64}, cacheTs::Vector{Int32})::ResultCalculations
 		listTask = Vector{Task}(undef,length(Calculations))
 		for i in 1:length(Calculations)
@@ -389,76 +391,24 @@
 				)
 		end
 		ret = ResultCalculations(zeros(length(ResultCalculations.types))...)
-		wait.(listTask)
-		ret.numTotalActive += listTask[1].result.numTotalActive
-		ret.numTotalRows += listTask[1].result.numTotalRows
-		ret.amountTotalTransfer += listTask[1].result.amountTotalTransfer
-		ret.percentBiasReference += listTask[1].result.percentBiasReference
-		ret.percentNumNew += listTask[1].result.percentNumNew
-		ret.percentNumSending += listTask[1].result.percentNumSending
-		ret.percentNumReceiving += listTask[1].result.percentNumReceiving
-		ret.numChargePercentBelow10 += listTask[2].result.numChargePercentBelow10
-		ret.numChargePercentBelow25 += listTask[2].result.numChargePercentBelow25
-		ret.numChargePercentBelow50 += listTask[2].result.numChargePercentBelow50
-		ret.numChargePercentBelow80 += listTask[2].result.numChargePercentBelow80
-		ret.numChargePercentBelow95 += listTask[2].result.numChargePercentBelow95
-		ret.numChargePercentEquals100 += listTask[2].result.numChargePercentEquals100
-		ret.numWithdrawPercentBelow10 += listTask[2].result.numWithdrawPercentBelow10
-		ret.numWithdrawPercentBelow25 += listTask[2].result.numWithdrawPercentBelow25
-		ret.numWithdrawPercentBelow50 += listTask[2].result.numWithdrawPercentBelow50
-		ret.numWithdrawPercentAbove80 += listTask[2].result.numWithdrawPercentAbove80
-		ret.numWithdrawPercentAbove95 += listTask[2].result.numWithdrawPercentAbove95
-		ret.amountChargePercentBelow10 += listTask[2].result.amountChargePercentBelow10
-		ret.amountChargePercentBelow25 += listTask[2].result.amountChargePercentBelow25
-		ret.amountChargePercentBelow50 += listTask[2].result.amountChargePercentBelow50
-		ret.amountChargePercentBelow80 += listTask[2].result.amountChargePercentBelow80
-		ret.amountChargePercentBelow95 += listTask[2].result.amountChargePercentBelow95
-		ret.amountChargePercentEquals100 += listTask[2].result.amountChargePercentEquals100
-		ret.amountWithdrawPercentBelow10 += listTask[2].result.amountWithdrawPercentBelow10
-		ret.amountWithdrawPercentBelow25 += listTask[2].result.amountWithdrawPercentBelow25
-		ret.amountWithdrawPercentBelow50 += listTask[2].result.amountWithdrawPercentBelow50
-		ret.amountWithdrawPercentAbove80 += listTask[2].result.amountWithdrawPercentAbove80
-		ret.amountWithdrawPercentAbove95 += listTask[2].result.amountWithdrawPercentAbove95
-		ret.numRecentD3Sending += listTask[3].result.numRecentD3Sending
-		ret.numWakeupW1Sending += listTask[3].result.numWakeupW1Sending
-		ret.numWakeupM1Sending += listTask[3].result.numWakeupM1Sending
-		ret.numRecentD3Buying += listTask[3].result.numRecentD3Buying
-		ret.numWakeupW1Buying += listTask[3].result.numWakeupW1Buying
-		ret.numWakeupM1Buying += listTask[3].result.numWakeupM1Buying
-		ret.numContinuousD1Sending += listTask[3].result.numContinuousD1Sending
-		ret.numContinuousD3Sending += listTask[3].result.numContinuousD3Sending
-		ret.numContinuousW1Sending += listTask[3].result.numContinuousW1Sending
-		ret.numContinuousD1Buying += listTask[3].result.numContinuousD1Buying
-		ret.numContinuousD3Buying += listTask[3].result.numContinuousD3Buying
-		ret.numContinuousW1Buying += listTask[3].result.numContinuousW1Buying
-		ret.amountRecentD3Sending += listTask[3].result.amountRecentD3Sending
-		ret.amountWakeupW1Sending += listTask[3].result.amountWakeupW1Sending
-		ret.amountWakeupM1Sending += listTask[3].result.amountWakeupM1Sending
-		ret.amountRecentD3Buying += listTask[3].result.amountRecentD3Buying
-		ret.amountWakeupW1Buying += listTask[3].result.amountWakeupW1Buying
-		ret.amountWakeupM1Buying += listTask[3].result.amountWakeupM1Buying
-		ret.amountContinuousD1Sending += listTask[3].result.amountContinuousD1Sending
-		ret.amountContinuousD3Sending += listTask[3].result.amountContinuousD3Sending
-		ret.amountContinuousW1Sending += listTask[3].result.amountContinuousW1Sending
-		ret.amountContinuousD1Buying += listTask[3].result.amountContinuousD1Buying
-		ret.amountContinuousD3Buying += listTask[3].result.amountContinuousD3Buying
-		ret.amountContinuousW1Buying += listTask[3].result.amountContinuousW1Buying
-		ret.balanceSupplierMean += listTask[4].result.balanceSupplierMean
-		ret.balanceSupplierStd += listTask[4].result.balanceSupplierStd
-		ret.balanceSupplierPercent20 += listTask[4].result.balanceSupplierPercent20
-		ret.balanceSupplierPercent40 += listTask[4].result.balanceSupplierPercent40
-		ret.balanceSupplierMiddle += listTask[4].result.balanceSupplierMiddle
-		ret.balanceSupplierPercent60 += listTask[4].result.balanceSupplierPercent60
-		ret.balanceSupplierPercent80 += listTask[4].result.balanceSupplierPercent80
-		ret.balanceSupplierPercent95 += listTask[4].result.balanceSupplierPercent95
-		ret.amountSupplierBalanceBelow20 += listTask[4].result.amountSupplierBalanceBelow20
-		ret.amountSupplierBalanceBelow40 += listTask[4].result.amountSupplierBalanceBelow40
-		ret.amountSupplierBalanceBelow60 += listTask[4].result.amountSupplierBalanceBelow60
-		ret.amountSupplierBalanceBelow80 += listTask[4].result.amountSupplierBalanceBelow80
-		ret.amountSupplierBalanceAbove95 += listTask[4].result.amountSupplierBalanceAbove95
-		ret.numRealizedProfit += listTask[5].result.numRealizedProfit
-		ret.numRealizedLoss += listTask[5].result.numRealizedLoss
-		ret.amountRealizedProfitBillion += listTask[5].result.amountRealizedProfitBillion
-		ret.amountRealizedLossBillion += listTask[5].result.amountRealizedLossBillion
+		wait.(listTask)"
+		tmpCounter = 1
+		for i in 1:length(Calculations)
+			c = Calculations[i]
+			tmpTypes = collect(c.resultType.types)
+			tmpNames = string.(fieldnames(c.resultType))
+			for j in 1:length(tmpTypes)
+				s *= "
+		ret.$(tmpNames[j]) += listTask[$tmpCounter].result.$(tmpNames[j])"
+				tmpCounter += 1
+			end
+		end
+		s *= "
 		return ret
+		end"
+		tmpFileName = "/tmp/julia-cache/" * rand('a':'z',6) * ".jl"
+		write(tmpFileName, s)
+		include(tmpFileName)
+		rm(tmpFileName)
+		return nothing
 		end
