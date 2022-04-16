@@ -7,7 +7,6 @@ ResultCalculations
 include("./struct-ResultCalculations.jl")
 
 TableResults = MmapDB.GenerateCode(ResultCalculations)
-TableResults.Open(true) # shared = true
 # id == BlockNum
 
 function GetLastResultsID()

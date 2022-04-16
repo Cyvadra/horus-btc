@@ -14,9 +14,6 @@ using ThreadSafeDicts # private repo
 PipelineLocks = ThreadSafeDict{String, Bool}()
 PipelineLocks["synchronizing"] = false
 
-# Init
-	AddressService.Open(false) # shall always
-
 # Sync BlockPairs
 	function SyncBlockInfo()::Int
 		println("Synchronizing Block Info")
@@ -130,13 +127,8 @@ PipelineLocks["synchronizing"] = false
 		println(JSON.json(r,2))
 		end
 
-# first complete state
-	@info "$(now()) Synchronizing..."
-	SyncResults()
-	@info "$(now()) Synchronized."
-
 # generate windowed view
-	# haven't considered gaps between blocks
+	# haven't considered gaps between blocks, use standardization instead for now
 	function GenerateWindowedView(intervalSecs::T, fromTs::T, toTs::T)::Vector{ResultCalculations} where T <: Signed
 		ret = ResultCalculations[]
 		for ts in fromTs+intervalSecs:intervalSecs:toTs
@@ -161,9 +153,9 @@ PipelineLocks["synchronizing"] = false
 			tmpSum.balanceSupplierPercent80 /= tmpLen
 			tmpSum.balanceSupplierPercent95 /= tmpLen
 			push!(ret, tmpSum)
-	end
-	return ret
-	end
+		end
+		return ret
+		end
 	function GenerateWindowedViewH1(fromDate::DateTime, toDate::DateTime)::Vector{ResultCalculations}
 		return GenerateWindowedView(Int32(3600), dt2unix(fromDate), dt2unix(toDate))
 		end
@@ -312,10 +304,21 @@ PipelineLocks["synchronizing"] = false
 
 
 	function lambdaSync()
+		AddressService.Create!(round(Int,1.2e9))
+		TableResults.Create!(999999)
+		@info "$(now()) Initializing history..."
 		InitHistory()
+		@info "$(now()) Saving history..."
 		AddressService.SaveCopy("/mnt/data/AddressServiceDB-backup/")
+		AddressService.Close()
+		TableResults.Close(999999)
+		AddressService.Open(false)
+		TableResults.Open(true)
+		@info "$(now()) Synchronizing to present..."
 		SyncResults()
+		@info "$(now()) Pulling up service..."
 		end
+	lambdaSync()
 	SyncBlockInfo()
 	ResyncBlockTimestamps()
 	up(8023)
