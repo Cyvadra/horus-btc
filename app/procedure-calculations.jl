@@ -1,7 +1,7 @@
 
 	AddressService
 	GetBTCPriceWhen
-	ResultCalculations
+	# ResultCalculations
 	using Statistics
 
 	seconds = (
@@ -296,92 +296,18 @@
 		CellAddressSupplier, CalcAddressSupplier))
 	push!(Calculations, CalcCell(
 		CellAddressUsdtDiff, CalcAddressUsdtDiff))
-	function DoCalculations!(fromN::Int, toN::Int, tpl::Base.RefValue{ResultCalculations})::Nothing
-		cacheAddrId = sumAddrId[fromN:toN]
-		cacheTagNew = sumTagNew[fromN:toN]
-		cacheAmount = sumAmount[fromN:toN]
-		cacheTs     = sumTs[fromN:toN]
-		listTask = Vector{Task}(undef,length(Calculations))
-		for i in 1:length(Calculations)
-			listTask[i] = Threads.@spawn Calculations[i].handler(
-					Ref(cacheAddrId),
-					Ref(cacheTagNew),
-					Ref(cacheAmount),
-					Ref(cacheTs),
-				)
+
+	function GenerateCodeResultCalculations()
+		s = "mutable struct ResultCalculations\n"
+		for c in Calculations
+			tmpTypes = collect(c.resultType.types)
+			tmpNames = string.(fieldnames(c.resultType))
+			for i in 1:length(tmpTypes)
+				s *= "\t$(tmpNames[i])::$(tmpTypes[i])\n"
+			end
 		end
-		wait.(listTask)
-		tpl.x.numTotalActive += listTask[1].result.numTotalActive
-		tpl.x.numTotalRows += listTask[1].result.numTotalRows
-		tpl.x.amountTotalTransfer += listTask[1].result.amountTotalTransfer
-		tpl.x.percentBiasReference += listTask[1].result.percentBiasReference
-		tpl.x.percentNumNew += listTask[1].result.percentNumNew
-		tpl.x.percentNumSending += listTask[1].result.percentNumSending
-		tpl.x.percentNumReceiving += listTask[1].result.percentNumReceiving
-		tpl.x.numChargePercentBelow10 += listTask[2].result.numChargePercentBelow10
-		tpl.x.numChargePercentBelow25 += listTask[2].result.numChargePercentBelow25
-		tpl.x.numChargePercentBelow50 += listTask[2].result.numChargePercentBelow50
-		tpl.x.numChargePercentBelow80 += listTask[2].result.numChargePercentBelow80
-		tpl.x.numChargePercentBelow95 += listTask[2].result.numChargePercentBelow95
-		tpl.x.numChargePercentEquals100 += listTask[2].result.numChargePercentEquals100
-		tpl.x.numWithdrawPercentBelow10 += listTask[2].result.numWithdrawPercentBelow10
-		tpl.x.numWithdrawPercentBelow25 += listTask[2].result.numWithdrawPercentBelow25
-		tpl.x.numWithdrawPercentBelow50 += listTask[2].result.numWithdrawPercentBelow50
-		tpl.x.numWithdrawPercentAbove80 += listTask[2].result.numWithdrawPercentAbove80
-		tpl.x.numWithdrawPercentAbove95 += listTask[2].result.numWithdrawPercentAbove95
-		tpl.x.amountChargePercentBelow10 += listTask[2].result.amountChargePercentBelow10
-		tpl.x.amountChargePercentBelow25 += listTask[2].result.amountChargePercentBelow25
-		tpl.x.amountChargePercentBelow50 += listTask[2].result.amountChargePercentBelow50
-		tpl.x.amountChargePercentBelow80 += listTask[2].result.amountChargePercentBelow80
-		tpl.x.amountChargePercentBelow95 += listTask[2].result.amountChargePercentBelow95
-		tpl.x.amountChargePercentEquals100 += listTask[2].result.amountChargePercentEquals100
-		tpl.x.amountWithdrawPercentBelow10 += listTask[2].result.amountWithdrawPercentBelow10
-		tpl.x.amountWithdrawPercentBelow25 += listTask[2].result.amountWithdrawPercentBelow25
-		tpl.x.amountWithdrawPercentBelow50 += listTask[2].result.amountWithdrawPercentBelow50
-		tpl.x.amountWithdrawPercentAbove80 += listTask[2].result.amountWithdrawPercentAbove80
-		tpl.x.amountWithdrawPercentAbove95 += listTask[2].result.amountWithdrawPercentAbove95
-		tpl.x.numRecentD3Sending += listTask[3].result.numRecentD3Sending
-		tpl.x.numWakeupW1Sending += listTask[3].result.numWakeupW1Sending
-		tpl.x.numWakeupM1Sending += listTask[3].result.numWakeupM1Sending
-		tpl.x.numRecentD3Buying += listTask[3].result.numRecentD3Buying
-		tpl.x.numWakeupW1Buying += listTask[3].result.numWakeupW1Buying
-		tpl.x.numWakeupM1Buying += listTask[3].result.numWakeupM1Buying
-		tpl.x.numContinuousD1Sending += listTask[3].result.numContinuousD1Sending
-		tpl.x.numContinuousD3Sending += listTask[3].result.numContinuousD3Sending
-		tpl.x.numContinuousW1Sending += listTask[3].result.numContinuousW1Sending
-		tpl.x.numContinuousD1Buying += listTask[3].result.numContinuousD1Buying
-		tpl.x.numContinuousD3Buying += listTask[3].result.numContinuousD3Buying
-		tpl.x.numContinuousW1Buying += listTask[3].result.numContinuousW1Buying
-		tpl.x.amountRecentD3Sending += listTask[3].result.amountRecentD3Sending
-		tpl.x.amountWakeupW1Sending += listTask[3].result.amountWakeupW1Sending
-		tpl.x.amountWakeupM1Sending += listTask[3].result.amountWakeupM1Sending
-		tpl.x.amountRecentD3Buying += listTask[3].result.amountRecentD3Buying
-		tpl.x.amountWakeupW1Buying += listTask[3].result.amountWakeupW1Buying
-		tpl.x.amountWakeupM1Buying += listTask[3].result.amountWakeupM1Buying
-		tpl.x.amountContinuousD1Sending += listTask[3].result.amountContinuousD1Sending
-		tpl.x.amountContinuousD3Sending += listTask[3].result.amountContinuousD3Sending
-		tpl.x.amountContinuousW1Sending += listTask[3].result.amountContinuousW1Sending
-		tpl.x.amountContinuousD1Buying += listTask[3].result.amountContinuousD1Buying
-		tpl.x.amountContinuousD3Buying += listTask[3].result.amountContinuousD3Buying
-		tpl.x.amountContinuousW1Buying += listTask[3].result.amountContinuousW1Buying
-		tpl.x.balanceSupplierMean += listTask[4].result.balanceSupplierMean
-		tpl.x.balanceSupplierStd += listTask[4].result.balanceSupplierStd
-		tpl.x.balanceSupplierPercent20 += listTask[4].result.balanceSupplierPercent20
-		tpl.x.balanceSupplierPercent40 += listTask[4].result.balanceSupplierPercent40
-		tpl.x.balanceSupplierMiddle += listTask[4].result.balanceSupplierMiddle
-		tpl.x.balanceSupplierPercent60 += listTask[4].result.balanceSupplierPercent60
-		tpl.x.balanceSupplierPercent80 += listTask[4].result.balanceSupplierPercent80
-		tpl.x.balanceSupplierPercent95 += listTask[4].result.balanceSupplierPercent95
-		tpl.x.amountSupplierBalanceBelow20 += listTask[4].result.amountSupplierBalanceBelow20
-		tpl.x.amountSupplierBalanceBelow40 += listTask[4].result.amountSupplierBalanceBelow40
-		tpl.x.amountSupplierBalanceBelow60 += listTask[4].result.amountSupplierBalanceBelow60
-		tpl.x.amountSupplierBalanceBelow80 += listTask[4].result.amountSupplierBalanceBelow80
-		tpl.x.amountSupplierBalanceAbove95 += listTask[4].result.amountSupplierBalanceAbove95
-		tpl.x.numRealizedProfit += listTask[5].result.numRealizedProfit
-		tpl.x.numRealizedLoss += listTask[5].result.numRealizedLoss
-		tpl.x.amountRealizedProfitBillion += listTask[5].result.amountRealizedProfitBillion
-		tpl.x.amountRealizedLossBillion += listTask[5].result.amountRealizedLossBillion
-		return nothing
+		s *= "end"
+		return s
 		end
 
 	function DoCalculations(cacheAddrId::Vector{UInt32}, cacheTagNew::Vector{Bool}, cacheAmount::Vector{Float64}, cacheTs::Vector{Int32})::ResultCalculations
