@@ -320,3 +320,4 @@ PipelineLocks["synchronizing"] = false
 	ResyncBlockTimestamps()
 	up(8023)
 
+	@show bytes2hex(authString)
