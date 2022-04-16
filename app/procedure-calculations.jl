@@ -57,11 +57,11 @@
 		end
 	mutable struct CellAddressAccumulation
 		numRecentD3Sending::Int32
-		numWakeupW1Sending::Int32
-		numWakeupM1Sending::Int32
+		numWakeupD1Sending::Int32
+		numWakeupD3Sending::Int32
 		numRecentD3Buying::Int32
-		numWakeupW1Buying::Int32
-		numWakeupM1Buying::Int32
+		numWakeupD1Buying::Int32
+		numWakeupD3Buying::Int32
 		numContinuousD1Sending::Int32
 		numContinuousD3Sending::Int32
 		numContinuousW1Sending::Int32
@@ -69,11 +69,11 @@
 		numContinuousD3Buying::Int32
 		numContinuousW1Buying::Int32
 		amountRecentD3Sending::Float32
-		amountWakeupW1Sending::Float32
-		amountWakeupM1Sending::Float32
+		amountWakeupD1Sending::Float32
+		amountWakeupD3Sending::Float32
 		amountRecentD3Buying::Float32
-		amountWakeupW1Buying::Float32
-		amountWakeupM1Buying::Float32
+		amountWakeupD1Buying::Float32
+		amountWakeupD3Buying::Float32
 		amountContinuousD1Sending::Float32
 		amountContinuousD3Sending::Float32
 		amountContinuousW1Sending::Float32
@@ -192,12 +192,12 @@
 		concreteAmountsBuy   = concreteAmounts .> 0.0
 		tmpIndexes = (
 			recentD3Sending = map(t->tsMid-t < 3seconds.Day, concreteLastPayed),
-			wakeupW1Sending = map(t->tsMid-t > 7seconds.Day, concreteLastPayed),
-			wakeupM1Sending = map(t->tsMid-t > seconds.Month, concreteLastPayed),
+			wakeupD1Sending = map(t->tsMid-t > seconds.Day, concreteLastPayed),
+			wakeupD3Sending = map(t->tsMid-t > 3seconds.Day, concreteLastPayed),
 
 			recentD3Buying = map(t->tsMid-t < 3seconds.Day, concreteLastReceived),
-			wakeupW1Buying = map(t->tsMid-t > 7seconds.Day, concreteLastReceived),
-			wakeupM1Buying = map(t->tsMid-t > seconds.Month, concreteLastReceived),
+			wakeupD1Buying = map(t->tsMid-t > seconds.Day, concreteLastReceived),
+			wakeupD3Buying = map(t->tsMid-t > 3seconds.Day, concreteLastReceived),
 
 			contiD1Sending = map(t->tsMax-t > seconds.Day, concreteLastReceived) .&& concreteAmountsSend,
 			contiD3Sending = map(t->tsMax-t > 3seconds.Day, concreteLastReceived) .&& concreteAmountsSend,
@@ -210,11 +210,11 @@
 		concreteAmounts = abs.(concreteAmounts)
 		ret = CellAddressAccumulation(
 				safe_sum(tmpIndexes.recentD3Sending),
-				safe_sum(tmpIndexes.wakeupW1Sending),
-				safe_sum(tmpIndexes.wakeupM1Sending),
+				safe_sum(tmpIndexes.wakeupD1Sending),
+				safe_sum(tmpIndexes.wakeupD3Sending),
 				safe_sum(tmpIndexes.recentD3Buying),
-				safe_sum(tmpIndexes.wakeupW1Buying),
-				safe_sum(tmpIndexes.wakeupM1Buying),
+				safe_sum(tmpIndexes.wakeupD1Buying),
+				safe_sum(tmpIndexes.wakeupD3Buying),
 				safe_sum(tmpIndexes.contiD1Sending),
 				safe_sum(tmpIndexes.contiD3Sending),
 				safe_sum(tmpIndexes.contiW1Sending),
@@ -223,11 +223,11 @@
 				safe_sum(tmpIndexes.contiW1Buying),
 				
 				reduce(+,concreteAmounts[tmpIndexes.recentD3Sending]),
-				reduce(+,concreteAmounts[tmpIndexes.wakeupW1Sending]),
-				reduce(+,concreteAmounts[tmpIndexes.wakeupM1Sending]),
+				reduce(+,concreteAmounts[tmpIndexes.wakeupD1Sending]),
+				reduce(+,concreteAmounts[tmpIndexes.wakeupD3Sending]),
 				reduce(+,concreteAmounts[tmpIndexes.recentD3Buying]),
-				reduce(+,concreteAmounts[tmpIndexes.wakeupW1Buying]),
-				reduce(+,concreteAmounts[tmpIndexes.wakeupM1Buying]),
+				reduce(+,concreteAmounts[tmpIndexes.wakeupD1Buying]),
+				reduce(+,concreteAmounts[tmpIndexes.wakeupD3Buying]),
 				reduce(+,concreteAmounts[tmpIndexes.contiD1Sending]),
 				reduce(+,concreteAmounts[tmpIndexes.contiD3Sending]),
 				reduce(+,concreteAmounts[tmpIndexes.contiW1Sending]),
