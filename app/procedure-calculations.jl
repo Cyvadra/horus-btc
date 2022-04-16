@@ -126,15 +126,15 @@
 		concreteAmounts  = abs.( cacheAmount[][ concreteIndexes ] )
 		tmpIndexes = (
 			cpb10 = map(x-> 0.00 < x <= 0.10, concretePercents),
-			cpb25 = map(x-> 0.10 < x <= 0.25, concretePercents),
-			cpb50 = map(x-> 0.25 < x <= 0.50, concretePercents),
-			cpb80 = map(x-> 0.50 < x <= 0.80, concretePercents),
-			cpb95 = map(x-> 0.80 < x <= 0.95, concretePercents),
+			cpb25 = map(x-> 0.00 < x <= 0.25, concretePercents),
+			cpb50 = map(x-> 0.00 < x <= 0.50, concretePercents),
+			cpb80 = map(x-> 0.00 < x <= 0.80, concretePercents),
+			cpb95 = map(x-> 0.00 < x <= 0.95, concretePercents),
 			wpb10 = map(x-> -0.10 <= x < 0.0, concretePercents),
-			wpb25 = map(x-> -0.25 <= x < 0.10, concretePercents),
-			wpb50 = map(x-> -0.50 <= x < 0.25, concretePercents),
-			wpa80 = map(x-> -0.95 < x <= -0.80, concretePercents),
-			wpa95 = map(x-> -1.1 < x <= -0.95, concretePercents),
+			wpb25 = map(x-> -0.25 <= x < 0.0, concretePercents),
+			wpb50 = map(x-> -0.50 <= x < 0.0, concretePercents),
+			wpa80 = map(x-> x <= -0.80, concretePercents),
+			wpa95 = map(x-> x <= -0.95, concretePercents),
 			)
 		ret = CellAddressDirection(
 				safe_sum(tmpIndexes.cpb10),
