@@ -1,7 +1,7 @@
 # horus
 
 ### Todos:
-1. [ ] Update calculation service.
+5. [ ] Auto-save address2id service.
 
 ### Pending:
 11. [x] Separate AddressService?
@@ -12,6 +12,7 @@
 5. [x] FinanceDB: online data loading.
 5. [x] Feature: Rewrite interval logic, sync results with block instead of fixed interval, so as to improve flexibility and timeliness.
 7. [x] Feature: Different alignment of timestamp, so as to generate more data (after version update)
+1. [x] Update calculation service.
 
 ### Issues:
 
