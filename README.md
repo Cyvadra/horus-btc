@@ -2,6 +2,7 @@
 
 ### Todos:
 5. [ ] Auto-save address2id service.
+7. [ ] Optimize mean() method on Results type.
 
 ### Pending:
 11. [x] Separate AddressService?
