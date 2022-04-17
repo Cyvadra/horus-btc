@@ -157,6 +157,19 @@ PipelineLocks["synchronizing"] = false
 			tmpSum.balanceSupplierPercent60 /= tmpLen
 			tmpSum.balanceSupplierPercent80 /= tmpLen
 			tmpSum.balanceSupplierPercent95 /= tmpLen
+			# CellAddressBuyer
+			tmpSum.balanceBuyerMean /= tmpLen
+			tmpSum.balanceBuyerStd /= tmpLen
+			tmpSum.balanceBuyerPercent20 /= tmpLen
+			tmpSum.balanceBuyerPercent40 /= tmpLen
+			tmpSum.balanceBuyerMiddle /= tmpLen
+			tmpSum.balanceBuyerPercent60 /= tmpLen
+			tmpSum.balanceBuyerPercent80 /= tmpLen
+			tmpSum.balanceBuyerPercent95 /= tmpLen
+			# CellAddressMomentum
+			tmpSum.numSupplierMomentumMean /= tmpLen
+			tmpSum.numBuyerMomentumMean /= tmpLen
+			tmpSum.numRegularBuyerMomentumMean /= tmpLen
 			push!(ret, tmpSum)
 		end
 		return ret
