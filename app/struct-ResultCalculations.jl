@@ -76,22 +76,3 @@
 		end
 
 
-
-using Statistics
-
-import Statistics:mean
-function mean(v::Vector{ResultCalculations})::ResultCalculations
-	ret = ResultCalculations(zeros(_len)...)
-	for i in 1:length(_syms)
-		s = _syms[i]
-		tmpVal = Statistics.mean(getfield.(v, s))
-		if typeof(tmpVal) !== _types[i]
-			tmpVal = round(_types[i], tmpVal)
-		end
-		setfield!(ret, s, tmpVal)
-	end
-	# modify ts yourself
-	return ret
-	end
-
-
