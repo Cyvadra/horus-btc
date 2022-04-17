@@ -118,6 +118,15 @@
 		amountRealizedProfitBillion::Float64
 		amountRealizedLossBillion::Float64
 		end
+	mutable struct CellAddressMomentum
+		# all in hours
+		numSupplierMomentum::Float32
+		numSupplierMomentumMean::Float32
+		numBuyerMomentum::Float32
+		numBuyerMomentumMean::Float32
+		numRegularBuyerMomentum::Float32
+		numRegularBuyerMomentumMean::Float32
+		end
 	function CalcAddressComparative(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressComparative
 		_len = length(cacheTs[])
 		biasAmount = sum(cacheAmount[])
@@ -352,6 +361,33 @@
 		end
 		return ret
 		end
+	function CalcAddressMomentum(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressMomentum
+		tmpTs = rand(cacheTs)
+		supplierIndexes  = cacheAmount[] .< 0.0
+		buyerIndexes     = cacheAmount[] .> 0.0
+		regularIndexes   = buyerIndexes .&& map(x->!x, cacheTagNew[])
+		# supplier
+		supplierGaps = tmpTs .- AddressService.GetFieldTimestampLastPayed(cacheAddrId[][supplierIndexes])
+		supplierGaps ./= 3600
+		supplierMomentum = 0.0 .- supplierGaps .* cacheAmount[][supplierIndexes]
+		# buyer
+		buyerGaps = tmpTs .- AddressService.GetFieldTimestampLastReceived(cacheAddrId[][buyerIndexes])
+		buyerGaps ./= 3600
+		buyerMomentum = buyerGaps .* cacheAmount[][buyerIndexes]
+		# regular buyer
+		regularGaps = tmpTs .- AddressService.GetFieldTimestampLastReceived(cacheAddrId[][regularIndexes])
+		regularGaps ./= 3600
+		regularMomentum = regularGaps .* cacheAmount[][regularIndexes]
+		# return
+		return CellAddressMomentum(
+				sum(supplierMomentum),
+				Statistics.mean(supplierMomentum),
+				sum(buyerMomentum),
+				Statistics.mean(supplierMomentum),
+				sum(regularMomentum),
+				Statistics.mean(regularMomentum),
+			)
+		end
 	push!(Calculations, CalcCell(
 		CellAddressComparative, CalcAddressComparative))
 	push!(Calculations, CalcCell(
@@ -364,6 +400,8 @@
 		CellAddressBuyer, CalcAddressBuyer))
 	push!(Calculations, CalcCell(
 		CellAddressUsdtDiff, CalcAddressUsdtDiff))
+	push!(Calculations, CalcCell(
+		CellAddressMomentum, CalcAddressMomentum))
 
 	isdir("/tmp/julia-cache/") ? nothing : mkdir("/tmp/julia-cache/")
 
