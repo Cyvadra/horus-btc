@@ -361,7 +361,7 @@
 	push!(Calculations, CalcCell(
 		CellAddressSupplier, CalcAddressSupplier))
 	push!(Calculations, CalcCell(
-		CalcAddressBuyer, CalcAddressBuyer))
+		CellAddressBuyer, CalcAddressBuyer))
 	push!(Calculations, CalcCell(
 		CellAddressUsdtDiff, CalcAddressUsdtDiff))
 

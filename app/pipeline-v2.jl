@@ -111,7 +111,12 @@ PipelineLocks["synchronizing"] = false
 		tmpBlock  = TableTick.GetRow(1).Timestamp |> Timestamp2FirstBlockN
 		tmpPrice  = GetBTCPriceWhen(tmpBlock)
 		[ BlockPriceDict[i] = i * tmpPrice / toBlock for i in 1:tmpBlock ]; # overwrite dict in middleware-calc_addr_diff.jl
-		lastBlockN = GetLastProcessedTimestamp() |> Timestamp2LastBlockN |> x->x+1
+		lastBlockN = 1
+		if !isnothing(
+			AddressService.Findlast(x->!iszero(x), :TimestampLastActive)
+			)
+			lastBlockN = GetLastProcessedTimestamp() |> Timestamp2LastBlockN |> x->x+1
+		end
 		for n in lastBlockN:toBlock
 			MergeBlock2AddressState(n)
 			if rand() < 0.1
@@ -311,7 +316,7 @@ PipelineLocks["synchronizing"] = false
 		@info "$(now()) Saving history..."
 		AddressService.SaveCopy("/mnt/data/AddressServiceDB-backup/")
 		AddressService.Close()
-		TableResults.Close(999999)
+		TableResults.Close()
 		AddressService.Open(false)
 		TableResults.Open(true)
 		@info "$(now()) Synchronizing to present..."
