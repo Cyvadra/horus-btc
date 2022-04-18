@@ -5,14 +5,14 @@ using Dates
 AddressStringDict = Dict{String,UInt32}()
 const NUM_NOT_EXIST = UInt32(0)
 const TAG_MAX = "maximum"
-AddressStringDict[TAG_MAX] = 930830585
+AddressStringDict[TAG_MAX] = 930850585
 AddressStringLock = Threads.SpinLock()
 
 tmpCache = Dict{Bool, String}()
 @info "$(now()) loading address list..."
 f = open("/mnt/data/bitcore/addr.latest.txt", "r")
 tmpCache[true] = readline(f)
-prog = Progress(930830585)
+prog = Progress(930830584)
 while !isnothing(tmpCache[true])
 	s = split(tmpCache[true],'\t')
 	AddressStringDict[s[1]] = parse(UInt32, s[2])
@@ -21,7 +21,10 @@ while !isnothing(tmpCache[true])
 	end
 @info "$(now()) loaded, doing gc"
 close(f)
-GC.gc()
+tmpCache = nothing
+f = nothing
+GC.gc(true)
+@info "$(now()) gc complete" 
 
 
 
