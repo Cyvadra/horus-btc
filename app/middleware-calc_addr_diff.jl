@@ -143,11 +143,15 @@ function MergeAddressState!(arrayDiff::Vector{AddressDiff}, coinPrice::Float32):
 	return counter
 	end
 
+coinsAll = GetBlockCoins(150000)
+coinsIn  = filter(x->true, coinsAll)
+coinsOut = filter(x->true, coinsIn)
 function MergeBlock2AddressState(n::Int)::Nothing
-	coinsAll = GetBlockCoins(n)
+	empty!(coinsAll); empty!(coinsIn); empty!(coinsOut);
+	append!(coinsAll, GetBlockCoins(n))
+	append!(coinsIn,  filter(x->x["mintHeight"]==n, coinsAll))
+	append!(coinsOut, filter(x->x["spentHeight"]==n, coinsAll))
 	tmpId    = UInt32(0)
-	coinsIn  = filter(x->x["mintHeight"]==n, coinsAll)
-	coinsOut = filter(x->x["spentHeight"]==n, coinsAll)
 	ts       = n |> BlockNum2Timestamp
 	tmpPrice = GetPriceAtBlockN(n)
 	tmpAmount= 0.0
