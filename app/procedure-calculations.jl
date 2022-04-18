@@ -119,7 +119,7 @@
 		amountRealizedLossBillion::Float64
 		end
 	mutable struct CellAddressMomentum
-		# all in hours
+		# all in days
 		numSupplierMomentum::Float32
 		numSupplierMomentumMean::Float32
 		numBuyerMomentum::Float32
@@ -362,21 +362,27 @@
 		return ret
 		end
 	function CalcAddressMomentum(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressMomentum
-		tmpTs = rand(cacheTs)
-		supplierIndexes  = cacheAmount[] .< 0.0
+		tmpTs = 0.0 + cacheTs[][end]
+		concreteIndexes  = map(x->!x, cacheTagNew[])
+		supplierIndexes  = concreteIndexes .&& cacheAmount[] .< 0.0
 		buyerIndexes     = cacheAmount[] .> 0.0
-		regularIndexes   = buyerIndexes .&& map(x->!x, cacheTagNew[])
+		regularIndexes   = concreteIndexes .&& buyerIndexes
 		# supplier
-		supplierGaps = tmpTs .- AddressService.GetFieldTimestampLastPayed(cacheAddrId[][supplierIndexes])
-		supplierGaps ./= 3600
+		supplierTs0  = AddressService.GetFieldTimestampLastActive(cacheAddrId[][supplierIndexes])
+		supplierTs1  = AddressService.GetFieldTimestampLastPayed(cacheAddrId[][supplierIndexes])
+		supplierGaps = tmpTs .- [ iszero(supplierTs1[i]) ? supplierTs0[i] : supplierTs1[i] for i in 1:length(supplierTs1) ]
+		supplierGaps ./= 86400
 		supplierMomentum = 0.0 .- supplierGaps .* cacheAmount[][supplierIndexes]
 		# buyer
-		buyerGaps = tmpTs .- AddressService.GetFieldTimestampLastReceived(cacheAddrId[][buyerIndexes])
-		buyerGaps ./= 3600
+		buyerTs1  = AddressService.GetFieldTimestampLastReceived(cacheAddrId[][buyerIndexes])
+		buyerGaps = tmpTs .- [ iszero(buyerTs1[i]) ? tmpTs : buyerTs1[i] for i in 1:length(buyerTs1) ]
+		buyerGaps ./= 86400
 		buyerMomentum = buyerGaps .* cacheAmount[][buyerIndexes]
 		# regular buyer
-		regularGaps = tmpTs .- AddressService.GetFieldTimestampLastReceived(cacheAddrId[][regularIndexes])
-		regularGaps ./= 3600
+		regularTs0  = AddressService.GetFieldTimestampLastActive(cacheAddrId[][regularIndexes])
+		regularTs1  = AddressService.GetFieldTimestampLastReceived(cacheAddrId[][regularIndexes])
+		regularGaps = tmpTs .- [ iszero(regularTs1[i]) ? regularTs0[i] : regularTs1[i] for i in 1:length(regularTs1) ]
+		regularGaps ./= 86400
 		regularMomentum = regularGaps .* cacheAmount[][regularIndexes]
 		# return
 		return CellAddressMomentum(
@@ -444,8 +450,8 @@
 			for j in 1:length(tmpTypes)
 				s *= "
 		ret.$(tmpNames[j]) += listTask[$tmpCounter].result.$(tmpNames[j])"
-				tmpCounter += 1
 			end
+			tmpCounter += 1
 		end
 		s *= "
 		return ret

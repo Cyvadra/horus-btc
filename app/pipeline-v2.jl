@@ -1,3 +1,4 @@
+GlobalRuntime = ThreadSafeDict{String,Any}();
 
 include("./utils.jl");
 include("./service-address.jl");
@@ -33,29 +34,8 @@ PipelineLocks["synchronizing"] = false
 		return latestBlockHeight
 		end
 
-# Timeline alignment
-	function RecordAddrDiffOnBlock(toN)::Nothing
-		lastProcessedBlockN = GetLastProcessedTimestamp() |> Timestamp2LastBlockN
-		if toN <= lastProcessedBlockN
-			@info "Nothing to do on $toN"
-			return nothing
-		else
-			@info "$(now()) Fetching tx on $toN..."
-		end
-		# calc price
-		ts = BlockNum2Timestamp(toN)
-		tmpPrice  = GetBTCPriceWhen(ts-6:ts+6) |> sort |> x->x[7]
-		arrayDiff = Address2StateDiff(lastProcessedBlockN, toN)
-		MergeAddressState!(arrayDiff, tmpPrice)
-		@info "$(now()) $toN merged."
-		tmpTs = max( AddressService.GetFieldTimestampLastActive.( map(x->x.AddressId, arrayDiff) )... )
-		@assert Timestamp2LastBlockN(tmpTs) == Timestamp2LastBlockN(ts)
-		return nothing
-		end
-
 # Period predict
 	function CalculateResultOnBlock(n)::ResultCalculations
-		ts    = BlockNum2Timestamp(n)
 		coins = GetBlockCoins(n)
 		coinsMint   = filter(x->x["mintHeight"]==n, coins)
 		coinsSpent  = filter(x->x["spentHeight"]==n, coins)
@@ -68,9 +48,8 @@ PipelineLocks["synchronizing"] = false
 			0 .- bitcoreInt2Float64.(map(x->x["value"], coinsSpent))
 			)
 		cacheTagNew = isNew(cacheAddrId)
-		cacheTs = fill(ts, length(cacheAmount))
+		cacheTs = fill(BlockNum2Timestamp(n), length(cacheAmount))
 		res = DoCalculations(cacheAddrId, cacheTagNew, cacheAmount, cacheTs)
-		res.timestamp = cacheTs[end]
 		return res
 		end
 
@@ -83,9 +62,9 @@ PipelineLocks["synchronizing"] = false
 			return nothing
 		end
 		PipelineLocks["synchronizing"] = true
-		lastTs    = GetLastProcessedTimestamp()
+		# lastTs    = GetLastProcessedTimestamp()
 		currentTs = round(Int, time())
-		fromBlock = Timestamp2FirstBlockN(lastTs) + 1
+		fromBlock = GlobalRuntime["LastDoneBlock"] + 1
 		toBlock   = Timestamp2LastBlockN(currentTs)
 		if toBlock <= fromBlock
 			PipelineLocks["synchronizing"] = false
@@ -99,6 +78,7 @@ PipelineLocks["synchronizing"] = false
 				CalculateResultOnBlock(n)
 			)
 			MergeBlock2AddressState(n)
+			GlobalRuntime["LastDoneBlock"] = n
 		end
 		PipelineLocks["synchronizing"] = false
 		return nothing

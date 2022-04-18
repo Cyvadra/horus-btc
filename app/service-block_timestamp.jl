@@ -30,7 +30,11 @@ function ResyncBlockPairs()
 	end
 function ResyncBlockTimestamps()
 	global BlockTimestamps
-	BlockTimestamps = Dict(BlockPairs)
+	for p in BlockPairs
+		if !haskey(BlockTimestamps, p[1])
+			BlockTimestamps[p[1]] = p[2]
+		end
+	end
 	return BlockTimestamps
 	end
 function Timestamp2LastBlockN(ts)::Int
