@@ -321,7 +321,7 @@ PipelineLocks["synchronizing"] = false
 		end
 
 
-	function lambdaSync()
+	function firstSync()
 		AddressService.Create!(round(Int,1.2e9))
 		TableResults.Create!(999999)
 		@info "$(now()) Initializing history..."
@@ -336,7 +336,14 @@ PipelineLocks["synchronizing"] = false
 		SyncResults()
 		@info "$(now()) Pulling up service..."
 		end
-	lambdaSync()
+	function regularSync()
+		AddressService.Open(false)
+		TableResults.Open(true)
+		@info "$(now()) Synchronizing to present..."
+		SyncResults()
+		@info "$(now()) Pulling up service..."
+		end
+	regularSync()
 	SyncBlockInfo()
 	ResyncBlockTimestamps()
 	up(8023)
