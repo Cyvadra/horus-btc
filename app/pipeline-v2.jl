@@ -323,7 +323,12 @@ PipelineLocks["synchronizing"] = false
 		SyncResults()
 		@info "$(now()) Pulling up service..."
 		end
-	regularSync()
+	
+	AddressService.Open(true)
+	TableResults.Open(true)
+	GlobalRuntime["LastDoneBlock"] = 556407
+	SyncResults()
+
 	SyncBlockInfo()
 	ResyncBlockTimestamps()
 	up(8023)
