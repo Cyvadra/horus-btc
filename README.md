@@ -1,7 +1,7 @@
 # horus
 
 ### Todos:
-7. [ ] Optimize mean() method on Results type.
+3. [ ] Client-side visualization.
 
 ### Pending:
 11. [x] Separate AddressService?
