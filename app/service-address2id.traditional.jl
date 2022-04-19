@@ -6,6 +6,7 @@ AddressStringDict = Dict{String,UInt32}()
 const NUM_NOT_EXIST = UInt32(0)
 const TAG_MAX = "maximum"
 AddressStringDict[TAG_MAX] = 930850585
+sizehint!(AddressStringDict, round(Int, 1.3*AddressStringDict[TAG_MAX]))
 AddressStringLock = Threads.SpinLock()
 
 tmpCache = Dict{Bool, String}()
