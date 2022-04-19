@@ -1,7 +1,6 @@
 # horus
 
 ### Todos:
-5. [ ] Auto-save address2id service.
 7. [ ] Optimize mean() method on Results type.
 
 ### Pending:
@@ -12,6 +11,7 @@
 1. [x] Benchmark: GetBlockCoins, Address2StateDiff.
 5. [x] FinanceDB: online data loading.
 5. [x] Feature: Rewrite interval logic, sync results with block instead of fixed interval, so as to improve flexibility and timeliness.
+5. [x] Auto-save address2id service.
 7. [x] Feature: Different alignment of timestamp, so as to generate more data (after version update)
 1. [x] Update calculation service.
 

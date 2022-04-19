@@ -46,3 +46,17 @@ function GenerateID(addr::AbstractString)::UInt32
 	end
 	end
 
+function WriteAddressStringDict(path::AbstractString="/mnt/data/bitcore/addr.autosave.txt")
+	@info "$(now()) Auto saving AddressStringDict..."
+	lock(AddressStringLock)
+	f = open(path, "w")
+	_len = length(AddressStringDict)
+	@showprogress for p in AddressStringDict
+		write(f, "$(p[1])\t$(p[2])\n")
+	end
+	write(f, "$TAG_MAX\t$(length(AddressStringDict)+20002)")
+	unlock(AddressStringLock)
+	close(f)
+	return filesize(path)
+	end
+atexit(WriteAddressStringDict)
