@@ -9,12 +9,11 @@ TableResults = MmapDB.GenerateCode(ResultCalculations)
 # id == BlockNum
 
 function GetLastResultsID()
-	return TableResults.Findlast(x->!iszero(x), :timestamp)
+	return TableResults.Findlast(x->!iszero(x), :numTotalActive)
 	end
 
 function GetLastResultsTimestamp()::Int32
-	tmpVal = GetLastResultsID()
-	return max( TableResults.GetFieldTimestamp(tmpVal-3000:tmpVal)... )
+	return TableResults.GetFieldTimestamp(GetLastResultsID())
 	end
 
 function GetResultsWhen(ts)::ResultCalculations
