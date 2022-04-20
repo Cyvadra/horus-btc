@@ -455,6 +455,7 @@
 			tmpCounter += 1
 		end
 		s *= "
+		ret.timestamp = cacheTs[end]
 		return ret
 		end"
 		tmpFileName = "/tmp/julia-cache/" * join(rand('a':'z',6)) * ".jl"
