@@ -413,6 +413,7 @@
 
 	function GenerateAndLoadResultCalculations()::String
 		s = "mutable struct ResultCalculations\n"
+		s *= "\ttimestamp::Int32\n"
 		for c in Calculations
 			tmpTypes = collect(c.resultType.types)
 			tmpNames = string.(fieldnames(c.resultType))
