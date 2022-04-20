@@ -5,7 +5,7 @@ using Dates
 AddressStringDict = Dict{String,UInt32}()
 const NUM_NOT_EXIST = UInt32(0)
 const TAG_MAX = "maximum"
-AddressStringDict[TAG_MAX] = 930850585
+AddressStringDict[TAG_MAX] = 966186370 + 20002
 sizehint!(AddressStringDict, round(Int, 1.3*AddressStringDict[TAG_MAX]))
 AddressStringLock = Threads.SpinLock()
 
@@ -13,13 +13,14 @@ tmpCache = Dict{Bool, String}()
 @info "$(now()) loading address list..."
 f = open("/mnt/data/bitcore/addr.latest.txt", "r")
 tmpCache[true] = readline(f)
-prog = Progress(930830584)
+prog = Progress(966186370)
 while !isnothing(tmpCache[true])
-	if tmpCache[true] |> length |> iszero
-		continue
-	end
 	s = split(tmpCache[true],'\t')
-	AddressStringDict[s[1]] = parse(UInt32, s[2])
+	tmpVal = parse(UInt32, s[2])
+	if tmpVal > AddressStringDict[TAG_MAX]
+		AddressStringDict[TAG_MAX] = tmpVal
+	end
+	AddressStringDict[s[1]] = tmpVal
 	tmpCache[true] = readline(f)
 	next!(prog)
 	end
@@ -36,14 +37,14 @@ function ReadID(addr::AbstractString)::UInt32
 	get(AddressStringDict, addr, NUM_NOT_EXIST)
 	end
 
-runtimeAddressFile = open("/mnt/data/bitcore/addr.runtime.txt", "a")
+# runtimeAddressFile = open("/mnt/data/bitcore/addr.runtime.txt", "a")
 function GenerateID(addr::AbstractString)::UInt32
 	if !haskey(AddressStringDict, addr)
 		lock(AddressStringLock)
 		n = UInt32(AddressStringDict[TAG_MAX] + 1)
 		AddressStringDict[addr] = n
 		AddressStringDict[TAG_MAX] = n
-		write(runtimeAddressFile, "$addr\t$n\n")
+		# write(runtimeAddressFile, "$addr\t$n\n")
 		unlock(AddressStringLock)
 		return n
 	else
