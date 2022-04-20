@@ -110,12 +110,8 @@ simpList = String[
 	"amountContinuousD1Buying", "amountContinuousD1Sending",
 	"amountContinuousD3Buying", "amountContinuousD3Sending",
 	"amountContinuousW1Buying", "amountContinuousW1Sending",
-	# 老户唤醒
-	"amountWakeupD1Buying", "amountWakeupD1Sending",
 	# 新户情况
 	"amountChargePercentEquals100", "balanceSupplierMean",
-	# 时间加权
-	"numBuyerMomentum", "numSupplierMomentum",
 	# 老户情况
 	"amountChargePercentBelow10", "amountSupplierBalanceAbove95",
 	]
@@ -131,7 +127,7 @@ function normalise(v::Vector, rng::UnitRange)::Vector
 	return v
 	end
 function plotfit(v::Vector, rng::UnitRange, baseY)::Vector
-	v = deepcopy(v) .+ 0.00
+	v = replace(v, nothing=>0.0) .+ 0.0
 	s = sort(v)
 	vMin, vMax = s[1], s[end]
 	vBias = vMax - vMin
@@ -155,3 +151,7 @@ function furtherCalculate!(d::Dict)::Dict
 	d["results"]["大户提现"] = d["results"]["amountSupplierBalanceAbove95"] - d["results"]["amountWithdrawPercentAbove95"]
 	return d
 	end
+
+singleHeight = 100
+
+priceRange = 10000:100000

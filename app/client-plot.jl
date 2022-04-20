@@ -12,7 +12,6 @@ serviceURL = "http://localhost:8080/sequence"
 
 HTTP.get("http://baidu.com") # precompile HTTP
 
-singleHeight = 100
 function GetData(num::Int=5, intervalSecs::Int=7200)::Dict
 	tmpUrl = serviceURL*"?session=$(GenerateScript())&num=$num&interval=$intervalSecs"
 	d = String(HTTP.get(tmpUrl).body) |> JSON.Parser.parse
@@ -22,13 +21,12 @@ function GetView(d::Dict)
 	tmpRet = d["results"]
 	listTs = tmpRet["timestamp"]
 	baseList = tmpRet["amountTotalTransfer"]
-	delete!(tmpRet, "timestamp")
-	delete!(tmpRet, "amountTotalTransfer")
 	tmpKeys = tmpRet |> keys |> collect |> sort
+	filter!(x->!(x in ["timestamp", "amountTotalTransfer"]), tmpKeys)
 	traces = GenericTrace[]
 	for s in tmpKeys
 		tmpList  = tmpRet[s] #./ baseList
-		tmpList  = plotfit(tmpList, -singleHeight:singleHeight, 0)
+		tmpList  = plotfit(tmpList, -singleHeight:singleHeight, 0.0)
 		push!(traces, 
 			PlotlyJS.scatter(
 				x = listTs, y = tmpList,
@@ -59,13 +57,13 @@ function GetViewStd(d::Dict)
 	tmpRet = d["results"]
 	listTs = deepcopy(tmpRet["timestamp"])
 	baseList  = tmpRet["amountTotalTransfer"]
-	delete!(tmpRet, "timestamp")
-	delete!(tmpRet, "amountTotalTransfer")
 	tmpRet = d["results"]
 	listTs = tmpRet["timestamp"]
 	tmpKeys = tmpRet |> keys |> collect |> sort
+	filter!(x->!(x in ["timestamp", "amountTotalTransfer"]), tmpKeys)
 	traces = GenericTrace[]
 	for s in tmpKeys
+		replace!(tmpRet[s], nothing=>0.0)
 		tmpList  = tmpRet[s] ./ baseList
 		tmpList  = plotfit(tmpList, -singleHeight:singleHeight, 0)
 		push!(traces, 
