@@ -15,6 +15,9 @@ f = open("/mnt/data/bitcore/addr.latest.txt", "r")
 tmpCache[true] = readline(f)
 prog = Progress(930830584)
 while !isnothing(tmpCache[true])
+	if tmpCache[true] |> length |> iszero
+		continue
+	end
 	s = split(tmpCache[true],'\t')
 	AddressStringDict[s[1]] = parse(UInt32, s[2])
 	tmpCache[true] = readline(f)
@@ -33,12 +36,14 @@ function ReadID(addr::AbstractString)::UInt32
 	get(AddressStringDict, addr, NUM_NOT_EXIST)
 	end
 
+runtimeAddressFile = open("/mnt/data/bitcore/addr.runtime.txt", "a")
 function GenerateID(addr::AbstractString)::UInt32
 	if !haskey(AddressStringDict, addr)
 		lock(AddressStringLock)
 		n = UInt32(AddressStringDict[TAG_MAX] + 1)
 		AddressStringDict[addr] = n
 		AddressStringDict[TAG_MAX] = n
+		write(runtimeAddressFile, "$addr\t$n\n")
 		unlock(AddressStringLock)
 		return n
 	else
@@ -59,4 +64,4 @@ function WriteAddressStringDict(path::AbstractString="/mnt/data/bitcore/addr.aut
 	close(f)
 	return filesize(path)
 	end
-atexit(WriteAddressStringDict)
+# atexit(WriteAddressStringDict)
