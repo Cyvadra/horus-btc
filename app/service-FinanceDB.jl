@@ -62,11 +62,20 @@ function syncBitcoin()
 	end
 	# fetch data
 	url = "https://www.binance.com/api/v3/klines?startTime=$(prevTs)000&limit=$tmpN&symbol=BTCUSDT&interval=1m"
+	try
 	run(pipeline(
 		`proxychains4 curl $url`;
 		stdout=cacheMarket,
 		append=false
 	));
+	catch
+	sleep(5)
+	run(pipeline(
+		`proxychains4 curl $url`;
+		stdout=cacheMarket,
+		append=false
+	));
+	end
 	ret = JSON.Parser.parse(read(cacheMarket, String))[2:end]
 	rm(cacheMarket)
 	# write data
