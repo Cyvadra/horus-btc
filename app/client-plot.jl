@@ -71,7 +71,7 @@ function GetViewStd(d::Dict)
 				x = listTs,
 				y = tmpList,
 				name = translateDict[s],
-				mode = "markers",
+				# mode = "markers",
 				# marker_size = rand(1:20),
 			)
 		)
@@ -139,13 +139,16 @@ function GetViewTraditional()
 
 function SimpView(numDays::Int=3, intervalSecs::Int=7200)
 	d = GetData(numDays, intervalSecs)
+	return SimpView(d)
+	end
+function SimpView(d::Dict)
 	tmpRet = d["results"]
 	listTs = map(
 		x-> string( unix2datetime(x) + Hour(8) ),
 		tmpRet["timestamp"]
 		)
 	listTs = map(
-		x-> x[end-10:end-9] * "-" * x[end-7:end-3],
+		x-> x[end-13:end-9] * "-" * x[end-7:end-3],
 		listTs
 		)
 	baseList = tmpRet["amountTotalTransfer"]
