@@ -120,7 +120,15 @@ PipelineLocks["synchronizing"] = false
 			tmpRes = TableResults.GetRow(
 				Timestamp2FirstBlockN(ts-intervalSecs):Timestamp2LastBlockN(ts)
 			)
-			tmpLen = length(tmpRes)
+			tmpLen = 0.0 + max(1, length(tmpRes))
+			if length(tmpRes) == 0
+				@warn ts
+				@warn Timestamp2FirstBlockN(ts-intervalSecs), Timestamp2LastBlockN(ts)
+				tmpSum = deepcopy(ret[end])
+				tmpSum.timestamp = ts
+				push!(ret, tmpSum)
+				continue
+			end
 			tmpSum = reduce(+, tmpRes)
 			tmpSum.timestamp = ts
 			# CellAddressComparative
@@ -147,9 +155,9 @@ PipelineLocks["synchronizing"] = false
 			tmpSum.balanceBuyerPercent80 /= tmpLen
 			tmpSum.balanceBuyerPercent95 /= tmpLen
 			# CellAddressMomentum
-			tmpSum.numSupplierMomentumMean /= tmpLen
-			tmpSum.numBuyerMomentumMean /= tmpLen
-			tmpSum.numRegularBuyerMomentumMean /= tmpLen
+			tmpSum.numSupplierMomentumMean = map(x->x.numSupplierMomentumMean, tmpRes) |> Statistics.mean
+			tmpSum.numBuyerMomentumMean = map(x->x.numBuyerMomentumMean, tmpRes) |> Statistics.mean
+			tmpSum.numRegularBuyerMomentumMean = map(x->x.numRegularBuyerMomentumMean, tmpRes) |> Statistics.mean
 			push!(ret, tmpSum)
 		end
 		return ret
@@ -323,7 +331,7 @@ PipelineLocks["synchronizing"] = false
 		SyncResults()
 		@info "$(now()) Pulling up service..."
 		end
-	
+
 	AddressService.Open(true)
 	TableResults.Open(true)
 	GlobalRuntime["LastDoneBlock"] = 556407
