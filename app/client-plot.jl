@@ -147,10 +147,10 @@ function SimpView(d::Dict)
 		x-> string( unix2datetime(x) + Hour(8) ),
 		tmpRet["timestamp"]
 		)
-	listTs = map(
-		x-> x[end-13:end-9] * "-" * x[end-7:end-3],
-		listTs
-		)
+	# listTs = map(
+	# 	x-> x[end-13:end-9] * "-" * x[end-7:end-3],
+	# 	listTs
+	# 	)
 	baseList = tmpRet["amountTotalTransfer"]
 	tmpKeys = simpList
 	traces = GenericTrace[]
@@ -158,7 +158,7 @@ function SimpView(d::Dict)
 	for i in 1:length(tmpKeys)
 		s = tmpKeys[i]
 		tmpList = tmpRet[s]
-		tmpList = plotfit(tmpList, -100:100, tmpBaseY)
+		tmpList = plotfit_ma(tmpList, -100:100, tmpBaseY, 72)
 		tmpColor = "red"
 		if i % 2 == 0
 			tmpColor = "blue"
@@ -173,7 +173,7 @@ function SimpView(d::Dict)
 		)
 	end
 	tmpBaseY -= singleHeight
-	prices = plotfit(d["prices"], 0:tmpBaseY, tmpBaseY/2)
+	prices = plotfit_ma(d["prices"], 0:tmpBaseY, tmpBaseY/2, 72)
 	push!(traces, 
 		PlotlyJS.scatter(x = listTs, y = prices,
 			name = "实际值", marker_color = "black", yaxis = "实际值")
@@ -181,7 +181,7 @@ function SimpView(d::Dict)
 	PlotlyJS.plot(
 		traces,
 		Layout(
-			title_text = listTs[end] * " $(d["latestH"]) $(d["latestL"])",
+			title_text = listTs[end] * "$(tmpRet["timestamp"][2]-tmpRet["timestamp"][1])",
 			xaxis_title_text = "时间",
 		)
 	)
