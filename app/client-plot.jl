@@ -181,7 +181,7 @@ function SimpView(d::Dict)
 	PlotlyJS.plot(
 		traces,
 		Layout(
-			title_text = listTs[end] * "$(tmpRet["timestamp"][2]-tmpRet["timestamp"][1])",
+			title_text = listTs[end] * " - $(tmpRet["timestamp"][2]-tmpRet["timestamp"][1])s",
 			xaxis_title_text = "时间",
 		)
 	)
