@@ -138,6 +138,30 @@ function plotfit(v::Vector, rng::UnitRange, baseY)::Vector
 	v .+= baseY - (s[end]+s[1])/2
 	return v
 	end
+function plotfit_ma(v::Vector, rng::UnitRange, baseY, numMa)::Vector
+	v = replace(v, nothing=>0.0) .+ 0.0
+	vRet = deepcopy(v)
+	tmpMin = min(v[1:numMa]...)
+	tmpMax = max(v[1:numMa]...)
+	tmpBias = tmpMax - tmpMin
+	for i in 1:numMa
+		vRet[i] = (v[i] - tmpMin) / tmpBias # + rng[1] + baseY - original_mid
+	end
+	tmpWeight = ceil(Int, numMa/12)
+	for i in numMa+1:length(v)-numMa
+		tmpMin = (min(v[i-numMa:i+numMa]...) + tmpWeight*tmpMin) / (tmpWeight+1)
+		tmpMax = (max(v[i-numMa:i+numMa]...) + tmpWeight*tmpMax) / (tmpWeight+1)
+		tmpBias = tmpMax - tmpMin
+		vRet[i] = (v[i] - tmpMin) / tmpBias
+	end
+	for i in length(v)-numMa+1:length(v)
+		vRet[i] = (v[i] - tmpMin) / tmpBias
+	end
+	vRet .*= rng[end] - rng[1]
+	vRet .+= rng[1]
+	vRet .+= baseY - Statistics.mean(vRet)
+	return vRet
+	end
 function tobias(v::Vector, rng::UnitRange=-100:100, baseY::Int=0)::Vector
 	v = deepcopy(v) .+ 0.00
 	tmpMid = sort(v)[ceil(Int,length(v)/2)]
