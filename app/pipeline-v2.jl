@@ -1,6 +1,5 @@
-GlobalRuntime = ThreadSafeDict{String,Any}();
-
 include("./utils.jl");
+include("./config.jl");
 include("./service-address.jl");
 include("./service-address2id.traditional.jl");
 include("./service-FinanceDB.jl");
@@ -12,8 +11,8 @@ include("./middleware-results-flexible.jl");
 include("./functions-generate_window.jl");
 
 using ThreadSafeDicts # private repo
-
-PipelineLocks = ThreadSafeDict{String, Bool}()
+GlobalRuntime = ThreadSafeDict{String,Any}();
+PipelineLocks = ThreadSafeDict{String, Bool}();
 PipelineLocks["synchronizing"] = false
 
 # Sync BlockPairs

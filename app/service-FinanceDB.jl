@@ -1,9 +1,6 @@
-
-cacheMarket = "/tmp/market.json"
-
 using MmapDB, JSON, Dates
 
-MmapDB.Init("/mnt/data/BTC_USDT_1m/")
+MmapDB.Init(folderMarket)
 
 mutable struct Tick
 	Timestamp::Int32

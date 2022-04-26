@@ -1,7 +1,7 @@
 
 using MmapDB, Dates
 
-MmapDB.Init("/mnt/data/results-flexible/")
+MmapDB.Init(folderResults)
 
 ResultCalculations
 

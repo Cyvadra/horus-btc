@@ -11,7 +11,7 @@ AddressStringLock = Threads.SpinLock()
 
 tmpCache = Dict{Bool, String}()
 @info "$(now()) loading address list..."
-f = open("/mnt/data/bitcore/addr.latest.txt", "r")
+f = open(fileAddressString, "r")
 tmpCache[true] = readline(f)
 prog = Progress(966186370)
 while !isnothing(tmpCache[true])
@@ -37,7 +37,6 @@ function ReadID(addr::AbstractString)::UInt32
 	get(AddressStringDict, addr, NUM_NOT_EXIST)
 	end
 
-# runtimeAddressFile = open("/mnt/data/bitcore/addr.runtime.txt", "a")
 function GenerateID(addr::AbstractString)::UInt32
 	if !haskey(AddressStringDict, addr)
 		lock(AddressStringLock)

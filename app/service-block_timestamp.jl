@@ -1,7 +1,5 @@
 using JLD2
 
-tsFile = "/mnt/data/bitcore/BlockTimestamps.dict.jld2"
-
 # BlockNum 2 Timestamp ( Dict{Int32, Int32} )
 # [!!!NOTICE!!!] Preload all of transaction data!
 # to avoid parallel-computing trouble
