@@ -206,6 +206,7 @@ PipelineLocks["synchronizing"] = false
 	numSequenceReturn = 50
 	cacheTs = round(Int,time())
 	cacheDict = nothing
+
 	route("/sequence") do
 		global cacheTs
 		global cacheDict
@@ -231,14 +232,7 @@ PipelineLocks["synchronizing"] = false
 		ResyncBlockTimestamps()
 		# syncBitcoin()
 		tmpTs   = GetLastResultsTimestamp()
-		tmpTs   = (tmpTs - tmpTs % tmpWindow)
-		if time() - tmpTs > tmpWindow / 2
-			if time() - tmpTs > tmpWindow
-				tmpTs += tmpWindow
-			else
-				tmpTs += round(Int, tmpWindow/2)
-			end
-		end
+		tmpTs   = (tmpTs - tmpTs % 1800)
 		tmpDt   = unix2dt(tmpTs)
 		tmpRet  = GenerateWindowedView(Int32(tmpWindow), dt2unix(tmpDt-Day(n)), dt2unix(tmpDt))
 		# ===== convert tmpRet =====
@@ -267,6 +261,7 @@ PipelineLocks["synchronizing"] = false
 			)
 		return json(cacheDict)
 		end
+
 	route("/market") do
 		tmpVal  = TableResults.Findlast(x->!iszero(x), :timestamp)
 		tmpRet  = TableResults.GetRow.(tmpVal-nPlotPrev:tmpVal)
