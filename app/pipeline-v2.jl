@@ -166,6 +166,9 @@ PipelineLocks["synchronizing"] = false
 		ResyncBlockTimestamps()
 		# syncBitcoin()
 		tmpTs   = GetLastResultsTimestamp()
+		if 0 < time() % 1800 < 300 && time() - tmpTs < 600
+			tmpTs = round(Int, time())
+		end
 		tmpTs   = (tmpTs - tmpTs % 1800)
 		tmpDt   = unix2dt(tmpTs)
 		tmpRet  = GenerateWindowedView(Int32(tmpWindow), dt2unix(tmpDt-Day(n)), dt2unix(tmpDt))
