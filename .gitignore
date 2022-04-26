@@ -1,6 +1,7 @@
 # OS and logic
 *.DS_Store
 data/
+app/functions-extend.jl
 
 # Binaries for programs and plugins
 *.exe
