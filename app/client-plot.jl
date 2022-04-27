@@ -158,7 +158,7 @@ function SimpView(d::Dict)
 	for i in 1:length(tmpKeys)
 		s = tmpKeys[i]
 		tmpList = tmpRet[s]
-		tmpList = plotfit_ma(tmpList, -100:100, tmpBaseY, 72)
+		tmpList = plotfit_ma(tmpList, -100:100, tmpBaseY, 12)
 		tmpColor = "red"
 		if i % 2 == 0
 			tmpColor = "blue"
@@ -173,7 +173,7 @@ function SimpView(d::Dict)
 		)
 	end
 	tmpBaseY -= singleHeight
-	prices = plotfit_ma(d["prices"], 0:tmpBaseY, tmpBaseY/2, 72)
+	prices = plotfit_ma(d["prices"], 0:tmpBaseY, tmpBaseY/2, 12)
 	push!(traces, 
 		PlotlyJS.scatter(x = listTs, y = prices,
 			name = "实际值", marker_color = "black", yaxis = "实际值")
