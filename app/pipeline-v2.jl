@@ -66,7 +66,7 @@ PipelineLocks["synchronizing"] = false
 		currentTs = round(Int, time())
 		fromBlock = GlobalRuntime["LastDoneBlock"] + 1
 		toBlock   = Timestamp2LastBlockN(currentTs)
-		if toBlock <= fromBlock
+		if toBlock < fromBlock
 			PipelineLocks["synchronizing"] = false
 			return nothing
 		else
@@ -140,10 +140,12 @@ PipelineLocks["synchronizing"] = false
 	numSequenceReturn = 50
 	cacheTs = round(Int,time())
 	cacheDict = nothing
+	cacheInterval = 7200
 
 	route("/sequence") do
 		global cacheTs
 		global cacheDict
+		global cacheInterval
 		# get params
 		s = Genie.params(:session, "")
 		n = parse(Int, Genie.params(:num, "3"))
@@ -156,20 +158,24 @@ PipelineLocks["synchronizing"] = false
 			return ""
 			end
 		# check cache
-		if round(Int,time()) - cacheTs < 60
+		if round(Int,time()) - cacheTs < 60 && cacheInterval == tmpWindow
 			return json(cacheDict)
 		else
 			cacheTs = round(Int,time())
+			cacheInterval = tmpWindow
 		end
 		# sync
 		SyncBlockInfo()
 		ResyncBlockTimestamps()
 		# syncBitcoin()
+		tmpNow  = now() |> dt2unix
 		tmpTs   = GetLastResultsTimestamp()
-		if 0 < time() % 1800 < 300 && time() - tmpTs < 600
-			tmpTs = round(Int, time())
+		if tmpTs % 1800 > 1200 &&
+			tmpNow % 1800 < 1200
+			tmpTs = tmpNow - tmpNow % 1800
+		else
+			tmpTs = (tmpTs - tmpTs % 1800)
 		end
-		tmpTs   = (tmpTs - tmpTs % 1800)
 		tmpDt   = unix2dt(tmpTs)
 		tmpRet  = GenerateWindowedView(Int32(tmpWindow), dt2unix(tmpDt-Day(n)), dt2unix(tmpDt))
 		# ===== convert tmpRet =====
