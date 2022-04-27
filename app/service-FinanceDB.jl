@@ -28,23 +28,40 @@ function ind2ts(i)
 	return round(Int, baseTickTs+i*60)
 	end
 
-function GetBTCPriceWhen(ts)::Float32
+
+function GetBTCOpenWhen(ts::Real)::Float32
+	return TableTick.GetFieldOpen(ts2ind(ts))
+	end
+function GetBTCOpenWhen(ts::Union{Vector,UnitRange})::Vector{Float32}
+	return TableTick.GetFieldOpen(ts2ind.(ts))
+	end
+
+function GetBTCCloseWhen(ts::Real)::Float32
 	return TableTick.GetFieldClose(ts2ind(ts))
 	end
-function GetBTCPriceWhen(ts::Union{Vector,UnitRange})::Vector{Float32}
+function GetBTCCloseWhen(ts::Union{Vector,UnitRange})::Vector{Float32}
 	return TableTick.GetFieldClose(ts2ind.(ts))
 	end
-function GetBTCHighWhen(ts)::Float32
+
+function GetBTCHighWhen(ts::Real)::Float32
 	return TableTick.GetFieldHigh(ts2ind(ts))
 	end
 function GetBTCHighWhen(ts::Union{Vector,UnitRange})::Vector{Float32}
 	return TableTick.GetFieldHigh(ts2ind.(ts))
 	end
-function GetBTCLowWhen(ts)::Float32
+
+function GetBTCLowWhen(ts::Real)::Float32
 	return TableTick.GetFieldLow(ts2ind(ts))
 	end
 function GetBTCLowWhen(ts::Union{Vector,UnitRange})::Vector{Float32}
 	return TableTick.GetFieldLow(ts2ind.(ts))
+	end
+
+function GetBTCPriceWhen(ts::Real)::Float32
+	return TableTick.GetFieldClose(ts2ind(ts))
+	end
+function GetBTCPriceWhen(ts::Union{Vector,UnitRange})::Vector{Float32}
+	return TableTick.GetFieldClose(ts2ind.(ts))
 	end
 
 

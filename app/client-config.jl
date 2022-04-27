@@ -126,7 +126,8 @@ function normalise(v::Vector, rng::UnitRange)::Vector
 	v .+= rng[1]
 	return v
 	end
-function plotfit(v::Vector, rng::UnitRange, baseY)::Vector
+
+function plotfit(v::Vector{T}, rng::UnitRange, baseY)::Vector where T <: Signed
 	v = replace(v, nothing=>0.0) .+ 0.0
 	s = sort(v)
 	vMin, vMax = s[1], s[end]
@@ -138,6 +139,22 @@ function plotfit(v::Vector, rng::UnitRange, baseY)::Vector
 	v .+= baseY - (s[end]+s[1])/2
 	return v
 	end
+
+function plotfit_multi(lv::Vector{Vector{Float32}}, rng::UnitRange, baseY)::Vector{Vector{Float32}}
+	lv[1] = replace(lv[1], nothing=>0.0) .+ 0.0
+	s = sort(lv[1])
+	vMin, vMax = s[1], s[end]
+	vBias = vMax - vMin
+	for i in 1:length(lv)
+		lv[i] .-= vMin
+		lv[i] ./= vBias / (rng[end] - rng[1])
+		lv[i] .+= rng[1]
+		s = sort(lv[i])
+		lv[i] .+= baseY - (s[end]+s[1])/2
+	end
+	return lv
+	end
+
 function plotfit_ma(v::Vector, rng::UnitRange, baseY, numMa)::Vector
 	v = replace(v, nothing=>0.0) .+ 0.0
 	vRet = deepcopy(v)
@@ -162,6 +179,7 @@ function plotfit_ma(v::Vector, rng::UnitRange, baseY, numMa)::Vector
 	vRet .+= baseY - Statistics.mean(vRet)
 	return vRet
 	end
+
 function tobias(v::Vector, rng::UnitRange=-100:100, baseY::Int=0)::Vector
 	v = deepcopy(v) .+ 0.00
 	tmpMid = sort(v)[ceil(Int,length(v)/2)]

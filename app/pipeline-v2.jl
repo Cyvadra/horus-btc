@@ -195,10 +195,17 @@ PipelineLocks["synchronizing"] = false
 				GetBTCLowWhen(listTs[end]:round(Int,time()))
 			)
 			)
-		prices = GetBTCPriceWhen(listTs)
+		pricesOpen  = GetBTCOpenWhen(listTs)
+		pricesClose = GetBTCCloseWhen(listTs)
+		pricesHigh  = GetBTCHighWhen(listTs)
+		pricesLow   = GetBTCLowWhen(listTs)
 		cacheDict = Dict(
 				"results"   => anoRet,
-				"prices"    => prices,
+				"prices"    => pricesClose,
+				"open"      => pricesOpen,
+				"close"     => pricesClose,
+				"high"      => pricesHigh,
+				"low"       => pricesLow,
 				"latestL"   => latestL,
 				"latestH"   => latestH,
 			)
