@@ -1,12 +1,15 @@
 # horus
 
 ### Todos:
-3. [ ] Client-side visualization.
+1. [ ] Initialize quantum framework.
+3. [ ] Run backtests.
+5. [ ] Initialize APIs.
 
 ### Pending:
 11. [x] Separate AddressService?
 
 ### Done:
+3. [x] Client-side visualization.
 1. [x] Rewrite MmapDB, remove Mmap dependency.
 1. [x] Benchmark: GetBlockCoins, Address2StateDiff.
 5. [x] FinanceDB: online data loading.
