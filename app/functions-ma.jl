@@ -33,6 +33,9 @@ function ema(v::Vector{T}, numMa::Int)::Vector where T<:Real
 	return vRet
 	end
 
+function meanfit(v::Vector)::Vector
+	return 2sortperm(v) ./ length(v) .- 1
+	end
 
 
 
