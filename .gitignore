@@ -2,6 +2,7 @@
 *.DS_Store
 data/
 app/functions-extend.jl
+app/cache-generated.jl
 
 # Binaries for programs and plugins
 *.exe
