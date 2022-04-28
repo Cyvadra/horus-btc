@@ -19,7 +19,11 @@ tmpSyms  = ResultCalculations |> fieldnames |> collect
 function GenerateSequences(tmpRet::Vector{ResultCalculations})::Matrix{Float64}
 	anoRet   = Dict{String,Vector}()
 	for s in tmpSyms
-		anoRet[string(s)] = map(x->getfield(x,s), tmpRet)
+		if occursin("Billion", s)
+			anoRet[string(s)] = map(x->getfield(x,s), tmpRet) .* 1e9
+		else
+			anoRet[string(s)] = map(x->getfield(x,s), tmpRet)
+		end
 	end
 	baseList  = anoRet["amountTotalTransfer"]
 	sequences = Vector[]
