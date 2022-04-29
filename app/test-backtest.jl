@@ -79,36 +79,36 @@ end
 
 
 
-# Training
+# Prepare Data
 
 X = res[:, 4:end];
 Y = res[:, 1:3];
 X = [X[i,:] for i in 1:size(X)[1]];
 Y = [Y[i,:] for i in 1:size(Y)[1]];
+Y = map(x->10(x[1]*x[2])^3, Y);
 tmpMidN = round(Int, length(X)*0.8)
 tmpIndexes = sortperm(rand(tmpMidN))
-training_x = deepcopy(X[tmpIndexes])
-training_y = deepcopy(Y[tmpIndexes])
-test_x = deepcopy(X[tmpMidN+1:end])
-test_y = deepcopy(Y[tmpMidN+1:end])
+training_x = deepcopy(X[tmpIndexes]);
+training_y = deepcopy(Y[tmpIndexes]);
+test_x = deepcopy(X[tmpMidN+1:end]);
+test_y = deepcopy(Y[tmpMidN+1:end]);
 
 yLength   = length(Y[end])
 inputSize = length(X[1])
 data      = zip(training_x, training_y)
 
-nTolerance = 20
+nTolerance = 10
 minEpsilon = 1e-15
 nThrottle  = 15
 modelWidth = 1024
 
 m = Chain(
 		Dense(inputSize, modelWidth),
-		Dense(modelWidth, modelWidth),
 		Dense(modelWidth, yLength),
 	)
 ps = params(m);
 
-opt        = ADAM();
+opt        = ADADelta();
 tx, ty     = (test_x[15], test_y[15]);
 evalcb     = () -> @show loss(tx, ty);
 loss(x, y) = Flux.Losses.mse(m(x), y);
