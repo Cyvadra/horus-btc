@@ -19,7 +19,7 @@ tmpSyms  = ResultCalculations |> fieldnames |> collect
 function GenerateSequences(tmpRet::Vector{ResultCalculations})::Matrix{Float64}
 	anoRet   = Dict{String,Vector}()
 	for s in tmpSyms
-		if occursin("Billion", s)
+		if occursin("Billion", string(s))
 			anoRet[string(s)] = map(x->getfield(x,s), tmpRet) .* 1e9
 		else
 			anoRet[string(s)] = map(x->getfield(x,s), tmpRet)
@@ -30,7 +30,7 @@ function GenerateSequences(tmpRet::Vector{ResultCalculations})::Matrix{Float64}
 	for k in dnnList
 		tmpList = anoRet[k] ./ baseList
 		tmpBase = ma(tmpList, numMa)
-		tmpList = meanfit(tmpList ./ tmpBase)
+		tmpList = histofit(tmpList ./ tmpBase)
 		push!(sequences,
 			tmpList
 			)
