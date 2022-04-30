@@ -164,18 +164,15 @@ PipelineLocks["synchronizing"] = false
 			cacheTs = round(Int,time())
 			cacheInterval = tmpWindow
 		end
-		# sync
-		SyncBlockInfo()
-		ResyncBlockTimestamps()
-		# syncBitcoin()
 		tmpNow  = now() |> dt2unix
 		tmpTs   = GetLastResultsTimestamp()
-		if tmpTs % 1800 > 1200 &&
-			tmpNow % 1800 < 1200
-			tmpTs = tmpNow - tmpNow % 1800
+		if tmpNow - tmpTs > 1800
+			SyncResults()
 		else
-			tmpTs = (tmpTs - tmpTs % 1800)
+			SyncBlockInfo()
+			ResyncBlockTimestamps()
 		end
+		tmpTs   = tmpNow - tmpNow % 1800
 		tmpDt   = unix2dt(tmpTs)
 		tmpRet  = GenerateWindowedView(Int32(tmpWindow), dt2unix(tmpDt-Day(n)), dt2unix(tmpDt))
 		# ===== convert tmpRet =====
@@ -188,11 +185,11 @@ PipelineLocks["synchronizing"] = false
 		listTs  = anoRet["timestamp"]
 		basePrice = GetBTCPriceWhen(listTs[end])
 		latestH   = reduce( max,
-			GetBTCHighWhen(listTs[end]:round(Int,time()))
+			GetBTCHighWhen(listTs[end-1]:round(Int,time()))
 			)
 		latestL   = reduce( min,
 			filter(x->x>0,
-				GetBTCLowWhen(listTs[end]:round(Int,time()))
+				GetBTCLowWhen(listTs[end-1]:round(Int,time()))
 			)
 			)
 		pricesOpen  = GetBTCOpenWhen(listTs)
