@@ -99,14 +99,13 @@ yLength   = length(Y[end])
 inputSize = length(X[1])
 data      = zip(training_x, training_y)
 
-nTolerance = 10
+nTolerance = 100
 minEpsilon = 1e-15
 nThrottle  = 15
 modelWidth = 544
 
 m = Chain(
-		Dense(inputSize, modelWidth),
-		Dense(modelWidth, yLength),
+		Dense(inputSize, yLength),
 	)
 ps = params(m);
 
