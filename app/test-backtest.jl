@@ -81,11 +81,13 @@ end
 
 # Prepare Data
 
+numLoad = 8
+
 X = res[:, 4:end];
-Y = res[:, 1:3];
-X = [X[i,:] for i in 1:size(X)[1]];
-Y = [Y[i,:] for i in 1:size(Y)[1]];
-Y = map(x->10(x[1]*x[2])^3, Y);
+X = [vcat(X[i+1:i+numLoad,:]...) for i in 1:size(X)[1]-numLoad];
+Y = reduce(*, res[:, 1:2]; dims=2);
+Y = [Y[i] for i in numLoad+1:size(Y)[1]];
+Y = map(x->x^3, 10Y) |> removePolars! |> histofit;
 tmpMidN = round(Int, length(X)*0.8)
 tmpIndexes = sortperm(rand(tmpMidN))
 training_x = deepcopy(X[tmpIndexes]);
@@ -100,7 +102,7 @@ data      = zip(training_x, training_y)
 nTolerance = 10
 minEpsilon = 1e-15
 nThrottle  = 15
-modelWidth = 1024
+modelWidth = 544
 
 m = Chain(
 		Dense(inputSize, modelWidth),
@@ -108,7 +110,7 @@ m = Chain(
 	)
 ps = params(m);
 
-opt        = ADADelta();
+opt        = ADAM();
 tx, ty     = (test_x[15], test_y[15]);
 evalcb     = () -> @show loss(tx, ty);
 loss(x, y) = Flux.Losses.mse(m(x), y);

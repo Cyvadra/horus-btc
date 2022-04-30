@@ -87,7 +87,37 @@ function histofit(v::Vector)::Vector
 	end
 	end
 
-
+function removePolars!(v::Vector)::Vector
+	leftEdge   = min(v...)
+	rightEdge  = max(v...)
+	tmpRes     = fit(Histogram, v)
+	tmpEdges   = collect(tmpRes.edges[1])
+	# ignore polar points
+	tmpWeights = tmpRes.weights
+	for i in length(tmpWeights):-1:2
+		if sum(tmpWeights[1:i-1]) <= tmpWeights[i]
+			leftEdge = tmpEdges[max(1,i-1)]
+			for j in 1:length(v)
+				if v[j] < leftEdge
+					v[j] = leftEdge
+				end
+			end
+			break
+		end
+	end
+	for i in 1:length(tmpWeights)-1
+		if sum(tmpWeights[i+1:end]) <= tmpWeights[i]
+			rightEdge = tmpEdges[i+2]
+			for j in 1:length(v)
+				if v[j] > rightEdge
+					v[j] = rightEdge
+				end
+			end
+			break
+		end
+	end
+	return v
+	end
 
 
 
