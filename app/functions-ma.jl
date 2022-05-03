@@ -1,7 +1,7 @@
 using Statistics
 using StatsBase
 
-function sma(v::Vector{T}, numMa::Int)::Vector where T<:Real
+function sma(v::Vector, numMa::Int)::Vector
 	if length(v) < 3numMa
 		throw("insufficient data")
 	end
@@ -16,7 +16,7 @@ function sma(v::Vector{T}, numMa::Int)::Vector where T<:Real
 	return vRet
 	end
 
-function ma(v::Vector{T}, numMa::Int)::Vector where T<:Real
+function ma(v::Vector, numMa::Int)::Vector
 	vRet = zeros(length(v))
 	vRet[1] = v[1]
 	for i in 2:length(v)
