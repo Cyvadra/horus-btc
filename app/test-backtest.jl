@@ -16,7 +16,7 @@ using Flux
 TableResults.Open(true)
 @show GetLastResultsID()
 
-numMa    = 12 # 24h
+numMa    = 16 # 48h
 postSecs = 10800 # predict 3h
 tmpSyms  = ResultCalculations |> fieldnames |> collect
 
@@ -48,8 +48,7 @@ function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 	sequences = Vector[]
 	for k in dnnList
 		tmpList = anoRet[k] ./ baseList
-		tmpBase = ma(tmpList, numMa)
-		tmpList = histofit(tmpList ./ tmpBase)
+		tmpList = middlefit(tmpList, numMa)
 		push!(sequences,
 			Vector{Float32}(tmpList)
 			)
@@ -59,11 +58,16 @@ function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 
 fromDate  = DateTime(2019,3,1,0)
 toDate    = DateTime(2022,3,31,0)
-@time res = GenerateWindowedViewH3(fromDate, toDate) |> GenerateSequences
+anoRet    = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
+X = GenerateX(anoRet)
+Y = GenerateY(anoRet)
 for i in 1:5
-	res = vcat(res,
-		GenerateWindowedViewH3(fromDate + Minute(30i), toDate + Minute(30i)) |> GenerateSequences
-		)
+	anoRet  = GenerateWindowedViewH3(
+		fromDate + Minute(30i),
+		toDate + Minute(30i)
+		) |> ret2dict
+	X = vcat(X, GenerateX(anoRet))
+	Y = vcat(Y, GenerateY(anoRet))
 end
 
 
