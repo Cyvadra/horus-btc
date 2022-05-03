@@ -87,6 +87,17 @@ function histofit(v::Vector)::Vector
 	end
 	end
 
+function middlefit(v::Vector, numMiddle::Int)::Vector
+	vRet = ones(length(v))
+	for i in 2:numMiddle
+		vRet[i] = v[i] / middle(v[1:i-1])
+	end
+	for i in numMiddle+1:length(v)
+		vRet[i] = v[i] / middle(v[i-numMiddle:i-1])
+	end
+	return vRet .- 1
+	end
+
 function removePolars!(v::Vector)::Vector
 	leftEdge   = min(v...)
 	rightEdge  = max(v...)
