@@ -71,7 +71,7 @@ function syncBitcoin()
 	tmpN = (round(Int,time()) - round(Int,time()) % 60) - prevTs
 	tmpN = ceil(Int, tmpN / 60)
 	tmpN = min(tmpN, 1000)
-	if tmpN < 2
+	if tmpN <= 5
 		return prevTs
 	end
 	# fetch data
