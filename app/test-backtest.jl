@@ -20,28 +20,7 @@ numMa    = 12 # 24h
 postSecs = 10800 # predict 3h
 tmpSyms  = ResultCalculations |> fieldnames |> collect
 
-function GenerateY(ts, postSecs::Int)
-	ret = Float32[0.0, 0.0, 0.0]
-	lastH = GetBTCHighWhen(ts)
-	lastL = GetBTCLowWhen(ts)
-	h = reduce(max, GetBTCHighWhen(ts+60:ts+postSecs))
-	l = reduce(min, GetBTCLowWhen(ts+60:ts+postSecs))
-	c = Statistics.middle(GetBTCCloseWhen(ts:ts+postSecs))
-	dh = h - lastH
-	dl = lastL - l
-	if dh > dl
-		ret[1] = 1.0
-		ret[2] = (h - lastH) / lastH
-		ret[3] = (lastH - l) / lastH
-	else
-		ret[1] = -1.0
-		ret[2] = (lastL - l) / lastL
-		ret[3] = (h - lastL) / lastL
-	end
-	return ret
-	end
-
-function GenerateSequences(tmpRet::Vector{ResultCalculations})::Matrix{Float32}
+function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
 	anoRet   = Dict{String,Vector}()
 	for s in tmpSyms
 		if occursin("Billion", string(s))
@@ -50,10 +29,23 @@ function GenerateSequences(tmpRet::Vector{ResultCalculations})::Matrix{Float32}
 			anoRet[string(s)] = map(x->getfield(x,s), tmpRet)
 		end
 	end
+	return anoRet
+	end
+
+function GenerateY(ts, postSecs::Int)
+	c = middle(GetBTCCloseWhen(ts-postSecs:ts))
+	h = reduce(max, GetBTCHighWhen(ts+60:ts+postSecs))
+	l = reduce(min, GetBTCLowWhen(ts+60:ts+postSecs))
+	return [ -100*abs(c - l) / c, 100*abs(h - c) / c ]
+	end
+function GenerateY(anoRet::Dict{String,Vector})::Matrix{Float32}
 	tsList    = anoRet["timestamp"]
+	return hcat([ GenerateY(ts, postSecs) for ts in tsList ]...)' |> collect
+	end
+
+function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 	baseList  = anoRet["amountTotalTransfer"]
 	sequences = Vector[]
-	y = hcat([ GenerateY(ts, postSecs) for ts in tsList ]...)'
 	for k in dnnList
 		tmpList = anoRet[k] ./ baseList
 		tmpBase = ma(tmpList, numMa)
@@ -62,7 +54,7 @@ function GenerateSequences(tmpRet::Vector{ResultCalculations})::Matrix{Float32}
 			Vector{Float32}(tmpList)
 			)
 	end
-	return hcat(y, sequences...)
+	return hcat(sequences...)
 	end
 
 fromDate  = DateTime(2019,3,1,0)
