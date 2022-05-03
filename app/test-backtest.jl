@@ -59,15 +59,15 @@ function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 fromDate  = DateTime(2019,3,1,0)
 toDate    = DateTime(2022,3,31,0)
 anoRet    = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
-X = GenerateX(anoRet)
-Y = GenerateY(anoRet)
+oriX = GenerateX(anoRet)
+oriY = GenerateY(anoRet)
 for i in 1:5
 	anoRet  = GenerateWindowedViewH3(
 		fromDate + Minute(30i),
 		toDate + Minute(30i)
 		) |> ret2dict
-	X = vcat(X, GenerateX(anoRet))
-	Y = vcat(Y, GenerateY(anoRet))
+	oriX = vcat(oriX, GenerateX(anoRet))
+	oriY = vcat(oriY, GenerateY(anoRet))
 end
 
 
@@ -77,13 +77,8 @@ end
 
 # Prepare Data
 
-numLoad = 8
-
-X = res[:, 4:end];
-X = [vcat(X[i+1:i+numLoad,:]...) for i in 1:size(X)[1]-numLoad];
-Y = reduce(*, res[:, 1:2]; dims=2);
-Y = [Y[i] for i in numLoad+1:size(Y)[1]];
-Y = map(x->x^3, 10Y) |> removePolars! |> histofit;
+X = [ X[i,:] for i in 1:size(oriX)[1] ];
+Y = [ Y[i,:] for i in 1:size(oriY)[1] ];
 tmpMidN = round(Int, length(X)*0.8)
 tmpIndexes = sortperm(rand(tmpMidN))
 training_x = deepcopy(X[tmpIndexes]);
@@ -98,10 +93,11 @@ data      = zip(training_x, training_y)
 nTolerance = 100
 minEpsilon = 1e-15
 nThrottle  = 15
-modelWidth = 544
+modelWidth = round(Int, inputSize^2)
 
 m = Chain(
-		Dense(inputSize, yLength),
+		Dense(inputSize, modelWidth),
+		Dense(modelWidth, yLength),
 	)
 ps = params(m);
 
