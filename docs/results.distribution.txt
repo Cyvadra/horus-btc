@@ -1,0 +1,82 @@
+
+amountBuyerBalanceAbove80 # 长尾
+amountBuyerBalanceAbove95 # 长尾
+amountBuyerBalanceBelow20 # 长尾
+amountBuyerBalanceBelow40 # 长尾
+amountBuyerBalanceBelow60 # 长尾
+amountBuyerBalanceBelow80 # 长尾
+amountChargePercentBelow10 # 长尾
+amountChargePercentBelow25 # 长尾
+amountChargePercentBelow50 # 长尾
+amountChargePercentBelow80 # 长尾
+amountChargePercentBelow95 # 长尾
+amountChargePercentEquals100 # 长尾
+amountContinuousD1Buying # 长尾
+amountContinuousD1Sending # 长尾
+amountContinuousD3Buying # 长尾
+amountContinuousD3Sending # 长尾
+amountContinuousW1Buying # 长尾
+amountContinuousW1Sending # 长尾
+amountRealizedLossBillion # 绝对长尾 归零
+amountRealizedProfitBillion # 绝对长尾 归零
+amountRecentD3Buying # 长尾
+amountRecentD3Sending # 长尾
+amountSupplierBalanceAbove95 # 长尾
+amountSupplierBalanceBelow20 # 长尾
+amountSupplierBalanceBelow40 # 长尾
+amountSupplierBalanceBelow60 # 长尾
+amountSupplierBalanceBelow80 # 长尾
+amountTotalTransfer # 长尾
+amountWithdrawPercentAbove80 # 长尾 近0
+amountWithdrawPercentAbove95 # 长尾 近0
+amountWithdrawPercentBelow10 # 长尾
+amountWithdrawPercentBelow25 # 长尾
+amountWithdrawPercentBelow50 # 长尾
+balanceBuyerMean # 长尾 较长
+balanceBuyerMiddle # 长尾 极限
+balanceBuyerPercent20 # 长尾 极限
+balanceBuyerPercent40 # 长尾 极限
+balanceBuyerPercent60 # 长尾 极限
+balanceBuyerPercent80 # 长尾 极限
+balanceBuyerPercent95 # 长尾 极限
+balanceBuyerStd # 长尾
+balanceSupplierMean # 长尾
+balanceSupplierMiddle # 长尾 极限
+balanceSupplierPercent20 # 长尾 极限
+balanceSupplierPercent40 # 长尾 极限
+balanceSupplierPercent60 # 长尾 极限
+balanceSupplierPercent80 # 长尾 极限
+balanceSupplierPercent95 # 长尾 极限
+balanceSupplierStd # 长尾
+numBuyerMomentum # 长尾
+numBuyerMomentumMean # 长尾
+numChargePercentBelow10 # 钟型
+numChargePercentBelow25 # 钟型
+numChargePercentBelow50 # 钟型
+numChargePercentBelow80 # 钟型
+numChargePercentBelow95 # 钟型
+numChargePercentEquals100 # 钟型
+numContinuousD1Buying # 钟型
+numContinuousD1Sending # 钟型
+numContinuousD3Buying # 钟型
+numContinuousD3Sending # 钟型
+numContinuousW1Buying # 钟型
+numContinuousW1Sending # 钟型
+numRealizedLoss # 钟型
+numRealizedProfit # 钟型
+numRecentD3Buying # 钟型
+numRecentD3Sending # 钟型
+numRegularBuyerMomentum # 长尾
+numRegularBuyerMomentumMean # 长尾
+numSupplierMomentum # 长尾 极限
+numSupplierMomentumMean # 长尾 极限
+numTotalActive # 钟型
+numTotalRows # 钟型
+numWithdrawPercentAbove80 # 钟型
+numWithdrawPercentAbove95 # 钟型
+numWithdrawPercentBelow10 # 钟型
+numWithdrawPercentBelow25 # 钟型
+numWithdrawPercentBelow50 # 钟型
+percentNumNew # 钟型
+percentNumReceiving # 钟型
+percentNumSending # 钟型
