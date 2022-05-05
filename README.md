@@ -1,8 +1,9 @@
 # horus
 
 ### Todos:
-11. [ ] Initialize quantum framework.
-13. [ ] Run backtests.
+1. [ ] Init backtest framework.
+3. [ ] Test simplest strategy.
+5. [ ] Try quantumize that strategy.
 15. [ ] Initialize APIs.
 
 ### Pending:
