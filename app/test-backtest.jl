@@ -20,6 +20,14 @@ numMa    = 16 # 48h
 postSecs = 10800 # predict 3h
 tmpSyms  = ResultCalculations |> fieldnames |> collect
 
+mutable struct Order
+	Enabled::Bool
+	Direction::Bool
+	PositionPercentage::Float32
+	TakeProfit::Float32
+	StopLoss::Float32
+	end
+
 function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
 	anoRet   = Dict{String,Vector}()
 	for s in tmpSyms
@@ -43,17 +51,29 @@ function GenerateY(anoRet::Dict{String,Vector})::Matrix{Float32}
 	return hcat([ GenerateY(ts, postSecs) for ts in tsList ]...)' |> collect
 	end
 
-function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
+function GenerateP(anoRet::Dict{String,Vector})::Vector{Order}
 	baseList  = anoRet["amountTotalTransfer"]
-	sequences = Vector[]
-	for k in dnnList
-		tmpList = anoRet[k] ./ baseList
-		tmpList = middlefit(tmpList, numMa)
-		push!(sequences,
-			Vector{Float32}(tmpList)
-			)
+	tmpProfit = anoRet["amountRealizedProfitBillion"] ./ baseList
+	tmpLoss   = anoRet["amountRealizedLossBillion"] ./ baseList
+	biasProfit = tmpProfit ./ sma(tmpProfit,8)
+	biasLoss   = tmpLoss ./ sma(tmpLoss,8)
+	prevState  = biasProfit[1] >= biasLoss[1]
+	tmpOrder   = Order(false, false, 0.0, 0.0, 0.0)
+	retOrders  = [ deepcopy(tmpOrder) for i in 1:length(baseList) ]
+	for i in 2:length(baseList)
+		thisState = biasProfit[i] >= biasLoss[i]
+		if thisState !== prevState
+			retOrders[i].Enabled = true
+			retOrders[i].PositionPercentage = abs(biasProfit[i]-biasLoss[i])
+			if biasProfit[i] >= biasLoss[i]
+				retOrders[i].Direction = false
+			else
+				retOrders[i].Direction = true
+			end
+		end
+		prevState = biasProfit[i] >= biasLoss[i]
 	end
-	return hcat(sequences...)
+	return retOrders
 	end
 
 fromDate  = DateTime(2019,3,1,0)
@@ -62,3 +82,5 @@ anoRet    = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
 oriX = GenerateX(anoRet)
 oriY = GenerateY(anoRet)
 
+function RunBacktest(predicts::Vector{Order})::Vector{Float64}
+	end
