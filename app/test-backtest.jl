@@ -61,7 +61,7 @@ function GenerateP(anoRet::Dict{String,Vector})::Vector{Order}
 	biasLoss   = tmpLoss ./ sma(tmpLoss,8)
 	prevState  = biasProfit[1] >= biasLoss[1]
 	tmpOrder   = Order(false, false, 0.0, 0.0, 0.0)
-	retOrders  = [ deepcopy(tmpOrder) for i in 1:length(baseList) ]
+	retOrders  = fill(tmpOrder, length(baseList))
 	for i in 2:length(baseList)
 		thisState = biasProfit[i] >= biasLoss[i]
 		if thisState !== prevState
