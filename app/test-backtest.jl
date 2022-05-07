@@ -19,6 +19,8 @@ TableResults.Open(true)
 numMa    = 16 # 48h
 postSecs = 10800 # predict 3h
 tmpSyms  = ResultCalculations |> fieldnames |> collect
+const DIRECTION_SHORT = false
+const DIRECTION_LONG  = true
 
 mutable struct Order
 	Enabled::Bool
@@ -66,9 +68,9 @@ function GenerateP(anoRet::Dict{String,Vector})::Vector{Order}
 			retOrders[i].Enabled = true
 			retOrders[i].PositionPercentage = abs(biasProfit[i]-biasLoss[i])
 			if biasProfit[i] >= biasLoss[i]
-				retOrders[i].Direction = false
+				retOrders[i].Direction = DIRECTION_SHORT
 			else
-				retOrders[i].Direction = true
+				retOrders[i].Direction = DIRECTION_LONG
 			end
 		end
 		prevState = biasProfit[i] >= biasLoss[i]
@@ -83,4 +85,33 @@ oriX = GenerateX(anoRet)
 oriY = GenerateY(anoRet)
 
 function RunBacktest(predicts::Vector{Order})::Vector{Float64}
+	prevPosition  = false
+	prevDirection = DIRECTION_SHORT
+	prevAmount    = 0.0
+	prevPrice     = 0.0
+	@assert length(predicts) == size(oriY)[1]
+	listNet = ones(length(predicts)) .* 100
+	for i in 1:length(predicts)
+		if predicts[i].Enabled
+			# execute order
+			if prevPosition
+				if prevDirection == predicts[i].Direction
+					# continue
+				else
+					# switch
+					listNet[i]
+					prevPrice
+				end
+			else
+				# init position
+				prevPosition  = true
+				prevDirection = predicts[i].Direction
+				prevAmount    = predicts[i].PositionPercentage
+			end
+		else
+			# calculate current net worth
+			listNet[i] = listNet[i-1]
+		end
+	end
+	return listNet
 	end
