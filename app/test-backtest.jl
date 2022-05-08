@@ -21,9 +21,9 @@ postSecs = 10800 # predict 3h
 tmpSyms  = ResultCalculations |> fieldnames |> collect
 const DIRECTION_SHORT = false
 const DIRECTION_LONG  = true
+const TRADE_FEE       = 0.001
 
 mutable struct Order
-	Enabled::Bool
 	Direction::Bool
 	PositionPercentage::Float32
 	TakeProfit::Float32
@@ -53,25 +53,27 @@ function GenerateY(anoRet::Dict{String,Vector})::Matrix{Float32}
 	return hcat([ GenerateY(ts, postSecs) for ts in tsList ]...)' |> collect
 	end
 
-function GenerateP(anoRet::Dict{String,Vector})::Vector{Order}
+function GenerateP(anoRet::Dict{String,Vector})::Vector{Union{Nothing,Order}}
 	baseList  = anoRet["amountTotalTransfer"]
 	tmpProfit = anoRet["amountRealizedProfitBillion"] ./ baseList
 	tmpLoss   = anoRet["amountRealizedLossBillion"] ./ baseList
 	biasProfit = tmpProfit ./ sma(tmpProfit,8)
 	biasLoss   = tmpLoss ./ sma(tmpLoss,8)
 	prevState  = biasProfit[1] >= biasLoss[1]
-	tmpOrder   = Order(false, false, 0.0, 0.0, 0.0)
-	retOrders  = fill(tmpOrder, length(baseList))
+	tmpOrder   = Order(false, 0.0, 0.0, 0.0)
+	retOrders  = Union{Nothing,Order}[nothing]
 	for i in 2:length(baseList)
 		thisState = biasProfit[i] >= biasLoss[i]
 		if thisState !== prevState
-			retOrders[i].Enabled = true
-			retOrders[i].PositionPercentage = abs(biasProfit[i]-biasLoss[i])
+			push!(retOrders, deepcopy(tmpOrder))
 			if biasProfit[i] >= biasLoss[i]
 				retOrders[i].Direction = DIRECTION_SHORT
 			else
 				retOrders[i].Direction = DIRECTION_LONG
 			end
+			retOrders[i].PositionPercentage = abs(biasProfit[i]-biasLoss[i])
+		else
+			push!(retOrders, nothing)
 		end
 		prevState = biasProfit[i] >= biasLoss[i]
 	end
@@ -84,33 +86,37 @@ anoRet    = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
 oriX = GenerateX(anoRet)
 oriY = GenerateY(anoRet)
 
-function RunBacktest(predicts::Vector{Order})::Vector{Float64}
-	prevPosition  = false
-	prevDirection = DIRECTION_SHORT
-	prevAmount    = 0.0
-	prevPrice     = 0.0
-	@assert length(predicts) == size(oriY)[1]
+mutable struct CurrentPosition
+	Direction::Bool
+	PositionPercentage::Float32
+	Price::Float32
+	TP::Float32
+	SL::Float32
+	Timestamp::Int32
+	end
+
+function RunBacktest(predicts::Vector{Union{Nothing,Order}}, anoRet::Dict{String,Vector})::Vector{Float64}
+	@assert length(predicts) == length(anoRet["timestamp"])
 	listNet = ones(length(predicts)) .* 100
-	for i in 1:length(predicts)
-		if predicts[i].Enabled
-			# execute order
-			if prevPosition
-				if prevDirection == predicts[i].Direction
-					# continue
-				else
-					# switch
-					listNet[i]
-					prevPrice
-				end
-			else
-				# init position
-				prevPosition  = true
-				prevDirection = predicts[i].Direction
-				prevAmount    = predicts[i].PositionPercentage
+	listTs  = anoRet["timestamp"]
+	currentPos = CurrentPosition(false, 0.0, 0.0, 0.0, 0.0, listTs[1])
+	for i in 2:length(predicts)
+		listNet[i] = listNet[i-1]
+		if currentPos.PositionPercentage > 0.0
+			if currentPos.Direction == DIRECTION_SHORT
+				listNet[i] = listNet[i-1] + 
+					( currentPos.Price - GetBTCHighWhen(listTs[i]) ) * currentPos.PositionPercentage
+			elseif currentPos.Direction == DIRECTION_LONG
+				listNet[i] = listNet[i-1] + 
+					( GetBTCLowWhen(listTs[i]) - currentPos.Price ) * currentPos.PositionPercentage
 			end
-		else
-			# calculate current net worth
-			listNet[i] = listNet[i-1]
+			listNet[i] -= currentPos.PositionPercentage * TRADE_FEE
+			currentPos.PositionPercentage = 0.0
+		end
+		if !isnothing(predicts[i])
+			currentPos.Direction = predicts[i].Direction
+			currentPos.PositionPercentage = predicts[i].PositionPercentage
+			currentPos.Price = GetBTCCloseWhen(listTs[i])
 		end
 	end
 	return listNet
