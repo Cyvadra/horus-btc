@@ -21,7 +21,7 @@ postSecs = 10800 # predict 3h
 tmpSyms  = ResultCalculations |> fieldnames |> collect
 const DIRECTION_SHORT = false
 const DIRECTION_LONG  = true
-const TRADE_FEE       = 0.001
+TRADE_FEE = 0.0008
 
 mutable struct Order
 	Direction::Bool
@@ -110,13 +110,14 @@ function RunBacktest(predicts::Vector{Union{Nothing,Order}}, anoRet::Dict{String
 				listNet[i] = listNet[i-1] + 
 					( GetBTCLowWhen(listTs[i]) - currentPos.Price ) * currentPos.PositionPercentage
 			end
-			listNet[i] -= currentPos.PositionPercentage * TRADE_FEE
+			listNet[i] -= currentPos.PositionPercentage * GetBTCCloseWhen(listTs[i]) * TRADE_FEE
 			currentPos.PositionPercentage = 0.0
 		end
 		if !isnothing(predicts[i])
 			currentPos.Direction = predicts[i].Direction
 			currentPos.PositionPercentage = predicts[i].PositionPercentage
 			currentPos.Price = GetBTCCloseWhen(listTs[i])
+			currentPos.Timestamp = listTs[i]
 		end
 	end
 	return listNet
