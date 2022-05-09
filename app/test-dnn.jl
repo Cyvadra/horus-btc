@@ -12,6 +12,7 @@ include("./client-config.jl");
 using Dates
 using Statistics
 using Flux
+using ProgressMeter
 
 TableResults.Open(true)
 @show GetLastResultsID()
@@ -59,15 +60,21 @@ function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 fromDate  = DateTime(2019,3,1,0)
 toDate    = DateTime(2022,3,31,0)
 anoRet    = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
-oriX = GenerateX(anoRet)
-oriY = GenerateY(anoRet)
-for i in 1:5
+oriX = GenerateX(anoRet)[numMa:end, :]
+oriY = GenerateY(anoRet)[numMa:end, :]
+
+X = [ vcat(oriX[i-2:i,:]...) for i in 3:size(oriX)[1] ];
+Y = [ oriY[i,:] for i in 3:size(oriY)[1] ];
+
+@showprogress for i in 1:5
 	anoRet  = GenerateWindowedViewH3(
 		fromDate + Minute(30i),
 		toDate + Minute(30i)
 		) |> ret2dict
-	oriX = vcat(oriX, GenerateX(anoRet))
-	oriY = vcat(oriY, GenerateY(anoRet))
+	tmpX = GenerateX(anoRet)[numMa:end, :]
+	tmpY = GenerateY(anoRet)[numMa:end, :]
+	append!(X, [ vcat(tmpX[i-2:i,:]...) for i in 3:size(tmpX)[1] ])
+	append!(Y, [ tmpY[i,:] for i in 3:size(tmpY)[1] ];)
 end
 
 
@@ -76,9 +83,6 @@ end
 
 
 # Prepare Data
-
-X = [ X[i,:] for i in 1:size(oriX)[1] ];
-Y = [ Y[i,:] for i in 1:size(oriY)[1] ];
 tmpMidN = round(Int, length(X)*0.8)
 tmpIndexes = sortperm(rand(tmpMidN))
 training_x = deepcopy(X[tmpIndexes]);
