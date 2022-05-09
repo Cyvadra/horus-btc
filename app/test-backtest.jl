@@ -91,7 +91,7 @@ function GenerateP(anoRet::Dict{String,Vector})::Vector{Union{Nothing,Order}}
 fromDate  = DateTime(2019,3,1,0)
 toDate    = DateTime(2022,3,31,0)
 anoRet    = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
-oriX = GenerateX(anoRet)
+oriX = GenerateP(anoRet)
 oriY = GenerateY(anoRet)
 
 mutable struct CurrentPosition

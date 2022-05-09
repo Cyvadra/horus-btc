@@ -198,6 +198,7 @@ dnnList = String[
 	"percentNumNew",
 	"percentNumReceiving",
 	"percentNumSending",
+	"amountTotalTransfer",
 ] |> sort
 
 function normalise(v::Vector, rng::UnitRange)::Vector

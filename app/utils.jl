@@ -63,6 +63,13 @@ using Statistics
 			return -log2(abs(x)+1)
 		end
 		end
+	function safe_log(x)
+		if x > 0
+			return log(x+1)
+		else
+			return -log(abs(x)+1)
+		end
+		end
 	function safe_log10(x)
 		if x > 0
 			return log10(x+1)

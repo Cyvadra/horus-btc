@@ -34,24 +34,25 @@ function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
 	end
 
 function GenerateY(ts, postSecs::Int)
+	ratioSL = 1.05
+	ratioTP = 0.95
 	c = middle(GetBTCCloseWhen(ts-postSecs:ts))
 	h = reduce(max, GetBTCHighWhen(ts+60:ts+postSecs))
 	l = reduce(min, GetBTCLowWhen(ts+60:ts+postSecs))
-	return [ -100*abs(c - l) / c, 100*abs(h - c) / c ]
+	h = 100*abs(h - c) / c
+	l = 100*abs(c - l) / c
+	return [h, -l]
 	end
-function GenerateY(anoRet::Dict{String,Vector})::Matrix{Float32}
-	tsList    = anoRet["timestamp"]
+function GenerateY(anoRet::Dict{String,Vector})
+	tsList = anoRet["timestamp"]
 	return hcat([ GenerateY(ts, postSecs) for ts in tsList ]...)' |> collect
 	end
 
 function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
-	baseList  = anoRet["amountTotalTransfer"]
 	sequences = Vector[]
 	for k in dnnList
-		tmpList = anoRet[k] ./ baseList
-		tmpList = middlefit(tmpList, numMa)
 		push!(sequences,
-			Vector{Float32}(tmpList)
+			Vector{Float32}(anoRet[k])
 			)
 	end
 	return hcat(sequences...)
@@ -63,8 +64,8 @@ anoRet    = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
 oriX = GenerateX(anoRet)[numMa:end, :]
 oriY = GenerateY(anoRet)[numMa:end, :]
 
-X = [ vcat(oriX[i-2:i,:]...) for i in 3:size(oriX)[1] ];
-Y = [ oriY[i,:] for i in 3:size(oriY)[1] ];
+X = [ vcat(oriX[i-numMa:i,:]...) for i in numMa+1:size(oriX)[1] ];
+Y = [ oriY[i,:] for i in numMa+1:size(oriY)[1] ];
 
 @showprogress for i in 1:5
 	anoRet  = GenerateWindowedViewH3(
@@ -73,11 +74,14 @@ Y = [ oriY[i,:] for i in 3:size(oriY)[1] ];
 		) |> ret2dict
 	tmpX = GenerateX(anoRet)[numMa:end, :]
 	tmpY = GenerateY(anoRet)[numMa:end, :]
-	append!(X, [ vcat(tmpX[i-2:i,:]...) for i in 3:size(tmpX)[1] ])
-	append!(Y, [ tmpY[i,:] for i in 3:size(tmpY)[1] ];)
+	append!(X, [ vcat(tmpX[i-numMa:i,:]...) for i in numMa+1:size(tmpX)[1] ])
+	append!(Y, [ tmpY[i,:] for i in numMa+1:size(tmpY)[1] ])
+	@assert length(X) == length(Y)
 end
 
-
+for i in 1:length(X)
+	append!(X[i], safe_log.(X[i]))
+end
 
 
 
@@ -94,18 +98,16 @@ yLength   = length(Y[end])
 inputSize = length(X[1])
 data      = zip(training_x, training_y)
 
-nTolerance = 100
-minEpsilon = 1e-15
+nTolerance = 24
+minEpsilon = 1e-13
 nThrottle  = 15
-modelWidth = round(Int, inputSize^2)
 
 m = Chain(
-		Dense(inputSize, modelWidth),
-		Dense(modelWidth, yLength),
+		Dense(inputSize, yLength),
 	)
 ps = params(m);
 
-opt        = ADAM();
+opt        = ADAM(1e-5);
 tx, ty     = (test_x[15], test_y[15]);
 evalcb     = () -> @show loss(tx, ty);
 loss(x, y) = Flux.Losses.mse(m(x), y);
