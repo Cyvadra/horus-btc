@@ -43,13 +43,21 @@ function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
 	end
 
 function GenerateY(ts, postSecs::Int)
+	ratioSL = 1.05
+	ratioTP = 0.95
 	c = middle(GetBTCCloseWhen(ts-postSecs:ts))
 	h = reduce(max, GetBTCHighWhen(ts+60:ts+postSecs))
 	l = reduce(min, GetBTCLowWhen(ts+60:ts+postSecs))
-	return [ -100*abs(c - l) / c, 100*abs(h - c) / c ]
+	h = 100*abs(h - c) / c
+	l = 100*abs(c - l) / c
+	if h > l
+		return [h*ratioTP, -l*ratioSL]
+	else
+		return [-l*ratioTP, h*ratioSL]
 	end
-function GenerateY(anoRet::Dict{String,Vector})::Matrix{Float32}
-	tsList    = anoRet["timestamp"]
+	end
+function GenerateY(anoRet::Dict{String,Vector})
+	tsList = anoRet["timestamp"]
 	return hcat([ GenerateY(ts, postSecs) for ts in tsList ]...)' |> collect
 	end
 
