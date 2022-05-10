@@ -94,7 +94,7 @@ yLength   = length(Y[end])
 inputSize = length(X[1])
 data      = zip(training_x, training_y)
 
-nTolerance = 24
+nTolerance = 10
 minEpsilon = 1e-13
 nThrottle  = 15
 
@@ -104,7 +104,7 @@ m = Chain(
 	)
 ps = params(m);
 
-opt        = ADAM(1e-3);
+opt        = ADADelta();
 tx, ty     = (test_x[15], test_y[15]);
 evalcb     = () -> @show loss(tx, ty);
 loss(x, y) = Flux.Losses.mse(m(x), y);
@@ -138,13 +138,13 @@ while true
 				e = opt.epsilon * 1.25
 				println()
 				@info "Increase epsilon to $e"
-				opt.epsilon *= 1.25
+				opt = ADAM(1.25*e)
 				nCounter = 0
 			elseif opt.epsilon > minEpsilon
 				e = opt.epsilon / 1.5
 				println()
 				@info "Updated epsilon to $e"
-				opt.epsilon /= 1.5
+				opt = ADAM(e/2)
 				nCounter = 0
 				nTolerance += 1
 				tmpFlag  = false
