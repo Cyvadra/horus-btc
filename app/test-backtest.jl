@@ -130,3 +130,28 @@ function RunBacktest(predicts::Vector{Union{Nothing,Order}}, anoRet::Dict{String
 	end
 	return listNet
 	end
+
+function RunBacktestSequence(predicts::Vector{Union{Nothing,Order}}, anoRet::Dict{String,Vector})::Vector{Float64}
+	@assert length(predicts) == length(anoRet["timestamp"])
+	listNet = zeros(length(predicts))
+	listTs  = anoRet["timestamp"]
+	currentPos = CurrentPosition(false, 0.0, 0.0, 0.0, 0.0, listTs[1])
+	for i in 2:length(predicts)
+		if currentPos.PositionPercentage > 0.0
+			if currentPos.Direction == DIRECTION_SHORT
+				listNet[i] = ( currentPos.Price - GetBTCHighWhen(listTs[i]) ) * currentPos.PositionPercentage
+			elseif currentPos.Direction == DIRECTION_LONG
+				listNet[i] = ( GetBTCLowWhen(listTs[i]) - currentPos.Price ) * currentPos.PositionPercentage
+			end
+			listNet[i] -= currentPos.PositionPercentage * GetBTCCloseWhen(listTs[i]) * TRADE_FEE
+			currentPos.PositionPercentage = 0.0
+		end
+		if !isnothing(predicts[i])
+			currentPos.Direction = predicts[i].Direction
+			currentPos.PositionPercentage = predicts[i].PositionPercentage
+			currentPos.Price = GetBTCCloseWhen(listTs[i])
+			currentPos.Timestamp = listTs[i]
+		end
+	end
+	return listNet
+	end
