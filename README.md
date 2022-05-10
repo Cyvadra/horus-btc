@@ -1,8 +1,8 @@
 # horus
 
 ### Todos:
-1. [ ] Init backtest framework.
-3. [ ] Test simplest strategy.
+1. [x] Init backtest framework.
+3. [x] Test simplest strategy.
 5. [ ] Try quantumize that strategy.
 15. [ ] Initialize APIs.
 
