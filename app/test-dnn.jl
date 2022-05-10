@@ -52,7 +52,7 @@ function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 	sequences = Vector[]
 	for k in dnnList
 		push!(sequences,
-			Vector{Float32}(anoRet[k])
+			Vector{Float32}(middlefit(anoRet[k], 2numMa))
 			)
 	end
 	return hcat(sequences...)
@@ -61,8 +61,8 @@ function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 fromDate  = DateTime(2019,3,1,0)
 toDate    = DateTime(2022,3,31,0)
 anoRet    = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
-oriX = GenerateX(anoRet)[numMa:end, :]
-oriY = GenerateY(anoRet)[numMa:end, :]
+oriX = GenerateX(anoRet)[2numMa:end, :]
+oriY = GenerateY(anoRet)[2numMa:end, :]
 
 X = [ vcat(oriX[i-numMa:i,:]...) for i in numMa+1:size(oriX)[1] ];
 Y = [ oriY[i,:] for i in numMa+1:size(oriY)[1] ];
@@ -77,10 +77,6 @@ Y = [ oriY[i,:] for i in numMa+1:size(oriY)[1] ];
 	append!(X, [ vcat(tmpX[i-numMa:i,:]...) for i in numMa+1:size(tmpX)[1] ])
 	append!(Y, [ tmpY[i,:] for i in numMa+1:size(tmpY)[1] ])
 	@assert length(X) == length(Y)
-end
-
-for i in 1:length(X)
-	append!(X[i], safe_log.(X[i]))
 end
 
 
@@ -103,11 +99,12 @@ minEpsilon = 1e-13
 nThrottle  = 15
 
 m = Chain(
+		Dense(inputSize, inputSize),
 		Dense(inputSize, yLength),
 	)
 ps = params(m);
 
-opt        = ADAM(1e-5);
+opt        = ADAM(1e-3);
 tx, ty     = (test_x[15], test_y[15]);
 evalcb     = () -> @show loss(tx, ty);
 loss(x, y) = Flux.Losses.mse(m(x), y);
@@ -144,12 +141,12 @@ while true
 				opt.epsilon *= 1.25
 				nCounter = 0
 			elseif opt.epsilon > minEpsilon
-				e = opt.epsilon/2
+				e = opt.epsilon / 1.5
 				println()
 				@info "Updated epsilon to $e"
-				opt.epsilon /= 2
+				opt.epsilon /= 1.5
 				nCounter = 0
-				nTolerance += 2
+				nTolerance += 1
 				tmpFlag  = false
 			else
 				@info "Done!"
