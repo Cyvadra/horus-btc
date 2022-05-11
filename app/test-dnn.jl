@@ -138,13 +138,13 @@ while true
 				e = opt.epsilon * 1.25
 				println()
 				@info "Increase epsilon to $e"
-				opt = ADAM(1.25*e)
+				opt.epsilon *= 1.25
 				nCounter = 0
 			elseif opt.epsilon > minEpsilon
 				e = opt.epsilon / 1.5
 				println()
 				@info "Updated epsilon to $e"
-				opt = ADAM(e/2)
+				opt.epsilon /= 1.5
 				nCounter = 0
 				nTolerance += 1
 				tmpFlag  = false
