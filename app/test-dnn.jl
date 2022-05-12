@@ -133,4 +133,45 @@ while true
 	end
 end
 
+# params for generating orders
+
+const DIRECTION_SHORT = false
+const DIRECTION_LONG  = true
+TRADE_FEE = 0.0008
+mutable struct Order
+	Direction::Bool
+	PositionPercentage::Float32
+	TakeProfit::Float32
+	StopLoss::Float32
+	end
+
+function GenerateP(x::Vector{Vector{Float32}})::Vector{Union{Nothing,Order}}
+	tmpThreshold = Float32(0.1)
+	tmpMinDiff   = Float32(0.5)
+	tmpPredicts = m.(x)
+	tmpPredictsAbs = map(x->abs.(x), tmpPredicts)
+	retOrders  = Union{Nothing,Order}[]
+	for i in 1:length(tmpPredicts)
+		if tmpPredictsAbs[i][1] < tmpThreshold || tmpPredictsAbs[i][2] < tmpThreshold
+			push!(retOrders, nothing)
+			continue
+		end
+		tmpDiff = tmpPredictsAbs[i][1] - tmpPredictsAbs[i][2]
+		if abs(tmpDiff) < tmpMinDiff
+			push!(retOrders, nothing)
+			continue
+		end
+		tmpOrder = Order(
+			DIRECTION_LONG,
+			Base.Math.tanh(tmpDiff),
+			0.0,
+			0.0,
+			)
+		if tmpDiff < 0
+			tmpOrder.Direction = DIRECTION_SHORT
+		end
+		push!(retOrders, tmpOrder)
+	end
+	return retOrders
+	end
 
