@@ -96,7 +96,7 @@ data      = zip(training_x, training_y)
 
 nTolerance = 10
 minEpsilon = 1e-13
-nThrottle  = 15
+nThrottle  = 30
 
 m = Chain(
 		Dense(inputSize, inputSize),
@@ -119,41 +119,12 @@ prev_loss = [ Flux.Losses.mse(m(training_x[i]), training_y[i]) for i in 1:length
 ps_saved  = deepcopy(collect(ps));
 @info "Initial Loss: $prev_loss"
 nCounter  = 0;
-tmpFlag   = true;
 while true
+	this_loss = [ Flux.Losses.mse(m(test_x[i]), test_y[i]) for i in 1:length(test_x) ] |> mean
+	@info "prev loss $this_loss"
 	Flux.train!(loss, ps, data, opt; cb = Flux.throttle(evalcb, nThrottle))
-	this_loss = [ Flux.Losses.mse(m(training_x[i]), training_y[i]) for i in 1:length(training_x) ] |> mean
-	if this_loss < 0.95 * prev_loss
-		ps_saved  = deepcopy(collect(ps))
-		prev_loss = this_loss
-		println()
-		@info "New best loss $prev_loss"
-		nCounter  = 0
-		tmpFlag   = true
-	else
-		@info "loop $nCounter/$nTolerance, loss $this_loss"
-		nCounter += 1
-		if nCounter > nTolerance
-			if tmpFlag == false
-				e = opt.epsilon * 1.25
-				println()
-				@info "Increase epsilon to $e"
-				opt.epsilon *= 1.25
-				nCounter = 0
-			elseif opt.epsilon > minEpsilon
-				e = opt.epsilon / 1.5
-				println()
-				@info "Updated epsilon to $e"
-				opt.epsilon /= 1.5
-				nCounter = 0
-				nTolerance += 1
-				tmpFlag  = false
-			else
-				@info "Done!"
-				break
-			end
-		end
-	end
+	nCounter += 1
+	@info "$nCounter/∞"
 end
 
 
