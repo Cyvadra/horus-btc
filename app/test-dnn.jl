@@ -99,8 +99,9 @@ minEpsilon = 1e-13
 nThrottle  = 30
 
 m = Chain(
-		Dense(inputSize, inputSize),
-		Dense(inputSize, yLength),
+		Dense(inputSize, inputSize, relu),
+		Dense(inputSize, 256, tanh_fast),
+		Dense(256, yLength),
 	)
 ps = params(m);
 
@@ -111,11 +112,11 @@ loss(x, y) = Flux.Losses.mse(m(x), y);
 
 tmpLen     = length(training_y[1]);
 tmpBase    = [ mean(map(x->x[i], training_y)) for i in 1:tmpLen ];
-tmpLoss    = mean([ Flux.Losses.mse(tmpBase, training_y[i]) for i in 1:length(training_y) ]);
+tmpLoss    = mean([ Flux.Losses.mse(tmpBase, test_y[i]) for i in 1:length(test_y) ]);
 @info "Baseline Loss: $tmpLoss"
 
 
-prev_loss = [ Flux.Losses.mse(m(training_x[i]), training_y[i]) for i in 1:length(training_x) ] |> mean;
+prev_loss = [ Flux.Losses.mse(m(test_x[i]), test_y[i]) for i in 1:length(test_x) ] |> mean;
 ps_saved  = deepcopy(collect(ps));
 @info "Initial Loss: $prev_loss"
 nCounter  = 0;
