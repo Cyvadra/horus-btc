@@ -21,15 +21,15 @@ postSecs = 10800 # predict 3h
 tmpSyms  = ResultCalculations |> fieldnames |> collect
 
 function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
-	anoRet   = Dict{String,Vector}()
+	tmpRet   = Dict{String,Vector}()
 	for s in tmpSyms
 		if occursin("Billion", string(s))
-			anoRet[string(s)] = map(x->getfield(x,s), tmpRet) .* 1e9
+			tmpRet[string(s)] = map(x->getfield(x,s), tmpRet) .* 1e9
 		else
-			anoRet[string(s)] = map(x->getfield(x,s), tmpRet)
+			tmpRet[string(s)] = map(x->getfield(x,s), tmpRet)
 		end
 	end
-	return anoRet
+	return tmpRet
 	end
 
 function GenerateY(ts, postSecs::Int)
@@ -67,12 +67,15 @@ X = [ vcat(oriX[i-numMa:i,:]...) for i in numMa+1:size(oriX)[1] ];
 Y = [ oriY[i,:] for i in numMa+1:size(oriY)[1] ];
 
 @showprogress for i in 1:5
-	anoRet  = GenerateWindowedViewH3(
+	tmpRet  = GenerateWindowedViewH3(
 		fromDate + Minute(30i),
 		toDate + Minute(30i)
 		) |> ret2dict
-	tmpX = GenerateX(anoRet)[numMa:end, :]
-	tmpY = GenerateY(anoRet)[numMa:end, :]
+	for p in tmpRet
+		append!(anoRet[p[1]], p[2])
+	end
+	tmpX = GenerateX(tmpRet)[numMa:end, :]
+	tmpY = GenerateY(tmpRet)[numMa:end, :]
 	append!(X, [ vcat(tmpX[i-numMa:i,:]...) for i in numMa+1:size(tmpX)[1] ])
 	append!(Y, [ tmpY[i,:] for i in numMa+1:size(tmpY)[1] ])
 	@assert length(X) == length(Y)
