@@ -1,7 +1,6 @@
 
 include("./config.jl");
 include("./utils.jl");
-include("./cache-generated.jl");
 include("./service-block_timestamp.jl");
 include("./service-FinanceDB.jl");
 include("./middleware-results-flexible.jl");
@@ -85,25 +84,23 @@ end
 # Prepare Data
 tmpMidN = round(Int, length(X)*0.8)
 tmpIndexes = sortperm(rand(tmpMidN))
-training_x = deepcopy(X[tmpIndexes]);
-training_y = deepcopy(Y[tmpIndexes]);
-test_x = deepcopy(X[tmpMidN+1:end]);
-test_y = deepcopy(Y[tmpMidN+1:end]);
+training_x = deepcopy(X[tmpIndexes])
+training_y = deepcopy(Y[tmpIndexes])
+test_x = deepcopy(X[tmpMidN+1:end])
+test_y = deepcopy(Y[tmpMidN+1:end])
 
 yLength   = length(Y[end])
 inputSize = length(X[1])
 data      = zip(training_x, training_y)
 
-nTolerance = 10
-minEpsilon = 1e-13
 nThrottle  = 30
 
 m = Chain(
-		Dense(inputSize, inputSize, relu),
-		Dense(inputSize, 256, tanh_fast),
-		Dense(256, yLength),
-	)
-ps = params(m);
+			Dense(inputSize, inputSize, relu),
+			Dense(inputSize, 256, tanh_fast),
+			Dense(256, yLength),
+		)
+ps = Flux.params(m);
 
 opt        = ADADelta();
 tx, ty     = (test_x[15], test_y[15]);
@@ -121,11 +118,18 @@ ps_saved  = deepcopy(collect(ps));
 @info "Initial Loss: $prev_loss"
 nCounter  = 0;
 while true
-	this_loss = [ Flux.Losses.mse(m(test_x[i]), test_y[i]) for i in 1:length(test_x) ] |> mean
-	@info "prev loss $this_loss"
+	# train
+	@info "$nCounter/∞"
 	Flux.train!(loss, ps, data, opt; cb = Flux.throttle(evalcb, nThrottle))
 	nCounter += 1
-	@info "$nCounter/∞"
+	# current loss
+	this_loss = [ Flux.Losses.mse(m(test_x[i]), test_y[i]) for i in 1:length(test_x) ] |> mean
+	@info "latest loss $this_loss"
+	# record
+	if this_loss < 0.98*prev_loss
+		ps_saved = deepcopy(collect(ps));
+		prev_loss = this_loss
+	end
 end
 
 
