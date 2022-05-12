@@ -93,7 +93,7 @@ yLength   = length(Y[end])
 inputSize = length(X[1])
 data      = zip(training_x, training_y)
 
-nThrottle  = 30
+nThrottle  = 60
 
 m = Chain(
 			Dense(inputSize, inputSize, relu),
@@ -125,6 +125,7 @@ while true
 	# current loss
 	this_loss = [ Flux.Losses.mse(m(test_x[i]), test_y[i]) for i in 1:length(test_x) ] |> mean
 	@info "latest loss $this_loss"
+	@info now()
 	# record
 	if this_loss < 0.98*prev_loss
 		ps_saved = deepcopy(collect(ps));
