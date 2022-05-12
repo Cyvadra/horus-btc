@@ -175,3 +175,39 @@ function GenerateP(x::Vector{Vector{Float32}})::Vector{Union{Nothing,Order}}
 	return retOrders
 	end
 
+# backtest
+
+
+mutable struct CurrentPosition
+	Direction::Bool
+	PositionPercentage::Float32
+	Price::Float32
+	TP::Float32
+	SL::Float32
+	Timestamp::Int32
+	end
+
+function RunBacktestSequence(predicts::Vector{Union{Nothing,Order}}, anoRet::Dict{String,Vector})::Vector{Float64}
+	@assert length(predicts) == length(anoRet["timestamp"])
+	listDiff = zeros(length(predicts))
+	listTs  = anoRet["timestamp"]
+	currentPos = CurrentPosition(false, 0.0, 0.0, 0.0, 0.0, listTs[1])
+	for i in 2:length(predicts)
+		if currentPos.PositionPercentage > 0.0
+			if currentPos.Direction == DIRECTION_SHORT
+				listDiff[i] = ( currentPos.Price - GetBTCHighWhen(listTs[i]) ) * currentPos.PositionPercentage
+			elseif currentPos.Direction == DIRECTION_LONG
+				listDiff[i] = ( GetBTCLowWhen(listTs[i]) - currentPos.Price ) * currentPos.PositionPercentage
+			end
+			listDiff[i] -= currentPos.PositionPercentage * GetBTCCloseWhen(listTs[i]) * TRADE_FEE
+			currentPos.PositionPercentage = 0.0
+		end
+		if !isnothing(predicts[i])
+			currentPos.Direction = predicts[i].Direction
+			currentPos.PositionPercentage = predicts[i].PositionPercentage
+			currentPos.Price = GetBTCCloseWhen(listTs[i])
+			currentPos.Timestamp = listTs[i]
+		end
+	end
+	return listDiff
+	end
