@@ -191,9 +191,9 @@ mutable struct CurrentPosition
 	end
 
 function RunBacktestSequence(predicts::Vector{Union{Nothing,Order}}, anoRet::Dict{String,Vector})::Vector{Float64}
-	@assert length(predicts) == length(anoRet["timestamp"])
+	listTs   = anoRet["timestamp"][3numMa:end]
+	@assert length(predicts) == length(listTs)
 	listDiff = zeros(length(predicts))
-	listTs  = anoRet["timestamp"]
 	currentPos = CurrentPosition(false, 0.0, 0.0, 0.0, 0.0, listTs[1])
 	for i in 2:length(predicts)
 		if currentPos.PositionPercentage > 0.0
