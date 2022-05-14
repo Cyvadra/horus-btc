@@ -21,15 +21,15 @@ postSecs = 10800 # predict 3h
 tmpSyms  = ResultCalculations |> fieldnames |> collect
 
 function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
-	tmpRet   = Dict{String,Vector}()
+	cacheRet   = Dict{String,Vector}()
 	for s in tmpSyms
 		if occursin("Billion", string(s))
-			tmpRet[string(s)] = map(x->getfield(x,s), tmpRet) .* 1e9
+			cacheRet[string(s)] = map(x->getfield(x,s), tmpRet) .* 1e9
 		else
-			tmpRet[string(s)] = map(x->getfield(x,s), tmpRet)
+			cacheRet[string(s)] = map(x->getfield(x,s), tmpRet)
 		end
 	end
-	return tmpRet
+	return cacheRet
 	end
 
 function GenerateY(ts, postSecs::Int)
@@ -87,36 +87,36 @@ end
 # Prepare Data
 tmpMidN = round(Int, length(X)*0.8)
 tmpIndexes = sortperm(rand(tmpMidN))
-training_x = deepcopy(X[tmpIndexes])
-training_y = deepcopy(Y[tmpIndexes])
-test_x = deepcopy(X[tmpMidN+1:end])
-test_y = deepcopy(Y[tmpMidN+1:end])
+training_x = deepcopy(X[tmpIndexes]) |> gpu
+training_y = deepcopy(Y[tmpIndexes]) |> gpu
+test_x = deepcopy(X[tmpMidN+1:end]) |> gpu
+test_y = deepcopy(Y[tmpMidN+1:end]) |> gpu
 
 yLength   = length(Y[end])
 inputSize = length(X[1])
 data      = zip(training_x, training_y)
 
-nThrottle  = 60
+nThrottle  = 30
 
 m = Chain(
 			Dense(inputSize, inputSize, relu),
-			Dense(inputSize, 256, tanh_fast),
-			Dense(256, yLength),
-		)
+			Dense(inputSize, 768, tanh_fast),
+			Dense(768, yLength),
+		) |> gpu
 ps = Flux.params(m);
 
 opt        = ADADelta();
 tx, ty     = (test_x[15], test_y[15]);
 evalcb     = () -> @show loss(tx, ty);
-loss(x, y) = Flux.Losses.mse(m(x), y);
+loss(x, y) = Flux.mse(m(x), y);
 
-tmpLen     = length(training_y[1]);
-tmpBase    = [ mean(map(x->x[i], training_y)) for i in 1:tmpLen ];
-tmpLoss    = mean([ Flux.Losses.mse(tmpBase, test_y[i]) for i in 1:length(test_y) ]);
+tmpLen     = length(test_y[1]);
+tmpBase    = [ mean(map(x->x[i], test_y)) for i in 1:tmpLen ] |> gpu
+tmpLoss    = mean([ Flux.mse(tmpBase, test_y[i]) |> cpu for i in 1:length(test_y) ])
 @info "Baseline Loss: $tmpLoss"
 
 
-prev_loss = [ Flux.Losses.mse(m(test_x[i]), test_y[i]) for i in 1:length(test_x) ] |> mean;
+prev_loss = [ Flux.mse(m(test_x[i]), test_y[i]) |> cpu for i in 1:length(test_x) ] |> mean;
 ps_saved  = deepcopy(collect(ps));
 @info "Initial Loss: $prev_loss"
 nCounter  = 0;
@@ -126,7 +126,7 @@ while true
 	Flux.train!(loss, ps, data, opt; cb = Flux.throttle(evalcb, nThrottle))
 	nCounter += 1
 	# current loss
-	this_loss = [ Flux.Losses.mse(m(test_x[i]), test_y[i]) for i in 1:length(test_x) ] |> mean
+	this_loss = [ Flux.mse(m(test_x[i]), test_y[i]) |> cpu for i in 1:length(test_x) ] |> mean
 	@info "latest loss $this_loss"
 	@info now()
 	# record
