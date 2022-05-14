@@ -16,7 +16,7 @@ using ProgressMeter
 TableResults.Open(true)
 @show GetLastResultsID()
 
-numMa    = 16 # 48h
+numMa    = 8 # 24h
 postSecs = 10800 # predict 3h
 tmpSyms  = ResultCalculations |> fieldnames |> collect
 
@@ -105,7 +105,7 @@ m = Chain(
 		) |> gpu
 ps = Flux.params(m);
 
-opt        = ADADelta();
+opt        = ADADelta(0.92, 1e-9);
 tx, ty     = (test_x[15], test_y[15]);
 evalcb     = () -> @show loss(tx, ty);
 loss(x, y) = Flux.mse(m(x), y);
