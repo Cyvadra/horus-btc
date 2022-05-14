@@ -35,11 +35,11 @@ function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
 function GenerateY(ts, postSecs::Int)
 	# ratioSL = 1.05
 	# ratioTP = 0.95
-	c = middle(GetBTCCloseWhen(ts-postSecs:ts))
+	c = middle(GetBTCCloseWhen(ts-900:ts))
 	h = reduce(max, GetBTCHighWhen(ts+60:ts+postSecs))
 	l = reduce(min, GetBTCLowWhen(ts+60:ts+postSecs))
-	h = 100*abs(h - c) / c
-	l = 100*abs(l - c) / c
+	h = 100 * (h - c) / c
+	l = 100 * (l - c) / c
 	return [h, l]
 	end
 function GenerateY(anoRet::Dict{String,Vector})
@@ -99,9 +99,9 @@ data      = zip(training_x, training_y)
 nThrottle  = 30
 
 m = Chain(
+			Dense(inputSize, inputSize, tanh_fast),
 			Dense(inputSize, inputSize, relu),
-			Dense(inputSize, 768, tanh_fast),
-			Dense(768, yLength),
+			Dense(inputSize, yLength),
 		) |> gpu
 ps = Flux.params(m);
 
