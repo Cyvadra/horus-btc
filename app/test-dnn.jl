@@ -16,7 +16,7 @@ using ProgressMeter
 TableResults.Open(true)
 @show GetLastResultsID()
 
-numMa    = 8 # 24h
+numMa    = 12 # 36h
 postSecs = 10800 # predict 3h
 tmpSyms  = ResultCalculations |> fieldnames |> collect
 
