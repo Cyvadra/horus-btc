@@ -135,7 +135,7 @@ lossList  = [];
 while true
 	# train
 	@info "$nCounter/∞"
-	Flux.train!(loss, ps, data, opt; cb = Flux.throttle(evalcb, nThrottle))
+	Flux.train!(loss, ps, data, opt)
 	nCounter += 1
 	# current loss
 	this_loss = [ Flux.mse(m(test_x[i]), test_y[i]) |> cpu for i in 1:length(test_x) ] |> mean
