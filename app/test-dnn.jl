@@ -82,16 +82,24 @@ Y = [ oriY[i,:] for i in numMa+1:size(oriY)[1] ];
 end
 
 tmpInds = [ collect(1+i:6:length(X)+i) for i in 0:5 ]
-X = reduce(append!, map(i->X[i], tmpInds))
-Y = reduce(append!, map(i->Y[i], tmpInds))
+X = reduce(append, map(i->X[i], tmpInds))
+Y = reduce(append, map(i->Y[i], tmpInds))
+
+TRAIN_WITH_GPU = true
 
 # Prepare Data
 tmpMidN = round(Int, length(X)*0.8)
 tmpIndexes = sortperm(rand(tmpMidN))
-training_x = deepcopy(X[tmpIndexes]) |> gpu
-training_y = deepcopy(Y[tmpIndexes]) |> gpu
-test_x = deepcopy(X[tmpMidN+1:end]) |> gpu
-test_y = deepcopy(Y[tmpMidN+1:end]) |> gpu
+training_x = deepcopy(X[tmpIndexes])
+training_y = deepcopy(Y[tmpIndexes])
+test_x = deepcopy(X[tmpMidN+1:end])
+test_y = deepcopy(Y[tmpMidN+1:end])
+if TRAIN_WITH_GPU
+	training_x = gpu(training_x)
+	training_y = gpu(training_y)
+	test_x = gpu(test_x)
+	test_y = gpu(test_y)
+end
 
 yLength   = length(Y[end])
 inputSize = length(X[1])
@@ -103,7 +111,8 @@ m = Chain(
 			Dense(inputSize, inputSize, tanh_fast),
 			Dense(inputSize, inputSize, relu),
 			Dense(inputSize, yLength),
-		) |> gpu
+		)
+if TRAIN_WITH_GPU; m = gpu(m); end
 ps = Flux.params(m);
 
 opt        = ADADelta(0.92, 1e-9);
@@ -112,7 +121,8 @@ evalcb     = () -> @show loss(tx, ty);
 loss(x, y) = Flux.mse(m(x), y);
 
 tmpLen     = length(test_y[1]);
-tmpBase    = [ mean(map(x->x[i], test_y)) for i in 1:tmpLen ] |> gpu
+tmpBase    = [ mean(map(x->x[i], test_y)) for i in 1:tmpLen ]
+if TRAIN_WITH_GPU; tmpBase = gpu(tmpBase); end
 tmpLoss    = mean([ Flux.mse(tmpBase, test_y[i]) |> cpu for i in 1:length(test_y) ])
 @info "Baseline Loss: $tmpLoss"
 
