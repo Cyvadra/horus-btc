@@ -57,7 +57,7 @@ function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 	return hcat(sequences...)
 	end
 
-fromDate  = DateTime(2019,3,1,0)
+fromDate  = DateTime(2020,7,1,0)
 toDate    = DateTime(2022,3,31,0)
 anoRet    = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
 oriX = GenerateX(anoRet)[2numMa:end, :]
@@ -74,15 +74,16 @@ Y = [ oriY[i,:] for i in numMa+1:size(oriY)[1] ];
 	for p in tmpRet
 		append!(anoRet[p[1]], p[2])
 	end
-	tmpX = GenerateX(tmpRet)[numMa:end, :]
-	tmpY = GenerateY(tmpRet)[numMa:end, :]
+	tmpX = GenerateX(tmpRet)[2numMa:end, :]
+	tmpY = GenerateY(tmpRet)[2numMa:end, :]
 	append!(X, [ vcat(tmpX[i-numMa:i,:]...) for i in numMa+1:size(tmpX)[1] ])
 	append!(Y, [ tmpY[i,:] for i in numMa+1:size(tmpY)[1] ])
 	@assert length(X) == length(Y)
 end
 
-
-
+tmpInds = [ collect(1+i:6:length(X)+i) for i in 0:5 ]
+X = reduce(append!, map(i->X[i], tmpInds))
+Y = reduce(append!, map(i->Y[i], tmpInds))
 
 # Prepare Data
 tmpMidN = round(Int, length(X)*0.8)
