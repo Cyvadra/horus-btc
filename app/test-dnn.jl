@@ -16,9 +16,10 @@ using ProgressMeter
 TableResults.Open(true)
 @show GetLastResultsID()
 
-numMa    = 12 # 36h
+numPrev  = 3 # 9h
 postSecs = 10800 # predict 3h
 tmpSyms  = ResultCalculations |> fieldnames |> collect
+numMiddlefit = 12 # 36h
 
 function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
 	cacheRet   = Dict{String,Vector}()
@@ -51,7 +52,7 @@ function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 	sequences = Vector[]
 	for k in dnnList
 		push!(sequences,
-			Vector{Float32}(middlefit(anoRet[k], 2numMa))
+			Vector{Float32}(middlefit(anoRet[k], numMiddlefit))
 			)
 	end
 	return hcat(sequences...)
@@ -60,30 +61,29 @@ function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 fromDate  = DateTime(2020,7,1,0)
 toDate    = DateTime(2022,3,31,0)
 anoRet    = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
-oriX = GenerateX(anoRet)[2numMa:end, :]
-oriY = GenerateY(anoRet)[2numMa:end, :]
+oriX = GenerateX(anoRet)[numMiddlefit:end, :]
+oriY = GenerateY(anoRet)[numMiddlefit:end, :]
 
-X = [ vcat(oriX[i-numMa:i,:]...) for i in numMa+1:size(oriX)[1] ];
-Y = [ oriY[i,:] for i in numMa+1:size(oriY)[1] ];
+X = [ vcat(oriX[i-numPrev+1:i,:]...) for i in numPrev+1:size(oriX)[1] ];
+Y = [ oriY[i,:] for i in numPrev+1:size(oriY)[1] ];
 
 @showprogress for i in 1:5
 	tmpRet  = GenerateWindowedViewH3(
 		fromDate + Minute(30i),
 		toDate + Minute(30i)
 		) |> ret2dict
-	for p in tmpRet
-		append!(anoRet[p[1]], p[2])
-	end
-	tmpX = GenerateX(tmpRet)[2numMa:end, :]
-	tmpY = GenerateY(tmpRet)[2numMa:end, :]
-	append!(X, [ vcat(tmpX[i-numMa:i,:]...) for i in numMa+1:size(tmpX)[1] ])
-	append!(Y, [ tmpY[i,:] for i in numMa+1:size(tmpY)[1] ])
+	tmpX = GenerateX(tmpRet)[numMiddlefit:end, :]
+	tmpY = GenerateY(tmpRet)[numMiddlefit:end, :]
+	append!(X, [ vcat(tmpX[i-numPrev+1:i,:]...) for i in numPrev+1:size(tmpX)[1] ])
+	append!(Y, [ tmpY[i,:] for i in numPrev+1:size(tmpY)[1] ])
 	@assert length(X) == length(Y)
 end
 
-tmpInds = [ collect(1+i:6:length(X)+i) for i in 0:5 ]
-X = reduce(append, map(i->X[i], tmpInds))
-Y = reduce(append, map(i->Y[i], tmpInds))
+tmpInds = reduce(vcat,
+	[ collect(1+i:6:length(X)+i) for i in 0:5 ]
+	)
+X = X[tmpInds]
+Y = Y[tmpInds]
 
 TRAIN_WITH_GPU = true
 
@@ -104,13 +104,14 @@ end
 yLength   = length(Y[end])
 inputSize = length(X[1])
 data      = zip(training_x, training_y)
+modelSize = max(2inputSize, 999)
 
 nThrottle  = 30
 
 m = Chain(
-			Dense(inputSize, inputSize, tanh_fast),
-			Dense(inputSize, inputSize, relu),
-			Dense(inputSize, yLength),
+			Dense(inputSize, modelSize, tanh_fast),
+			Dense(modelSize, modelSize, relu),
+			Dense(modelSize, yLength),
 		)
 if TRAIN_WITH_GPU; m = gpu(m); end
 ps = Flux.params(m);
@@ -202,7 +203,7 @@ mutable struct CurrentPosition
 	end
 
 function RunBacktestSequence(predicts::Vector{Union{Nothing,Order}}, anoRet::Dict{String,Vector})::Vector{Float64}
-	listTs   = anoRet["timestamp"][3numMa:end]
+	listTs   = anoRet["timestamp"][numMiddlefit+numPrev:end]
 	@assert length(predicts) == length(listTs)
 	listDiff = zeros(length(predicts))
 	currentPos = CurrentPosition(false, 0.0, 0.0, 0.0, 0.0, listTs[1])
