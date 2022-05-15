@@ -226,3 +226,12 @@ function RunBacktestSequence(predicts::Vector{Union{Nothing,Order}}, anoRet::Dic
 	end
 	return listDiff
 	end
+
+function RunBacktestSequence(fromDate::DateTime, toDate::DateTime)::Vector{Float64}
+	testRet = GenerateWindowedViewH3(DateTime(2021,5,1,0), DateTime(2022,5,13,0)) |> ret2dict
+	tmpX = GenerateX(testRet)[numMiddlefit:end, :]
+	testX = [ vcat(tmpX[i-numPrev+1:i,:]...) for i in numPrev+1:size(tmpX)[1] ];
+	predicts = GenerateP(testX)
+	return RunBacktestSequence(predicts, testRet)
+	end
+
