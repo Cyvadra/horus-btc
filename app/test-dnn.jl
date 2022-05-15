@@ -16,10 +16,10 @@ using ProgressMeter
 TableResults.Open(true)
 @show GetLastResultsID()
 
-numPrev  = 3 # 9h
+numPrev  = 12 # 36h
 postSecs = 10800 # predict 3h
 tmpSyms  = ResultCalculations |> fieldnames |> collect
-numMiddlefit = 12 # 36h
+numMiddlefit = 24 # 72h
 
 function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
 	cacheRet   = Dict{String,Vector}()
@@ -59,7 +59,7 @@ function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 	end
 
 fromDate  = DateTime(2020,7,1,0)
-toDate    = DateTime(2022,3,31,0)
+toDate    = DateTime(2022,3,31,23,59,59)
 anoRet    = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
 oriX = GenerateX(anoRet)[numMiddlefit:end, :]
 oriY = GenerateY(anoRet)[numMiddlefit:end, :]
@@ -82,8 +82,8 @@ end
 tmpInds = reduce(vcat,
 	[ collect(1+i:6:length(X)+i) for i in 0:5 ]
 	)
-X = X[tmpInds]
-Y = Y[tmpInds]
+X = X[tmpInds] |> deepcopy
+Y = Y[tmpInds] |> deepcopy
 
 TRAIN_WITH_GPU = true
 
@@ -104,14 +104,13 @@ end
 yLength   = length(Y[end])
 inputSize = length(X[1])
 data      = zip(training_x, training_y)
-modelSize = max(2inputSize, 999)
 
 nThrottle  = 30
 
 m = Chain(
-			Dense(inputSize, modelSize, tanh_fast),
-			Dense(modelSize, modelSize, relu),
-			Dense(modelSize, yLength),
+			Dense(inputSize, 16, tanh_fast),
+			Dense(16, 4, relu),
+			Dense(4, yLength),
 		)
 if TRAIN_WITH_GPU; m = gpu(m); end
 ps = Flux.params(m);
