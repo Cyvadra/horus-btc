@@ -137,17 +137,21 @@ ps = Flux.params(m);
 
 opt        = ADAM();
 tx, ty     = (test_x[15], test_y[15]);
-loss(x, y) = Flux.mae(m(x), y);
-evalcb     = () -> @show loss(tx, ty);
+# loss(x, y) = Flux.mae(m(x), y) * abs(sum(y));
+function loss(x, y)
+	p = m(x)
+	Flux.mae(p, y) + Flux.mse(abs(sum(p)), abs(sum(y)))
+	end
+loss_direct(p, y) = Flux.mae(p, y) + Flux.mse(abs(sum(p)), abs(sum(y)))
 
 tmpLen     = length(test_y[1]);
 tmpBase    = [ mean(map(x->x[i], test_y)) for i in 1:tmpLen ]
 if TRAIN_WITH_GPU; tmpBase = gpu(tmpBase); end
-tmpLoss    = mean([ Flux.mae(tmpBase, test_y[i]) |> cpu for i in 1:length(test_y) ])
+tmpLoss    = mean([ loss_direct(tmpBase, test_y[i]) |> cpu for i in 1:length(test_y) ])
 @info "Baseline Loss: $tmpLoss"
 
 
-prev_loss = [ Flux.mae(m(test_x[i]), test_y[i]) |> cpu for i in 1:length(test_x) ] |> mean;
+prev_loss = [ loss(test_x[i], test_y[i]) |> cpu for i in 1:length(test_x) ] |> mean;
 ps_saved  = deepcopy(collect(ps));
 @info "Initial Loss: $prev_loss"
 nCounter  = 0;
@@ -158,7 +162,7 @@ while true
 	Flux.train!(loss, ps, data, opt)
 	nCounter += 1
 	# current loss
-	this_loss = [ Flux.mae(m(test_x[i]), test_y[i]) |> cpu for i in 1:length(test_x) ] |> mean
+	this_loss = [ loss(test_x[i], test_y[i]) |> cpu for i in 1:length(test_x) ] |> mean
 	@info "latest loss $this_loss"
 	push!(lossList, this_loss)
 	# record
