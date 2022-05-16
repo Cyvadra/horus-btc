@@ -117,8 +117,8 @@ ps = Flux.params(m);
 
 opt        = ADADelta(0.92, 1e-9);
 tx, ty     = (test_x[15], test_y[15]);
-evalcb     = () -> @show loss(tx, ty);
 loss(x, y) = Flux.mae(m(x), y);
+evalcb     = () -> @show loss(tx, ty);
 
 tmpLen     = length(test_y[1]);
 tmpBase    = [ mean(map(x->x[i], test_y)) for i in 1:tmpLen ]
@@ -228,7 +228,7 @@ function RunBacktestSequence(predicts::Vector{Union{Nothing,Order}}, anoRet::Dic
 	end
 
 function RunBacktestSequence(fromDate::DateTime, toDate::DateTime)::Vector{Float64}
-	testRet = GenerateWindowedViewH3(DateTime(2021,5,1,0), DateTime(2022,5,13,0)) |> ret2dict
+	testRet = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
 	tmpX = GenerateX(testRet)[numMiddlefit:end, :]
 	testX = [ vcat(tmpX[i-numPrev+1:i,:]...) for i in numPrev+1:size(tmpX)[1] ];
 	predicts = GenerateP(testX)
