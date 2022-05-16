@@ -64,24 +64,49 @@ function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 
 fromDate  = DateTime(2019,11,1,0)
 toDate    = DateTime(2022,4,30,23,59,59)
-anoRet    = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
-oriX = GenerateX(anoRet)[numMiddlefit:end, :]
-oriY = GenerateY(anoRet)[numMiddlefit:end, :]
 
-X = [ vcat(oriX[i-numPrev+1:i,:]...) for i in numPrev+1:size(oriX)[1] ];
-Y = [ oriY[i,:] for i in numPrev+1:size(oriY)[1] ];
+function GenerateXY(fromDate::DateTime, toDate::DateTime)
+	tmpSecs = Int32(9000) # 2.5h - 3.5h
+	X = Vector{Vector{Float32}}()
+	Y = Vector{Vector{Float32}}()
+	for n in 0:2
+		tmpSecs = round(Int32, tmpSecs + 1800n)
+		tmpMinuteWeight = round(Int, tmpSecs/360)
+		tmpN = round(Int, tmpSecs/tmpMinuteWeight/60-1)
+		@showprogress for i in 0:tmpN
+			tmpRet  = GenerateWindowedView(
+				tmpSecs,
+				fromDate + Minute(round(Int, tmpMinuteWeight*i)) |> dt2unix,
+				toDate + Minute(round(Int, tmpMinuteWeight*i)) |> dt2unix,
+				) |> ret2dict
+			tmpX = GenerateX(tmpRet)[numMiddlefit:end, :]
+			tmpY = GenerateY(tmpRet)[numMiddlefit:end, :]
+			append!(X, [ vcat(tmpX[i-numPrev+1:i,:]...) for i in numPrev+1:size(tmpX)[1] ])
+			append!(Y, [ tmpY[i,:] for i in numPrev+1:size(tmpY)[1] ])
+			@assert length(X) == length(Y)
+		end
+	end
+	return X, Y
+	end
+function GenerateTestXY(fromDate::DateTime, toDate::DateTime)
+	tmpSecs = Int32(10800)
+	X = Vector{Vector{Float32}}()
+	Y = Vector{Vector{Float32}}()
+	@showprogress for i in 0:5
+		tmpRet  = GenerateWindowedView(
+			tmpSecs,
+			fromDate + Minute(30i) |> dt2unix,
+			toDate + Minute(30i) |> dt2unix,
+			) |> ret2dict
+		tmpX = GenerateX(tmpRet)[numMiddlefit:end, :]
+		tmpY = GenerateY(tmpRet)[numMiddlefit:end, :]
+		append!(X, [ vcat(tmpX[i-numPrev+1:i,:]...) for i in numPrev+1:size(tmpX)[1] ])
+		append!(Y, [ tmpY[i,:] for i in numPrev+1:size(tmpY)[1] ])
+		@assert length(X) == length(Y)
+	end
+	return X, Y
+	end
 
-@showprogress for i in 1:5
-	tmpRet  = GenerateWindowedViewH3(
-		fromDate + Minute(30i),
-		toDate + Minute(30i)
-		) |> ret2dict
-	tmpX = GenerateX(tmpRet)[numMiddlefit:end, :]
-	tmpY = GenerateY(tmpRet)[numMiddlefit:end, :]
-	append!(X, [ vcat(tmpX[i-numPrev+1:i,:]...) for i in numPrev+1:size(tmpX)[1] ])
-	append!(Y, [ tmpY[i,:] for i in numPrev+1:size(tmpY)[1] ])
-	@assert length(X) == length(Y)
-end
 
 tmpInds = reduce(vcat,
 	[ collect(1+i:6:length(X)+i) for i in 0:5 ]
