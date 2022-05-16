@@ -156,12 +156,12 @@ end
 
 const DIRECTION_SHORT = false
 const DIRECTION_LONG  = true
-TRADE_FEE = 0.0008
+TRADE_FEE = 0.04 / 30
 mutable struct Order
 	Direction::Bool
 	PositionPercentage::Float32
-	TakeProfit::Float32
-	StopLoss::Float32
+	TakeProfit::Float32 # x.xx%, 1.0 means 1%
+	StopLoss::Float32 # x.xx%, like -5.0(%)
 	end
 
 function GenerateP(x::Vector{Vector{Float32}})::Vector{Union{Nothing,Order}}
@@ -186,6 +186,7 @@ function GenerateP(x::Vector{Vector{Float32}})::Vector{Union{Nothing,Order}}
 			)
 		if tmpDiff < 0
 			tmpOrder.Direction = DIRECTION_SHORT
+			tmpOrder.PositionPercentage = Base.Math.tanh(-tmpDiff)
 			tmpOrder.TakeProfit = tmpPredicts[i][2]
 			tmpOrder.StopLoss = tmpPredicts[i][1]
 		end
@@ -201,8 +202,8 @@ mutable struct CurrentPosition
 	Direction::Bool
 	PositionPercentage::Float32
 	Price::Float32
-	TP::Float32
-	SL::Float32
+	TP::Float32 # xx.x% of that price, long: 102.3% ==> 1.023
+	SL::Float32 # xx.x% of that price, short: 105.6% ==> 1.056
 	Timestamp::Int32
 	end
 
@@ -211,21 +212,64 @@ function RunBacktestSequence(predicts::Vector{Union{Nothing,Order}}, anoRet::Dic
 	@assert length(predicts) == length(listTs)
 	listDiff = zeros(length(predicts))
 	currentPos = CurrentPosition(false, 0.0, 0.0, 0.0, 0.0, listTs[1])
+	tmpTimeout = 3600 * 12
 	for i in 2:length(predicts)
+		# process previous position
 		if currentPos.PositionPercentage > 0.0
-			if currentPos.Direction == DIRECTION_SHORT
-				listDiff[i] = ( currentPos.Price - GetBTCHighWhen(listTs[i]) ) * currentPos.PositionPercentage
-			elseif currentPos.Direction == DIRECTION_LONG
-				listDiff[i] = ( GetBTCLowWhen(listTs[i]) - currentPos.Price ) * currentPos.PositionPercentage
+			# current prices
+			currentHigh = reduce(max, GetBTCHighWhen(listTs[i-1]:listTs[i])) / currentPos.Price # 1.1
+			currentLow  = reduce(min, GetBTCLowWhen(listTs[i-1]:listTs[i])) / currentPos.Price # 0.9
+			currentClose= GetBTCCloseWhen(listTs[i])
+			# check TP/SL
+			if currentPos.Direction == DIRECTION_LONG
+				@assert currentPos.SL < currentPos.TP
+				if currentLow <= currentPos.SL
+					listDiff[i] = (currentPos.SL - currentPos.Price) * currentPos.PositionPercentage
+				elseif currentHigh >= currentPos.TP
+					listDiff[i] = (currentPos.TP - currentPos.Price) * currentPos.PositionPercentage
+				end
+			elseif currentPos.Direction == DIRECTION_SHORT
+				@assert currentPos.TP < currentPos.SL
+				if currentHigh >= currentPos.SL
+					listDiff[i] = (currentPos.Price - currentPos.SL) * currentPos.PositionPercentage
+				elseif currentLow <= currentPos.TP
+					listDiff[i] = (currentPos.Price - currentPos.TP) * currentPos.PositionPercentage
+				end
+			elseif (listTs[i] - currentPos.Timestamp) >= tmpTimeout
+				# timeout trigger
+				if currentPos.Direction == DIRECTION_LONG
+					listDiff[i] = (currentClose - currentPos.Price) * currentPos.PositionPercentage
+				elseif currentPos.Direction == DIRECTION_SHORT
+					listDiff[i] = (currentPos.Price - currentClose) * currentPos.PositionPercentage
+				end
+			elseif !isnothing(predicts[i]) && currentPos.Direction !== predicts[i].Direction
+				# opposite direction trigger
+				if currentPos.Direction == DIRECTION_LONG
+					listDiff[i] = (currentClose - currentPos.Price) * currentPos.PositionPercentage
+				elseif currentPos.Direction == DIRECTION_SHORT
+					listDiff[i] = (currentPos.Price - currentClose) * currentPos.PositionPercentage
+				end
 			end
-			listDiff[i] -= currentPos.PositionPercentage * GetBTCCloseWhen(listTs[i]) * TRADE_FEE
+		end
+		# post clear
+		if !iszero(listDiff[i]) # position cleared
+			listDiff[i] -= currentPos.PositionPercentage * currentPos.Price * TRADE_FEE
 			currentPos.PositionPercentage = 0.0
 		end
+		# new position
 		if !isnothing(predicts[i])
-			currentPos.Direction = predicts[i].Direction
-			currentPos.PositionPercentage = predicts[i].PositionPercentage
-			currentPos.Price = GetBTCCloseWhen(listTs[i])
-			currentPos.Timestamp = listTs[i]
+			# if completely new
+			if iszero(currentPos.PositionPercentage)
+				currentPos.Direction = predicts[i].Direction
+				currentPos.PositionPercentage = predicts[i].PositionPercentage
+				currentPos.Price = GetBTCCloseWhen(listTs[i])
+				currentPos.TP = currentPos.Price * (1.0 + 0.01*predicts[i].TakeProfit) # 42000 * 102%
+				currentPos.SL = currentPos.Price * (1.0 + 0.01*predicts[i].StopLoss) # 39000 * 88%
+				currentPos.Timestamp = listTs[i]
+			# if same direction
+			elseif currentPos.Direction == predicts[i].Direction
+				nothing # for now, may add later
+			end
 		end
 	end
 	return listDiff
