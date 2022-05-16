@@ -113,7 +113,7 @@ PipelineLocks["synchronizing"] = false
 		end
 
 	function firstSync()
-		AddressService.Create!(round(Int,1.2e9))
+		AddressService.Create!(round(Int,1.28e9))
 		TableResults.Create!(999999)
 		@info "$(now()) Initializing history..."
 		InitHistory()

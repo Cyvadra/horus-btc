@@ -5,15 +5,16 @@ using Dates
 AddressStringDict = Dict{String,UInt32}()
 const NUM_NOT_EXIST = UInt32(0)
 const TAG_MAX = "maximum"
-AddressStringDict[TAG_MAX] = 966186370 + 20002
-sizehint!(AddressStringDict, round(Int, 1.3*AddressStringDict[TAG_MAX]))
+AddressStringDict[TAG_MAX] = 1
+sizehint!(AddressStringDict, round(Int, 1.28e9))
 AddressStringLock = Threads.SpinLock()
 
 tmpCache = Dict{Bool, String}()
 @info "$(now()) loading address list..."
 f = open(fileAddressString, "r")
 tmpCache[true] = readline(f)
-prog = Progress(966186370)
+# prog = Progress(966186370)
+prog = Progress(976100446)
 while !isnothing(tmpCache[true])
 	s = split(tmpCache[true],'\t')
 	tmpVal = parse(UInt32, s[2])
