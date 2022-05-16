@@ -127,17 +127,15 @@ yLength   = length(Y[end])
 inputSize = length(X[1])
 data      = zip(training_x, training_y)
 
-nThrottle  = 30
-
 m = Chain(
-			Dense(inputSize, 64, tanh_fast),
-			Dense(64, 8, relu),
-			Dense(8, yLength),
+			Dense(inputSize, 24, safe_log),
+			Dense(24, 12, relu),
+			Dense(12, yLength),
 		)
 if TRAIN_WITH_GPU; m = gpu(m); end
 ps = Flux.params(m);
 
-opt        = ADADelta(0.92, 1e-9);
+opt        = ADAM();
 tx, ty     = (test_x[15], test_y[15]);
 loss(x, y) = Flux.mae(m(x), y);
 evalcb     = () -> @show loss(tx, ty);
