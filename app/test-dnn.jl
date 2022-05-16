@@ -20,6 +20,12 @@ numPrev  = 12 # 36h
 postSecs = 10800 # predict 3h
 tmpSyms  = ResultCalculations |> fieldnames |> collect
 numMiddlefit = 24 # 72h
+GlobalVars = (
+	ratioSL = 1.05,
+	ratioTP = 0.95,
+	gpThreshold = Float32(0.27), # map(x->x[1],Y) |> lambda
+	gpMinDiff   = Float32(0.35), # map(x->Flux.mae(abs.(x)...),Y) |> lambda
+)
 
 function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
 	cacheRet   = Dict{String,Vector}()
@@ -34,8 +40,6 @@ function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
 	end
 
 function GenerateY(ts, postSecs::Int)
-	# ratioSL = 1.05
-	# ratioTP = 0.95
 	c = middle(GetBTCCloseWhen(ts-900:ts))
 	h = reduce(max, GetBTCHighWhen(ts+60:ts+postSecs))
 	l = reduce(min, GetBTCLowWhen(ts+60:ts+postSecs))
@@ -161,29 +165,29 @@ mutable struct Order
 	end
 
 function GenerateP(x::Vector{Vector{Float32}})::Vector{Union{Nothing,Order}}
-	tmpThreshold = Float32(0.1)
-	tmpMinDiff   = Float32(0.5)
 	tmpPredicts = m.(x)
 	tmpPredictsAbs = map(x->abs.(x), tmpPredicts)
 	retOrders  = Union{Nothing,Order}[]
 	for i in 1:length(tmpPredicts)
-		if tmpPredictsAbs[i][1] < tmpThreshold || tmpPredictsAbs[i][2] < tmpThreshold
+		if tmpPredictsAbs[i][1] < GlobalVars.gpThreshold && tmpPredictsAbs[i][2] < GlobalVars.gpThreshold
 			push!(retOrders, nothing)
 			continue
 		end
 		tmpDiff = tmpPredictsAbs[i][1] - tmpPredictsAbs[i][2]
-		if abs(tmpDiff) < tmpMinDiff
+		if abs(tmpDiff) < GlobalVars.gpMinDiff
 			push!(retOrders, nothing)
 			continue
 		end
 		tmpOrder = Order(
 			DIRECTION_LONG,
 			Base.Math.tanh(tmpDiff),
-			0.0,
-			0.0,
+			tmpPredicts[i][1],
+			tmpPredicts[i][2],
 			)
 		if tmpDiff < 0
 			tmpOrder.Direction = DIRECTION_SHORT
+			tmpOrder.TakeProfit = tmpPredicts[i][2]
+			tmpOrder.StopLoss = tmpPredicts[i][1]
 		end
 		push!(retOrders, tmpOrder)
 	end
