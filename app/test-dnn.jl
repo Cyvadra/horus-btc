@@ -223,16 +223,16 @@ function RunBacktestSequence(predicts::Vector{Union{Nothing,Order}}, anoRet::Dic
 			# check TP/SL
 			if currentPos.Direction == DIRECTION_LONG
 				@assert currentPos.SL < currentPos.TP
-				if currentLow <= currentPos.SL
+				if currentLow <= (currentPos.SL/currentPos.Price)
 					listDiff[i] = (currentPos.SL - currentPos.Price) * currentPos.PositionPercentage
-				elseif currentHigh >= currentPos.TP
+				elseif currentHigh >= (currentPos.TP/currentPos.Price)
 					listDiff[i] = (currentPos.TP - currentPos.Price) * currentPos.PositionPercentage
 				end
 			elseif currentPos.Direction == DIRECTION_SHORT
 				@assert currentPos.TP < currentPos.SL
-				if currentHigh >= currentPos.SL
+				if currentHigh >= (currentPos.SL/currentPos.Price)
 					listDiff[i] = (currentPos.Price - currentPos.SL) * currentPos.PositionPercentage
-				elseif currentLow <= currentPos.TP
+				elseif currentLow <= (currentPos.TP/currentPos.Price)
 					listDiff[i] = (currentPos.Price - currentPos.TP) * currentPos.PositionPercentage
 				end
 			elseif (listTs[i] - currentPos.Timestamp) >= tmpTimeout
