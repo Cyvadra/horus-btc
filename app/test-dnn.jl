@@ -62,8 +62,8 @@ function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 	return hcat(sequences...)
 	end
 
-fromDate  = DateTime(2020,7,1,0)
-toDate    = DateTime(2022,3,31,23,59,59)
+fromDate  = DateTime(2019,11,1,0)
+toDate    = DateTime(2022,4,30,23,59,59)
 anoRet    = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
 oriX = GenerateX(anoRet)[numMiddlefit:end, :]
 oriY = GenerateY(anoRet)[numMiddlefit:end, :]
@@ -222,14 +222,18 @@ function RunBacktestSequence(predicts::Vector{Union{Nothing,Order}}, anoRet::Dic
 			currentClose= GetBTCCloseWhen(listTs[i])
 			# check TP/SL
 			if currentPos.Direction == DIRECTION_LONG
-				@assert currentPos.SL < currentPos.TP
+				if !(currentPos.SL < currentPos.TP)
+					@warn "baseline debug mode"
+				end
 				if currentLow <= (currentPos.SL/currentPos.Price)
 					listDiff[i] = (currentPos.SL - currentPos.Price) * currentPos.PositionPercentage
 				elseif currentHigh >= (currentPos.TP/currentPos.Price)
 					listDiff[i] = (currentPos.TP - currentPos.Price) * currentPos.PositionPercentage
 				end
 			elseif currentPos.Direction == DIRECTION_SHORT
-				@assert currentPos.TP < currentPos.SL
+				if !(currentPos.TP < currentPos.SL)
+					@warn "baseline debug mode"
+				end
 				if currentHigh >= (currentPos.SL/currentPos.Price)
 					listDiff[i] = (currentPos.Price - currentPos.SL) * currentPos.PositionPercentage
 				elseif currentLow <= (currentPos.TP/currentPos.Price)
