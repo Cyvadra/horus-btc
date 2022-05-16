@@ -62,9 +62,6 @@ function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 	return hcat(sequences...)
 	end
 
-fromDate  = DateTime(2019,11,1,0)
-toDate    = DateTime(2022,4,30,23,59,59)
-
 function GenerateXY(fromDate::DateTime, toDate::DateTime)
 	tmpSecs = Int32(9000) # 2.5h - 3.5h
 	X = Vector{Vector{Float32}}()
@@ -107,22 +104,18 @@ function GenerateTestXY(fromDate::DateTime, toDate::DateTime)
 	return X, Y
 	end
 
-
-tmpInds = reduce(vcat,
-	[ collect(1+i:6:length(X)+i) for i in 0:5 ]
-	)
-X = X[tmpInds] |> deepcopy
-Y = Y[tmpInds] |> deepcopy
-
 TRAIN_WITH_GPU = true
+fromDate  = DateTime(2019,11,1,0)
+toDate    = DateTime(2022,4,30,23,59,59)
+fromDateTest = DateTime(2022,3,15,0)
+toDateTest   = DateTime(2022,5,13,0)
 
 # Prepare Data
-tmpMidN = round(Int, length(X)*0.8)
-tmpIndexes = sortperm(rand(tmpMidN))
-training_x = deepcopy(X[tmpIndexes])
-training_y = deepcopy(Y[tmpIndexes])
-test_x = deepcopy(X[tmpMidN+1:end])
-test_y = deepcopy(Y[tmpMidN+1:end])
+X,Y = GenerateXY(fromDate, toDate);
+tmpIndexes = sortperm(rand(length(X)));
+training_x = deepcopy(X[tmpIndexes]);
+training_y = deepcopy(Y[tmpIndexes]);
+test_x, test_y = GenerateTestXY(fromDateTest, toDateTest);
 if TRAIN_WITH_GPU
 	training_x = gpu(training_x)
 	training_y = gpu(training_y)
