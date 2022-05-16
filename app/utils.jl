@@ -56,27 +56,9 @@ using Statistics
 		end
 
 # Statistics
-	function safe_log2(x)
-		if x > 0
-			return log2(x+1)
-		else
-			return -log2(abs(x)+1)
-		end
-		end
-	function safe_log(x)
-		if x > 0
-			return log(x+1)
-		else
-			return -log(abs(x)+1)
-		end
-		end
-	function safe_log10(x)
-		if x > 0
-			return log10(x+1)
-		else
-			return -log10(abs(x)+1)
-		end
-		end
+	safe_log(x)   = x > 0 ? log(1.0+x) : -log(1.0-x)
+	safe_log2(x)  = x > 0 ? log2(1.0+x) : -log2(1.0-x)
+	safe_log10(x) = x > 0 ? log10(1.0+x) : -log10(1.0-x)
 	function normalise(v::Vector, rng::UnitRange)::Vector
 		v = deepcopy(v) .+ 0.00
 		s = sort(v)
