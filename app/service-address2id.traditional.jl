@@ -59,7 +59,6 @@ function WriteAddressStringDict(path::AbstractString="/mnt/data/bitcore/addr.aut
 	@showprogress for p in AddressStringDict
 		write(f, "$(p[1])\t$(p[2])\n")
 	end
-	write(f, "$TAG_MAX\t$(length(AddressStringDict)+20002)")
 	unlock(AddressStringLock)
 	close(f)
 	return filesize(path)
