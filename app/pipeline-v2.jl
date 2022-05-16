@@ -85,8 +85,8 @@ PipelineLocks["synchronizing"] = false
 		end
 
 # for initialization
-	function InitHistory()::Nothing
-		baseTs    = DateTime(2019,1,1,0,0) |> dt2unix
+	function InitHistory(toDate::DateTime=DateTime(2019,1,1,0,0))::Nothing
+		baseTs    = dt2unix(toDate)
 		toBlock   = Timestamp2FirstBlockN(baseTs)
 		tmpBlock  = TableTick.GetRow(1).Timestamp |> Timestamp2FirstBlockN
 		tmpPrice  = GetBTCPriceWhen(tmpBlock)
@@ -135,10 +135,9 @@ PipelineLocks["synchronizing"] = false
 		@info "$(now()) Pulling up service..."
 		end
 
-	AddressService.Open(true)
-	TableResults.Open(true)
+	# AddressService.Open(true)
+	# TableResults.Open(true)
 	GlobalRuntime["LastDoneBlock"] = 736186
 	# SyncResults()
-
-	SyncBlockInfo()
-	ResyncBlockTimestamps()
+	# SyncBlockInfo()
+	# ResyncBlockTimestamps()
