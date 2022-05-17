@@ -120,37 +120,36 @@ tmpIndexes = sortperm(rand(length(X)));
 training_x = deepcopy(X[tmpIndexes]);
 training_y = deepcopy(Y[tmpIndexes]);
 test_x, test_y = GenerateTestXY(fromDateTest, toDateTest);
-throttle_x = deepcopy(X[tmpIndexes[1:800]]);
-throttle_y = deepcopy(Y[tmpIndexes[1:800]]);
+throttle_x = deepcopy(X[tmpIndexes[1:1200]]);
+throttle_y = deepcopy(Y[tmpIndexes[1:1200]]);
 if TRAIN_WITH_GPU
 	training_x = gpu(training_x)
 	training_y = gpu(training_y)
 	test_x = gpu(test_x)
 	test_y = gpu(test_y)
+	throttle_x = gpu(throttle_x)
+	throttle_y = gpu(throttle_y)
 end
 
 yLength   = length(Y[end])
 inputSize = length(X[1])
-data      = zip(training_x, training_y)
+data      = zip(training_x, training_y);
 
 m = Chain(
-			Dense(inputSize, 24, safe_log),
-			Dense(24, 12, relu),
-			Dense(12, yLength),
+			Dense(inputSize, 128, relu),
+			Dense(128, 64, softsign),
+			Dense(64, yLength),
 		)
 if TRAIN_WITH_GPU; m = gpu(m); end
 ps = Flux.params(m);
 
-opt        = ADAM();
+opt        = ADADelta();
 tx, ty     = (test_x[15], test_y[15]);
-function loss(x, y)
-	p = m(x)
-	Flux.mse(p[1], y[1]) * Flux.mae(p[2:3], y[2:3])
-	end
-loss_direct(p, y) = Flux.mse(p[1], y[1]) * Flux.mae(p[2:3], y[2:3])
+loss(x, y) = gpu(Flux.mae)(m(x),y)
+loss_direct(p, y) = gpu(Flux.mae)(p, y)
 
 tmpLen     = length(test_y[1]);
-tmpBase    = [ mean(map(x->x[i], test_y)) for i in 1:tmpLen ]
+tmpBase    = [ mean(map(x->x[i], test_y|>cpu)) for i in 1:tmpLen ]
 if TRAIN_WITH_GPU; tmpBase = gpu(tmpBase); end
 tmpLoss    = mean([ loss_direct(tmpBase, test_y[i]) |> cpu for i in 1:length(test_y) ])
 @info "Baseline Loss: $tmpLoss"
@@ -171,7 +170,7 @@ while true
 	this_loss = [ loss(test_x[i], test_y[i]) |> cpu for i in 1:length(test_x) ] |> mean
 	throttle_loss = [ loss(throttle_x[i], throttle_y[i]) |> cpu for i in 1:length(throttle_x) ] |> mean
 	@info "latest loss $throttle_loss / $this_loss"
-	push!(lossList, this_loss)
+	push!(lossListTest, this_loss)
 	push!(lossListTrain, throttle_loss)
 	# record
 	if this_loss < 0.98*prev_loss
