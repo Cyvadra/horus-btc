@@ -31,3 +31,25 @@ m = Chain(
 ) # Total: 6 arrays, 53_594 parameters, 856 bytes.
 JLD2.save("/home/ubuntu/model.params.64.jld2", "ps", cpu.(collect.(ps)) |> deepcopy)
 ```
+
+### New Version Notes
+- Purposal
+  - Direction: LONG / SHORT
+  - Amount: 0:1, may ignore for now
+  - Boundaries: TP & SL
+- Available Data
+  - Direction: sum(y) / 2 ==> mean direction
+  - Amount: nothing
+  - Result: TP / SL
+- Losses
+  - mse(Direction)
+  - is TP / is SL
+
+
+
+
+
+
+
+
+
