@@ -136,17 +136,17 @@ inputSize = length(X[1])
 data      = zip(training_x, training_y);
 
 m = Chain(
-			Dense(inputSize, 128, relu),
-			Dense(128, 64, softsign),
-			Dense(64, yLength),
-		)
+			Dense(inputSize, 32, softsign),
+			Dense(32, 32, relu),
+			Dense(32, yLength),
+		);
 if TRAIN_WITH_GPU; m = gpu(m); end
 ps = Flux.params(m);
 
 opt        = ADADelta();
 tx, ty     = (test_x[15], test_y[15]);
-loss(x, y) = gpu(Flux.mae)(m(x),y)
-loss_direct(p, y) = gpu(Flux.mae)(p, y)
+loss(x, y) = Flux.mae(m(x),y)
+loss_direct(p, y) = Flux.mae(p, y)
 
 tmpLen     = length(test_y[1]);
 tmpBase    = [ mean(map(x->x[i], test_y|>cpu)) for i in 1:tmpLen ]
@@ -159,12 +159,24 @@ prev_loss = [ loss(test_x[i], test_y[i]) |> cpu for i in 1:length(test_x) ] |> m
 ps_saved  = deepcopy(collect(ps));
 @info "Initial Loss: $prev_loss"
 nCounter  = 0;
+nBatchSize= 8192;
 lossListTest  = Float64[];
 lossListTrain = Float64[];
+FILE_TERM_SIGNAL = "/tmp/JULIA_EMERGENCY_STOP"
 while true
+	if isfile(FILE_TERM_SIGNAL)
+		break
+	end
 	# train
 	@info "$(Dates.now()) \t $nCounter/∞"
-	Flux.train!(loss, ps, data, opt)
+	tmpIndexes = rand(1:length(training_x), nBatchSize);
+	if TRAIN_WITH_GPU; tmpIndexes = gpu(tmpIndexes); end
+	Flux.train!(
+		loss,
+		ps,
+		zip(training_x[tmpIndexes], training_y[tmpIndexes]),
+		opt,
+		)
 	nCounter += 1
 	# current loss
 	this_loss = [ loss(test_x[i], test_y[i]) |> cpu for i in 1:length(test_x) ] |> mean
