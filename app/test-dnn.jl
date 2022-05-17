@@ -45,7 +45,11 @@ function GenerateY(ts, postSecs::Int)
 	l = reduce(min, GetBTCLowWhen(ts+60:ts+postSecs))
 	h = 100 * (h - c) / c
 	l = 100 * (l - c) / c
-	return [h, l]
+	return [
+		(h+l)/2,
+		h,
+		l,
+	]
 	end
 function GenerateY(anoRet::Dict{String,Vector})
 	tsList = anoRet["timestamp"]
@@ -116,6 +120,8 @@ tmpIndexes = sortperm(rand(length(X)));
 training_x = deepcopy(X[tmpIndexes]);
 training_y = deepcopy(Y[tmpIndexes]);
 test_x, test_y = GenerateTestXY(fromDateTest, toDateTest);
+throttle_x = deepcopy(X[tmpIndexes[1:800]]);
+throttle_y = deepcopy(Y[tmpIndexes[1:800]]);
 if TRAIN_WITH_GPU
 	training_x = gpu(training_x)
 	training_y = gpu(training_y)
@@ -137,12 +143,11 @@ ps = Flux.params(m);
 
 opt        = ADAM();
 tx, ty     = (test_x[15], test_y[15]);
-# loss(x, y) = Flux.mae(m(x), y) * abs(sum(y));
 function loss(x, y)
 	p = m(x)
-	Flux.mae(p, y) + Flux.mse(abs(sum(p)), abs(sum(y)))
+	Flux.mse(p[1], y[1]) * Flux.mae(p[2:3], y[2:3])
 	end
-loss_direct(p, y) = Flux.mae(p, y) + Flux.mse(abs(sum(p)), abs(sum(y)))
+loss_direct(p, y) = Flux.mse(p[1], y[1]) * Flux.mae(p[2:3], y[2:3])
 
 tmpLen     = length(test_y[1]);
 tmpBase    = [ mean(map(x->x[i], test_y)) for i in 1:tmpLen ]
@@ -155,16 +160,19 @@ prev_loss = [ loss(test_x[i], test_y[i]) |> cpu for i in 1:length(test_x) ] |> m
 ps_saved  = deepcopy(collect(ps));
 @info "Initial Loss: $prev_loss"
 nCounter  = 0;
-lossList  = [];
+lossListTest  = Float64[];
+lossListTrain = Float64[];
 while true
 	# train
-	@info "$nCounter/∞ $(Dates.now())"
+	@info "$(Dates.now()) \t $nCounter/∞"
 	Flux.train!(loss, ps, data, opt)
 	nCounter += 1
 	# current loss
 	this_loss = [ loss(test_x[i], test_y[i]) |> cpu for i in 1:length(test_x) ] |> mean
-	@info "latest loss $this_loss"
+	throttle_loss = [ loss(throttle_x[i], throttle_y[i]) |> cpu for i in 1:length(throttle_x) ] |> mean
+	@info "latest loss $throttle_loss / $this_loss"
 	push!(lossList, this_loss)
+	push!(lossListTrain, throttle_loss)
 	# record
 	if this_loss < 0.98*prev_loss
 		ps_saved = deepcopy(collect(ps));
