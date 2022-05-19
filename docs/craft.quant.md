@@ -32,6 +32,16 @@ m = Chain(
 JLD2.save("/home/ubuntu/model.params.64.jld2", "ps", cpu.(collect.(ps)) |> deepcopy)
 ```
 
+### Model 32
+```julia
+Chain(
+  Dense(828 => 32, softsign),           # 26_528 parameters
+  Dense(32 => 32, relu),                # 1_056 parameters
+  Dense(32 => 2),                       # 66 parameters
+) # Total: 6 arrays, 27_650 parameters, 108.383 KiB.
+JLD2.load("/home/ubuntu/model.params.32.2.jld2")
+```
+
 ### New Version Notes
 - Purposal
   - Direction: LONG / SHORT
