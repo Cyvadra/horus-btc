@@ -136,17 +136,17 @@ inputSize = length(X[1])
 data      = zip(training_x, training_y);
 
 m = Chain(
-			Dense(inputSize, 32, softsign),
-			Dense(32, 32, relu),
-			Dense(32, yLength),
+			Dense(inputSize, 64, softsign),
+			Dense(64, 49, relu),
+			Dense(49, yLength),
 		);
 if TRAIN_WITH_GPU; m = gpu(m); end
 ps = Flux.params(m);
 
 opt        = ADADelta();
 tx, ty     = (test_x[15], test_y[15]);
-loss(x, y) = Flux.mae(m(x),y)
-loss_direct(p, y) = Flux.mae(p, y)
+loss(x, y) = Flux.mse(m(x),y)
+loss_direct(p, y) = Flux.mse(p, y)
 
 tmpLen     = length(test_y[1]);
 tmpBase    = [ mean(map(x->x[i], test_y|>cpu)) for i in 1:tmpLen ]
@@ -186,7 +186,7 @@ while true
 	push!(lossListTrain, throttle_loss)
 	# record
 	if this_loss < 0.98*prev_loss
-		ps_saved = deepcopy(collect(ps));
+		ps_saved = deepcopy(collect.(ps));
 		prev_loss = this_loss
 	end
 end
