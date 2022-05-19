@@ -168,7 +168,6 @@ while true
 		break
 	end
 	# train
-	@info "$(Dates.now()) \t $nCounter/∞"
 	tmpIndexes = rand(1:length(training_x), nBatchSize);
 	if TRAIN_WITH_GPU; tmpIndexes = gpu(tmpIndexes); end
 	Flux.train!(
@@ -181,7 +180,7 @@ while true
 	# current loss
 	this_loss = [ loss(test_x[i], test_y[i]) |> cpu for i in 1:length(test_x) ] |> mean
 	throttle_loss = [ loss(throttle_x[i], throttle_y[i]) |> cpu for i in 1:length(throttle_x) ] |> mean
-	@info "latest loss $throttle_loss / $this_loss"
+	@info "$(Dates.now()) $nCounter/∞ latest loss $throttle_loss / $this_loss"
 	push!(lossListTest, this_loss)
 	push!(lossListTrain, throttle_loss)
 	# record
