@@ -119,9 +119,11 @@ X,Y = GenerateXY(fromDate, toDate);
 tmpIndexes = sortperm(rand(length(X)));
 training_x = deepcopy(X[tmpIndexes]);
 training_y = deepcopy(Y[tmpIndexes]);
+throttle_x = deepcopy(X[tmpIndexes[1:300]]);
+throttle_y = deepcopy(Y[tmpIndexes[1:300]]);
 test_x, test_y = GenerateTestXY(fromDateTest, toDateTest);
-throttle_x = deepcopy(X[tmpIndexes[1:1200]]);
-throttle_y = deepcopy(Y[tmpIndexes[1:1200]]);
+tmpVals = sortperm(rand(length(test_x)))[1:300]
+test_x, test_y = test_x[tmpVals], test_y[tmpVals]
 if TRAIN_WITH_GPU
 	training_x = gpu(training_x)
 	training_y = gpu(training_y)
@@ -156,7 +158,7 @@ tmpLoss    = mean([ loss_direct(tmpBase, test_y[i]) |> cpu for i in 1:length(tes
 
 
 prev_loss = [ loss(test_x[i], test_y[i]) |> cpu for i in 1:length(test_x) ] |> mean;
-ps_saved  = deepcopy(collect(ps));
+ps_saved  = deepcopy(collect.(ps));
 @info "Initial Loss: $prev_loss"
 nCounter  = 0;
 nBatchSize= 8192;
@@ -184,7 +186,7 @@ while true
 	push!(lossListTest, this_loss)
 	push!(lossListTrain, throttle_loss)
 	# record
-	if this_loss < 0.98*prev_loss
+	if this_loss < 0.95*prev_loss
 		ps_saved = deepcopy(collect.(ps));
 		prev_loss = this_loss
 	end
