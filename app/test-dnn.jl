@@ -119,11 +119,11 @@ X,Y = GenerateXY(fromDate, toDate);
 tmpIndexes = sortperm(rand(length(X)));
 training_x = deepcopy(X[tmpIndexes]);
 training_y = deepcopy(Y[tmpIndexes]);
-throttle_x = deepcopy(X[tmpIndexes[1:300]]);
-throttle_y = deepcopy(Y[tmpIndexes[1:300]]);
+throttle_x = deepcopy(X[tmpIndexes[1:500]]);
+throttle_y = deepcopy(Y[tmpIndexes[1:500]]);
 test_x, test_y = GenerateTestXY(fromDateTest, toDateTest);
-tmpVals = sortperm(rand(length(test_x)))[1:300]
-test_x, test_y = test_x[tmpVals], test_y[tmpVals]
+tmpVals = sortperm(rand(length(test_x)))[1:500];
+test_x, test_y = test_x[tmpVals], test_y[tmpVals];
 if TRAIN_WITH_GPU
 	training_x = gpu(training_x)
 	training_y = gpu(training_y)
