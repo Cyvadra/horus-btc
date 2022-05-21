@@ -1,15 +1,16 @@
 # horus
 
 ### Todos:
-1. [x] Init backtest framework.
-3. [x] Test simplest strategy.
-5. [ ] Try quantumize that strategy.
-15. [ ] Initialize APIs.
+1. [ ] Extract service-block_timestamp, use shared storage.
 
 ### Pending:
 11. [x] Separate AddressService?
 
 ### Done:
+1. [x] Init backtest framework.
+3. [x] Test simplest strategy.
+5. [x] Try quantumize that strategy.
+15. [x] Initialize APIs.
 3. [x] Design data pretreatment.
 3. [x] Client-side visualization.
 1. [x] Rewrite MmapDB, remove Mmap dependency.
