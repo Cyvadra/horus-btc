@@ -148,6 +148,17 @@ ps = Flux.params(m);
 opt        = ADADelta();
 tx, ty     = (test_x[15], test_y[15]);
 loss(x, y) = Flux.mse(m(x),y)
+function sub_loss(p, y)
+	- ( 0.5 - abs(sigmoid_fast(p-y)-0.5) ) * abs(y)
+	end
+function loss(x, y)
+	p = m(x)
+	return sub_loss(p[1], y[1]) + sub_loss(p[2], y[2])
+	end
+if TRAIN_WITH_GPU
+	loss(x, y) = Flux.mae(m(x),y) * (y[1]-y[2]) |> gpu
+	loss_direct(p, y) = Flux.mae(p, y) * (y[1]-y[2]) |> gpu
+	end
 loss_direct(p, y) = Flux.mse(p, y)
 
 tmpLen     = length(test_y[1]);
