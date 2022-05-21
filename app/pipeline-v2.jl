@@ -141,3 +141,28 @@ PipelineLocks["synchronizing"] = false
 	# SyncResults()
 	# SyncBlockInfo()
 	# ResyncBlockTimestamps()
+
+# listener
+using Sockets
+TRIGGER_SERVER = Sockets.TCPServer(; delay=false)
+inet = Sockets.InetAddr("127.0.0.1",8021)
+Sockets.bind(TRIGGER_SERVER, inet.host, inet.port; reuseaddr=true)
+Sockets.listen(TRIGGER_SERVER)
+triggerRet = Vector{UInt8}("""HTTP/1.1 200 OK\nDate: Wed, 27 Jan 2021 21:16:00 UTC
+Content-Length: 80\nContent-Type: text/plain\n
+3.141592653589793238462643383279502884197169399375105820974944592307816406286198""");
+function tcpTrigger(conn::TCPSocket)::Nothing
+  try
+    @info readline(conn)
+    SyncResults()
+    write(conn, triggerRet)
+    close(conn)
+  catch err
+    print("connection ended with error $err")
+  end
+  return nothing
+  end
+while true
+  conn = accept(TRIGGER_SERVER)
+  @async tcpTrigger(conn)
+  end
