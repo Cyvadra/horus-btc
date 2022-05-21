@@ -106,6 +106,9 @@ function GenerateTestXY(fromDate::DateTime, toDate::DateTime)
 	end
 	return X, Y
 	end
+# function GenerateRuntimeX()
+# 	toDate   = GetLastResultsTimestamp() |> unix2dt
+	# toDate
 
 TRAIN_WITH_GPU = true
 fromDate  = DateTime(2019,11,1,0)
@@ -214,6 +217,7 @@ mutable struct Order
 	StopLoss::Float32 # x.xx%, like -5.0(%)
 	end
 
+SWITCH_VERSE_DIRECTION = false
 function GenerateP(x::Vector{Vector{Float32}})::Vector{Union{Nothing,Order}}
 	tmpPredicts = m.(x)
 	tmpPredictsAbs = map(x->abs.(x), tmpPredicts)
@@ -239,6 +243,12 @@ function GenerateP(x::Vector{Vector{Float32}})::Vector{Union{Nothing,Order}}
 			tmpOrder.PositionPercentage = Base.Math.tanh(-tmpDiff)
 			tmpOrder.TakeProfit = tmpPredicts[i][2]
 			tmpOrder.StopLoss = tmpPredicts[i][1]
+		end
+		if SWITCH_VERSE_DIRECTION
+			tmpOrder.Direction = !tmpOrder.Direction
+			tmpOrder.TakeProfit, tmpOrder.StopLoss = 
+				-sign(tmpOrder.TakeProfit) * min(abs.([tmpOrder.TakeProfit, tmpOrder.StopLoss])...),
+				-sign(tmpOrder.StopLoss) * max(abs.([tmpOrder.TakeProfit, tmpOrder.StopLoss])...)
 		end
 		push!(retOrders, tmpOrder)
 	end
