@@ -46,7 +46,6 @@ function GenerateY(ts, postSecs::Int)
 	h = 100 * (h - c) / c
 	l = 100 * (l - c) / c
 	return [
-		(h+l)/2,
 		h,
 		l,
 	]
@@ -112,7 +111,7 @@ TRAIN_WITH_GPU = true
 fromDate  = DateTime(2019,11,1,0)
 toDate    = DateTime(2022,4,30,23,59,59)
 fromDateTest = DateTime(2022,3,15,0)
-toDateTest   = DateTime(2022,5,13,0)
+toDateTest   = DateTime(2022,5,20,0)
 
 # Prepare Data
 X,Y = GenerateXY(fromDate, toDate);
