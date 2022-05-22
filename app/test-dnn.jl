@@ -111,8 +111,9 @@ function GenerateTestXY(fromDate::DateTime, toDate::DateTime)
 	# toDate
 
 TRAIN_WITH_GPU = true
-fromDate  = DateTime(2019,11,1,0)
-toDate    = DateTime(2022,4,30,23,59,59)
+# fromDate >= 2018-12-31T23:19:04
+fromDate  = DateTime(2019,2,1,0)
+toDate    = DateTime(2022,1,31,23,59,59)
 fromDateTest = DateTime(2022,3,15,0)
 toDateTest   = DateTime(2022,5,20,0)
 
@@ -140,14 +141,14 @@ inputSize = length(X[1])
 data      = zip(training_x, training_y);
 
 m = Chain(
-			Dense(inputSize, 64, softsign),
-			Dense(64, 49, softplus),
-			Dense(49, yLength),
+			Dense(inputSize, 12, softsign),
+			Dense(12, 6, softplus),
+			Dense(6, yLength),
 		);
 if TRAIN_WITH_GPU; m = gpu(m); end
 ps = Flux.params(m);
 
-opt        = ADADelta();
+opt        = Descent(1e-3);
 tx, ty     = (test_x[15], test_y[15]);
 loss(x, y) = Flux.mse(m(x),y)
 function sub_loss(p, y)
@@ -183,7 +184,7 @@ while true
 		break
 	end
 	# train
-	tmpIndexes = sortperm(rand(length(training_x)))[1:nBatchSize];
+	tmpIndexes = rand(1:length(training_x),nBatchSize);
 	if TRAIN_WITH_GPU; tmpIndexes = gpu(tmpIndexes); end
 	Flux.train!(
 		loss,
