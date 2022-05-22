@@ -14,7 +14,7 @@ function BlockNum2Timestamp(height)::Int32
 	return TableBlockTimestamp.GetFieldTimestamp(height)
 	end
 function Timestamp2LastBlockN(ts)::Int
-	return TableBlockTimestamp.Findlast(x->x<=ts, :Timestamp)
+	return TableBlockTimestamp.Findlast(x->!iszero(x) && x<=ts, :Timestamp)
 	end
 function Timestamp2FirstBlockN(ts)::Int
 	return TableBlockTimestamp.Findfirst(x->x>=ts, :Timestamp)
