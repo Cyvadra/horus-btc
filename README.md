@@ -1,7 +1,7 @@
 # horus
 
 ### Todos:
-1. [ ] Extract service-block_timestamp, use shared storage.
+1. [x] Extract service-block_timestamp, use shared storage.
 
 ### Pending:
 11. [x] Separate AddressService?

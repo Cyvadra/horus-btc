@@ -1,56 +1,27 @@
-using JLD2
+using MmapDB
 
-# BlockNum 2 Timestamp ( Dict{Int32, Int32} )
-# [!!!NOTICE!!!] Preload all of transaction data!
-# to avoid parallel-computing trouble
-BlockTimestamps = Dict{Int32, Int32}()
-BlockPairs = Vector{Pair{Int32,Int32}}()
-if filesize(tsFile) > 0
-	BlockTimestamps = JLD2.load(tsFile)["BlockTimestamps"]
-	BlockPairs = sort!(collect(BlockTimestamps), by=x->x[2])
+MmapDB.Init(folderBlockPairs)
+
+mutable struct BlockTimestamp
+	BlockNum::Int32
+	Timestamp::Int32
 end
+
+TableBlockTimestamp = MmapDB.GenerateCode(BlockTimestamp)
+TableBlockTimestamp.Open(true)
+
 function BlockNum2Timestamp(height)::Int32
-	return BlockTimestamps[height]
-	end
-#=
-	BlockTimestamps[b["height"]] = round(Int32, 
-		datetime2unix(
-			b["timeNormalized"]
-		)
-	) for b in collect(
-			Mongoc.find(MongoCollection("blocks"),  Mongoc.BSON("{}"))
-	)
-=#
-function ResyncBlockPairs()
-	global BlockPairs
-	BlockPairs = sort!(collect(BlockTimestamps), by=x->x[2])
-	return BlockPairs
-	end
-function ResyncBlockTimestamps()
-	global BlockTimestamps
-	for p in BlockPairs
-		if !haskey(BlockTimestamps, p[1])
-			BlockTimestamps[p[1]] = p[2]
-		end
-	end
-	return BlockTimestamps
+	return TableBlockTimestamp.GetFieldTimestamp(height)
 	end
 function Timestamp2LastBlockN(ts)::Int
-	i = findlast(x->x<=ts, map(x->x[2], BlockPairs))
-	return BlockPairs[i][1]
+	return TableBlockTimestamp.Findlast(x->x<=ts, :Timestamp)
 	end
 function Timestamp2FirstBlockN(ts)::Int
-	i = findfirst(x->x>=ts, map(x->x[2], BlockPairs))
-	return BlockPairs[i][1]
-	end
-function SyncBlockTimestamps()
-	JLD2.save(tsFile, "BlockTimestamps", BlockTimestamps)
-	return nothing
+	return TableBlockTimestamp.Findfirst(x->x>=ts, :Timestamp)
 	end
 function GetLastBlockNum()::Int
-	return BlockPairs[end][1]
+	return TableBlockTimestamp.Findlast(x->!iszero(x), :BlockNum) |> TableBlockTimestamp.GetFieldBlockNum
 	end
 function GetLastBlockTs()::Int32
-	return BlockPairs[end][2]
+	return TableBlockTimestamp.Findlast(x->!iszero(x), :Timestamp) |> TableBlockTimestamp.GetFieldTimestamp
 	end
-atexit(SyncBlockTimestamps)

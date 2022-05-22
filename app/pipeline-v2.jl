@@ -21,9 +21,9 @@ PipelineLocks["synchronizing"] = false
 		latestBlockHeight = 1
 		while true
 			try
-				latestBlockHeight = BlockPairs[end][1]
+				latestBlockHeight = GetLastBlockNum()
 				ts = round(Int32, GetBlockInfo(latestBlockHeight+1)["timeNormalized"] |> datetime2unix)
-				push!(BlockPairs, Pair{Int32, Int32}(latestBlockHeight+1, ts))
+				TableBlockTimestamp.SetRow(latestBlockHeight+1, latestBlockHeight+1, ts)
 				print("$(latestBlockHeight+1)\t")
 			catch
 				println()
@@ -56,7 +56,6 @@ PipelineLocks["synchronizing"] = false
 # Online Calculations
 	function SyncResults()::Nothing
 		SyncBlockInfo()
-		ResyncBlockTimestamps()
 		syncBitcoin()
 		if PipelineLocks["synchronizing"]
 			return nothing
@@ -140,7 +139,6 @@ PipelineLocks["synchronizing"] = false
 	GlobalRuntime["LastDoneBlock"] = 736186
 	# SyncResults()
 	# SyncBlockInfo()
-	# ResyncBlockTimestamps()
 
 # listener
 using Sockets
