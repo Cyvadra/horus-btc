@@ -57,10 +57,11 @@ function GenerateY(anoRet::Dict{String,Vector})
 
 function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 	sequences = Vector[]
-	for k in dnnList
-		push!(sequences,
-			Vector{Float32}(middlefit(anoRet[k], numMiddlefit))
-			)
+	for k in dnnListTest
+		push!(sequences, middlefit(
+			safe_log.(Vector{Float32}(anoRet[k])),
+			numMiddlefit
+		))
 	end
 	return hcat(sequences...)
 	end
@@ -141,7 +142,7 @@ inputSize = length(X[1])
 data      = zip(training_x, training_y);
 
 m = Chain(
-			Dense(inputSize, 12, softsign),
+			Dense(inputSize, 12, relu),
 			Dense(12, 6, softplus),
 			Dense(6, yLength),
 		);

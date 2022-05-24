@@ -116,6 +116,18 @@ simpList = String[
 	"amountChargePercentBelow10", "amountSupplierBalanceAbove95",
 	]
 
+dnnListTest = String[
+	"amountRealizedLossBillion",
+	"amountRealizedProfitBillion",
+	"amountChargePercentEquals100",
+	"amountContinuousD1Buying",
+	"amountContinuousD1Sending",
+	"amountContinuousD3Buying",
+	"amountContinuousD3Sending",
+	"amountContinuousW1Buying",
+	"amountContinuousW1Sending",
+	]
+
 dnnList = String[
 	"amountChargePercentBelow10",
 	"amountChargePercentBelow25",
