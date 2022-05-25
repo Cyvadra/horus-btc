@@ -58,10 +58,14 @@ function GenerateY(anoRet::Dict{String,Vector})
 function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 	sequences = Vector[]
 	for k in dnnListTest
-		push!(sequences, middlefit(
-			safe_log.(Vector{Float32}(anoRet[k])),
-			numMiddlefit
-		))
+		push!(sequences,
+			ema(
+				middlefit(
+				safe_log.(Vector{Float32}(anoRet[k])),
+				numMiddlefit
+				), 5
+			)
+		)
 	end
 	return hcat(sequences...)
 	end
