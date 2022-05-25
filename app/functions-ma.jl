@@ -29,7 +29,7 @@ function ema(v::Vector{T}, numMa::Int)::Vector where T<:Real
 	vRet = zeros(length(v))
 	vRet[1] = v[1]
 	for i in 2:length(v)
-		vRet[i] = ((numMa-1)*vRet[i-1] + 2v[i-1]) / (numMa+1)
+		vRet[i] = ((numMa-1)*vRet[i-1] + 2v[i]) / (numMa+1)
 	end
 	return vRet
 	end
