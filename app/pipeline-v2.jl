@@ -165,7 +165,11 @@ function tcpTrigger(conn::TCPSocket)::Nothing
     close(conn)
 	  if !PipelineLocks["accepted"]
 	  	PipelineLocks["accepted"] = true
-	  	SyncResults()
+	  	try
+		  	SyncResults()
+		  catch e
+		  	@warn e
+		  end
 	  	PipelineLocks["accepted"] = false
 	  end
   catch err
