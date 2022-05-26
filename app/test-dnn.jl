@@ -16,10 +16,10 @@ using ProgressMeter
 TableResults.Open(true)
 @show GetLastResultsID()
 
-numPrev  = 12 # 36h
+numPrev  = 5 # 36h
 postSecs = 10800 # predict 3h
 tmpSyms  = ResultCalculations |> fieldnames |> collect
-numMiddlefit = 24 # 72h
+numMiddlefit = 12 # 72h
 GlobalVars = (
 	ratioSL = 1.05,
 	ratioTP = 0.95,
@@ -40,12 +40,15 @@ function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
 	end
 
 function GenerateY(ts, postSecs::Int)
-	c = middle(GetBTCCloseWhen(ts-900:ts))
+	p = mean(GetBTCCloseWhen(ts-postSecs*numPrev:ts))
+	c = middle(GetBTCCloseWhen(ts-300:ts))
 	h = reduce(max, GetBTCHighWhen(ts+60:ts+postSecs))
 	l = reduce(min, GetBTCLowWhen(ts+60:ts+postSecs))
+	p = c / p
 	h = 100 * (h - c) / c
 	l = 100 * (l - c) / c
 	return [
+		p,
 		h,
 		l,
 	]
@@ -57,7 +60,7 @@ function GenerateY(anoRet::Dict{String,Vector})
 
 function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 	sequences = Vector[]
-	for k in dnnListTest
+	for k in dnnList
 		push!(sequences,
 			ema(
 				middlefit(
@@ -78,7 +81,7 @@ function GenerateXY(fromDate::DateTime, toDate::DateTime)
 		tmpSecs = round(Int32, tmpSecs + 1800n)
 		tmpMinuteWeight = round(Int, tmpSecs/360)
 		tmpN = round(Int, tmpSecs/tmpMinuteWeight/60-1)
-		@showprogress for i in 0:tmpN
+		@showprogress for i in 0:2:tmpN
 			tmpRet  = GenerateWindowedView(
 				tmpSecs,
 				fromDate + Minute(round(Int, tmpMinuteWeight*i)) |> dt2unix,
@@ -86,7 +89,7 @@ function GenerateXY(fromDate::DateTime, toDate::DateTime)
 				) |> ret2dict
 			tmpX = GenerateX(tmpRet)[numMiddlefit:end, :]
 			tmpY = GenerateY(tmpRet)[numMiddlefit:end, :]
-			append!(X, [ vcat(tmpX[i-numPrev+1:i,:]...) for i in numPrev+1:size(tmpX)[1] ])
+			append!(X, [ vcat(tmpX[i-numPrev+1:i,:]..., tmpY[i-1,1]) for i in numPrev+1:size(tmpX)[1] ])
 			append!(Y, [ tmpY[i,:] for i in numPrev+1:size(tmpY)[1] ])
 			@assert length(X) == length(Y)
 		end
@@ -105,7 +108,7 @@ function GenerateTestXY(fromDate::DateTime, toDate::DateTime)
 			) |> ret2dict
 		tmpX = GenerateX(tmpRet)[numMiddlefit:end, :]
 		tmpY = GenerateY(tmpRet)[numMiddlefit:end, :]
-		append!(X, [ vcat(tmpX[i-numPrev+1:i,:]...) for i in numPrev+1:size(tmpX)[1] ])
+		append!(X, [ vcat(tmpX[i-numPrev+1:i,:]..., tmpY[i-1,1]) for i in numPrev+1:size(tmpX)[1] ])
 		append!(Y, [ tmpY[i,:] for i in numPrev+1:size(tmpY)[1] ])
 		@assert length(X) == length(Y)
 	end
@@ -146,9 +149,7 @@ inputSize = length(X[1])
 data      = zip(training_x, training_y);
 
 m = Chain(
-			Dense(inputSize, 12, relu),
-			Dense(12, 6, softplus),
-			Dense(6, yLength),
+			Dense(inputSize, yLength),
 		);
 if TRAIN_WITH_GPU; m = gpu(m); end
 ps = Flux.params(m);
@@ -156,17 +157,17 @@ ps = Flux.params(m);
 opt        = Descent(1e-3);
 tx, ty     = (test_x[15], test_y[15]);
 loss(x, y) = Flux.mse(m(x),y)
-function sub_loss(p, y)
-	- ( 0.5 - abs(sigmoid_fast(p-y)-0.5) ) * abs(y)
-	end
-function loss(x, y)
-	p = m(x)
-	return sub_loss(p[1], y[1]) + sub_loss(p[2], y[2])
-	end
-if TRAIN_WITH_GPU
-	loss(x, y) = Flux.mae(m(x),y) * (y[1]-y[2]) |> gpu
-	loss_direct(p, y) = Flux.mae(p, y) * (y[1]-y[2]) |> gpu
-	end
+	# function sub_loss(p, y)
+	# 	- ( 0.5 - abs(sigmoid_fast(p-y)-0.5) ) * abs(y)
+	# 	end
+	# function loss(x, y)
+	# 	p = m(x)
+	# 	return sub_loss(p[1], y[1]) + sub_loss(p[2], y[2])
+	# 	end
+	# if TRAIN_WITH_GPU
+	# 	loss(x, y) = Flux.mae(m(x),y) * (y[1]-y[2]) |> gpu
+	# 	loss_direct(p, y) = Flux.mae(p, y) * (y[1]-y[2]) |> gpu
+	# 	end
 loss_direct(p, y) = Flux.mse(p, y)
 
 tmpLen     = length(test_y[1]);
@@ -180,7 +181,7 @@ prev_loss = [ loss(test_x[i], test_y[i]) |> cpu for i in 1:length(test_x) ] |> m
 ps_saved  = deepcopy(collect.(ps));
 @info "Initial Loss: $prev_loss"
 nCounter  = 0;
-nBatchSize= 8192;
+nBatchSize= 16384;
 lossListTest  = Float64[];
 lossListTrain = Float64[];
 FILE_TERM_SIGNAL = "/tmp/JULIA_EMERGENCY_STOP"
@@ -253,8 +254,8 @@ function GenerateP(x::Vector{Vector{Float32}})::Vector{Union{Nothing,Order}}
 		if SWITCH_VERSE_DIRECTION
 			tmpOrder.Direction = !tmpOrder.Direction
 			tmpOrder.TakeProfit, tmpOrder.StopLoss = 
-				-sign(tmpOrder.TakeProfit) * min(abs.([tmpOrder.TakeProfit, tmpOrder.StopLoss])...),
-				-sign(tmpOrder.StopLoss) * max(abs.([tmpOrder.TakeProfit, tmpOrder.StopLoss])...)
+				-sign(tmpOrder.TakeProfit) * max(abs.([tmpOrder.TakeProfit, tmpOrder.StopLoss])...),
+				-sign(tmpOrder.StopLoss) * min(abs.([tmpOrder.TakeProfit, tmpOrder.StopLoss])...)
 		end
 		push!(retOrders, tmpOrder)
 	end
@@ -348,7 +349,8 @@ function RunBacktestSequence(predicts::Vector{Union{Nothing,Order}}, anoRet::Dic
 function RunBacktestSequence(fromDate::DateTime, toDate::DateTime)::Vector{Float64}
 	testRet = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
 	tmpX = GenerateX(testRet)[numMiddlefit:end, :]
-	testX = [ vcat(tmpX[i-numPrev+1:i,:]...) for i in numPrev+1:size(tmpX)[1] ];
+	tmpY = GenerateY(testRet)[numMiddlefit:end, :]
+	testX = [ vcat(tmpX[i-numPrev+1:i,:]..., tmpY[i-1]) for i in numPrev+1:size(tmpX)[1] ];
 	predicts = GenerateP(testX)
 	return RunBacktestSequence(predicts, testRet)
 	end
