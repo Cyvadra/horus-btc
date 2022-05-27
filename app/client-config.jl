@@ -237,17 +237,16 @@ function plotfit(v::Vector, rng::UnitRange, baseY)::Vector
 	return v
 	end
 
-function plotfit_multi(lv::Vector{Vector{Float32}}, rng::UnitRange, baseY)::Vector{Vector{Float32}}
-	lv[1] = replace(lv[1], nothing=>0.0) .+ 0.0
-	s = sort(lv[1])
-	vMin, vMax = s[1], s[end]
-	vBias = vMax - vMin
+function plotfit_multi(lv::Vector{Vector{T}}, rng::UnitRange, baseY)::Vector{Vector{T}} where T <: Real
+	[ lv[i] = replace(lv[i], nothing=>0.0) .+ 0.0 for i in 1:length(lv) ]
+	vMin = min( map(x->min(x...), lv)... )
+	vMax = max( map(x->max(x...), lv)... )
+	vBias= (vMax - vMin) / (rng[end] - rng[1])
+	vMin = vMin / vBias
 	for i in 1:length(lv)
+		lv[i] ./= vBias
 		lv[i] .-= vMin
-		lv[i] ./= vBias / (rng[end] - rng[1])
 		lv[i] .+= rng[1]
-		s = sort(lv[i])
-		lv[i] .+= baseY - (s[end]+s[1])/2
 	end
 	return lv
 	end
