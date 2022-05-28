@@ -1,0 +1,48 @@
+amountRealizedProfitBillion
+numRealizedProfit
+amountSupplierBalanceAbove95
+amountChargePercentBelow80
+amountContinuousD1Buying
+amountChargePercentBelow95
+numSupplierMomentum
+amountChargePercentBelow25
+amountRealizedLossBillion
+amountChargePercentBelow95
+amountBuyerBalanceBelow80
+amountSupplierBalanceBelow40
+amountChargePercentBelow50
+numChargePercentEquals100
+amountContinuousD3Buying
+numChargePercentBelow10
+numContinuousD3Sending
+amountSupplierBalanceBelow60
+amountBuyerBalanceBelow60
+numContinuousD1Sending
+
+# long
+10-element Vector{String}:
+ "numContinuousD1Buying"
+ "numTotalActive"
+ "numChargePercentBelow95"
+ "amountWithdrawPercentAbove80"
+ "numWithdrawPercentAbove80"
+ "amountBuyerBalanceBelow60"
+ "numWithdrawPercentBelow50"
+ "numSupplierMomentum"
+ "numWithdrawPercentBelow25"
+ "numChargePercentBelow25"
+
+# short
+10-element Vector{String}:
+ "numChargePercentBelow50"
+ "numContinuousD1Buying"
+ "numWithdrawPercentBelow25"
+ "numChargePercentEquals100"
+ "amountWithdrawPercentAbove95"
+ "numRecentD3Buying"
+ "amountSupplierBalanceAbove95"
+ "numRealizedProfit"
+ "amountSupplierBalanceBelow60"
+ "numRecentD3Sending"
+
+ 
