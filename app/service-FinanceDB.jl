@@ -28,6 +28,9 @@ function ind2ts(i)
 	return round(Int, baseTickTs+i*60)
 	end
 
+function GetBTCLastTs()::Int32
+	(TableTick.Findfirst(x->iszero(x), :Timestamp) - 1) |> TableTick.GetFieldTimestamp
+	end
 
 function GetBTCOpenWhen(ts::Real)::Float32
 	return TableTick.GetFieldOpen(ts2ind(ts))
