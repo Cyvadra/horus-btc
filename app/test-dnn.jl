@@ -269,8 +269,8 @@ mutable struct CurrentPosition
 	Direction::Bool
 	PositionPercentage::Float32
 	Price::Float32
-	TP::Float32 # xx.x% of that price, long: 102.3% ==> 1.023
-	SL::Float32 # xx.x% of that price, short: 105.6% ==> 1.056
+	TP::Float32 # direct price value
+	SL::Float32 # xxxxx.xx
 	Timestamp::Int32
 	end
 
