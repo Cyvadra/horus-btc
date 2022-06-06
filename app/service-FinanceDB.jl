@@ -68,30 +68,27 @@ function GetBTCPriceWhen(ts::Union{Vector,UnitRange})::Vector{Float32}
 	end
 
 
-function syncBitcoin()
+function syncBitcoin()::Bool
 	# get derivative
 	prevTs = TableTick.Findfirst(x->iszero(x), :Timestamp) |> x->x-1 |> TableTick.GetFieldTimestamp
 	tmpN = (round(Int,time()) - round(Int,time()) % 60) - prevTs
 	tmpN = ceil(Int, tmpN / 60)
 	tmpN = min(tmpN, 1000)
 	if tmpN <= 2
-		return prevTs
+		return true
 	end
 	# fetch data
 	url = "https://www.binance.com/api/v3/klines?startTime=$(prevTs)000&limit=$tmpN&symbol=BTCUSDT&interval=1m"
 	try
-	run(pipeline(
-		`proxychains4 curl $url`;
-		stdout=cacheMarket,
-		append=false
-	));
-	catch
-	sleep(5)
-	run(pipeline(
-		`proxychains4 curl $url`;
-		stdout=cacheMarket,
-		append=false
-	));
+		sleep(1)
+		run(pipeline(
+			`proxychains4 curl $url`;
+			stdout=cacheMarket,
+			append=false
+		));
+	catch e
+		@warn e
+		return false
 	end
 	ret = JSON.Parser.parse(read(cacheMarket, String))[2:end]
 	rm(cacheMarket)
@@ -114,15 +111,15 @@ function syncBitcoin()
 		)
 		prevTs = currentTs
 	end
-	sysTimestamp = round(Int,
-		datetime2unix(
-			now() - Hour(8) - Minute(30)
-		)
-	)
-	if sysTimestamp > prevTs
-		sleep(1)
-		return syncBitcoin()
-	end
-	return prevTs
+	# sysTimestamp = round(Int,
+	# 	datetime2unix(
+	# 		now() - Hour(8) - Minute(30)
+	# 	)
+	# )
+	# if sysTimestamp > prevTs
+	# 	sleep(1)
+	# 	return syncBitcoin()
+	# end
+	return true
 	end
 
