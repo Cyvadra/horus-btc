@@ -55,12 +55,16 @@ PipelineLocks["synchronizing"] = false
 
 # Online Calculations
 	function SyncResults()::Nothing
-		SyncBlockInfo()
-		syncBitcoin()
 		if PipelineLocks["synchronizing"]
 			return nothing
 		end
 		PipelineLocks["synchronizing"] = true
+		SyncBlockInfo()
+		if syncBitcoin() == false
+			@warn "market data failure"
+			PipelineLocks["synchronizing"] = false
+			return nothing
+		end
 		# lastTs    = GetLastProcessedTimestamp()
 		currentTs = round(Int, time())
 		fromBlock = GlobalRuntime["LastDoneBlock"] + 1
