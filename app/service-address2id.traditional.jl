@@ -39,8 +39,8 @@ function ReadID(addr::AbstractString)::UInt32
 	end
 
 function GenerateID(addr::AbstractString)::UInt32
+	lock(AddressStringLock)
 	if !haskey(AddressStringDict, addr)
-		lock(AddressStringLock)
 		n = UInt32(AddressStringDict[TAG_MAX] + 1)
 		AddressStringDict[addr] = n
 		AddressStringDict[TAG_MAX] = n
@@ -48,6 +48,7 @@ function GenerateID(addr::AbstractString)::UInt32
 		unlock(AddressStringLock)
 		return n
 	else
+		unlock(AddressStringLock)
 		return AddressStringDict[addr]
 	end
 	end

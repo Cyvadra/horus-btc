@@ -109,6 +109,7 @@ PipelineLocks["synchronizing"] = false
 		end
 		for n in lastBlockN:toBlock
 			MergeBlock2AddressState(n)
+			GlobalRuntime["LastDoneBlock"] = n
 			if rand() < 0.1
 				print("$n \t")
 			end
