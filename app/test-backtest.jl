@@ -86,31 +86,45 @@ function GenerateY(anoRet::Dict{String,Vector})::Matrix
 
 # data preparation
 train_percentage = 0.8
-throttle_percentage = 0.1
+throttle_percentage = 0.02
 tmpRet = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict;
 X = GenerateX(tmpRet)[numMiddlefit:end, :]
 Y = GenerateY(tmpRet)[numMiddlefit:end, :]
 
 # manual part
-tmpNumSelectField = 1
-function TestP(X::Matrix)::Vector{Union{Nothing,Order}}
+baseDirection     = DIRECTION_LONG
+baseTakeProfit    = 1.0
+baseStopLoss      = 1.0
+basePosition      = 0.05
+function TestField(i::Int)
 	# X[numDataRow, numSelectField]
+	tmpNumSelectField = i
 	retOrders = Union{Nothing,Order}[nothing]
 	sizehint!(retOrders, size(X)[1])
 	prevVal = X[1, tmpNumSelectField]
 	for i in 2:size(X)[1]
-		if X[i, tmpNumSelectField] > prevVal
+		if X[i, tmpNumSelectField] >= prevVal > 0
 			push!(retOrders, Order(
-				DIRECTION_LONG,
-				0.05,
-				1.0,
-				1.0,
+				baseDirection,
+				basePosition,
+				baseDirection ? baseTakeProfit : -baseTakeProfit,
+				baseDirection ? -baseStopLoss : baseStopLoss,
+				))
+		elseif X[i, tmpNumSelectField] < prevVal < 0
+			push!(retOrders, Order(
+				!baseDirection,
+				basePosition,
+				!baseDirection ? baseTakeProfit : -baseTakeProfit,
+				!baseDirection ? -baseStopLoss : baseStopLoss,
 				))
 		else
 			push!(retOrders, nothing)
 		end
+		prevVal = X[i, tmpNumSelectField]
 	end
-	return retOrders
+	ans = RunBacktestSequence(retOrders, tmpRet)
+	ans = [ sum(ans[1:i]) for i in 1:length(ans) ]
+	return lineplot(ans)
 	end
 
 
@@ -142,7 +156,7 @@ mutable struct CurrentPosition
 	end
 
 function RunBacktestSequence(predicts::Vector{Union{Nothing,Order}}, anoRet::Dict{String,Vector})::Vector{Float64}
-	listTs   = anoRet["timestamp"][numMiddlefit+numPrev:end]
+	listTs   = anoRet["timestamp"][numMiddlefit:end]
 	@assert length(predicts) == length(listTs)
 	listDiff = zeros(length(predicts))
 	currentPos = CurrentPosition(false, 0.0, 0.0, 0.0, 0.0, listTs[1])
