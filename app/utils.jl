@@ -70,9 +70,19 @@ using Statistics
 		return v
 		end
 
-
-
-
+# Suggar
+	function getTop(v::Vector, percent100::Real)
+		return sort(v,rev=true)[ceil(Int,length(v)*percent100/100)]
+		end
+	function getBot(v::Vector, percent100::Real)
+		return sort(v)[ceil(Int,length(v)*percent100/100)]
+		end
+	function getTop005(v::Vector)
+		return sort(v,rev=true)[ceil(Int,length(v)*0.05)]
+		end
+	function getBot005(v::Vector)
+		return sort(v)[ceil(Int,length(v)*0.05)]
+		end
 
 
 
