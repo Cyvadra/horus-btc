@@ -17,7 +17,7 @@ TableResults.Open(true)
 @show GetLastResultsID()
 
 numPrev  = 5 # 36h
-postSecs = 10800 # predict 3h
+postSecs = 32400 # predict 9h
 tmpSyms  = ResultCalculations |> fieldnames |> collect
 numMiddlefit = 12 # 72h
 GlobalVars = (
@@ -26,7 +26,12 @@ GlobalVars = (
 	gpThreshold = Float32(0.27), # map(x->x[1],Y) |> lambda
 	gpMinDiff   = Float32(0.35), # map(x->Flux.mae(abs.(x)...),Y) |> lambda
 )
+fromDate  = DateTime(2019,2,1,0)
+toDate    = DateTime(2022,1,31,23,59,59)
+fromDateTest = DateTime(2022,3,15,0)
+toDateTest   = DateTime(2022,5,20,0)
 
+# transform
 function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
 	cacheRet   = Dict{String,Vector}()
 	for s in tmpSyms
@@ -39,9 +44,10 @@ function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
 	return cacheRet
 	end
 
+# data to matrix
 function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 	sequences = Vector[]
-	for k in dnnList
+	for k in simpList
 		push!(sequences,
 			ema(
 				middlefit(
@@ -54,10 +60,21 @@ function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 	return hcat(sequences...)
 	end
 
-fromDate  = DateTime(2019,2,1,0)
-toDate    = DateTime(2022,1,31,23,59,59)
-fromDateTest = DateTime(2022,3,15,0)
-toDateTest   = DateTime(2022,5,20,0)
+# control group
+function GenerateY(anoRet::Dict{String,Vector})::Vector{Union{Nothing,Order}}
+	listTs = anoRet["timestamp"]
+	tmpInterval= round(Int, (listTs[2]-listTs[1])/60)
+	tmpMinutes = round(Int, postSecs/60)
+	pricesHigh = ts2ind.((listTs[1]:60:listTs[end]+postSecs) |> collect) |> TableTick.GetFieldHigh
+	pricesHigh = [ reduce(max, pricesHigh[i*tmpInterval+1:i*tmpInterval+tmpMinutes]) for i in 0:length(listTs)-1 ]
+	pricesLow  = ts2ind.((listTs[1]:60:listTs[end]+postSecs) |> collect) |> TableTick.GetFieldLow
+	pricesLow  = [ reduce(min, pricesLow[i*tmpInterval+1:i*tmpInterval+tmpMinutes]) for i in 0:length(listTs)-1 ]
+	pricesBase = GetBTCPriceWhen(listTs)
+	pricesHigh = (pricesHigh ./ pricesBase .- 1) .* 100
+	pricesLow  = (pricesLow ./ pricesBase .- 1) .* 100
+	end
+
+
 
 # params for generating orders
 
