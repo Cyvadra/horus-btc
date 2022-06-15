@@ -72,6 +72,25 @@ function GenerateY(anoRet::Dict{String,Vector})::Matrix
 	return hcat(pricesHigh, pricesLow)
 	end
 
+# dnn part
+train_percentage = 0.8
+throttle_percentage = 0.1
+tmpRet = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict;
+X = GenerateX(tmpRet)[numMiddlefit:end, :]
+Y = GenerateY(tmpRet)[numMiddlefit:end, :]
+training_x = [ X[i,:] for i in 1:round(Int,train_percentage*size(X)[1]) ];
+training_y = [ Y[i,:] for i in 1:round(Int,train_percentage*size(Y)[1]) ];
+@assert length(training_x) == length(training_y)
+test_x = [ X[i,:] for i in round(Int,train_percentage*size(X)[1]):size(X)[1] ];
+test_y = [ Y[i,:] for i in round(Int,train_percentage*size(Y)[1]):size(Y)[1] ];
+tmpIndexes = sortperm(rand(round(Int,throttle_percentage*size(X)[1])));
+throttle_x = [ X[i,:] for i in tmpIndexes];
+throttle_y = [ Y[i,:] for i in tmpIndexes];
+
+yLength   = length(training_y[end])
+inputSize = length(training_x[1])
+data      = zip(training_x, training_y);
+
 
 
 # params for generating orders
