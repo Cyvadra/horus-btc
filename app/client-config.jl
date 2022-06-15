@@ -128,6 +128,40 @@ dnnListTest = String[
 	"amountContinuousW1Sending",
 	]
 
+dnnListLab = String[
+	"amountBuyerBalanceBelow60",
+	"amountBuyerBalanceBelow80",
+	"amountChargePercentBelow25",
+	"amountChargePercentBelow50",
+	"amountChargePercentBelow80",
+	"amountChargePercentBelow95",
+	"amountContinuousD1Buying",
+	"amountContinuousD3Buying",
+	"amountRealizedLossBillion",
+	"amountRealizedProfitBillion",
+	"amountSupplierBalanceAbove95",
+	"amountSupplierBalanceBelow40",
+	"amountSupplierBalanceBelow60",
+	"amountWithdrawPercentAbove80",
+	"amountWithdrawPercentAbove95",
+	"numChargePercentBelow10",
+	"numChargePercentBelow25",
+	"numChargePercentBelow50",
+	"numChargePercentBelow95",
+	"numChargePercentEquals100",
+	"numContinuousD1Buying",
+	"numContinuousD1Sending",
+	"numContinuousD3Sending",
+	"numRealizedProfit",
+	"numRecentD3Buying",
+	"numRecentD3Sending",
+	"numSupplierMomentum",
+	"numTotalActive",
+	"numWithdrawPercentAbove80",
+	"numWithdrawPercentBelow25",
+	"numWithdrawPercentBelow50"
+	]
+
 dnnList = String[
 	"amountChargePercentBelow10",
 	"amountChargePercentBelow25",
