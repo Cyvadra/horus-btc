@@ -11,6 +11,7 @@ include("./client-config.jl");
 using Dates
 using Statistics
 using Flux
+using UnicodePlots
 using ProgressMeter
 
 TableResults.Open(true)
@@ -28,8 +29,8 @@ GlobalVars = (
 )
 fromDate  = DateTime(2019,2,1,0)
 toDate    = DateTime(2022,1,31,23,59,59)
-fromDateTest = DateTime(2022,3,15,0)
-toDateTest   = DateTime(2022,5,20,0)
+fromDateTest = DateTime(2022,3,1,0)
+toDateTest   = DateTime(2022,3,9,0)
 
 # transform
 function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
@@ -47,31 +48,28 @@ function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
 # data to matrix
 function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 	sequences = Vector[]
-	for k in simpList
+	for k in dnnListLab
+		tmpList = log.(Vector{Float32}(anoRet[k]))
 		push!(sequences,
-			ema(
-				middlefit(
-				safe_log.(Vector{Float32}(anoRet[k])),
-				numMiddlefit
-				), 5
-			)
+			(ema(tmpList,3) - ema(tmpList,numMiddlefit)) ./ ema(tmpList,numMiddlefit)
 		)
 	end
 	return hcat(sequences...)
 	end
 
 # control group
-function GenerateY(anoRet::Dict{String,Vector})::Vector{Union{Nothing,Order}}
+function GenerateY(anoRet::Dict{String,Vector})::Matrix
 	listTs = anoRet["timestamp"]
 	tmpInterval= round(Int, (listTs[2]-listTs[1])/60)
 	tmpMinutes = round(Int, postSecs/60)
 	pricesHigh = ts2ind.((listTs[1]:60:listTs[end]+postSecs) |> collect) |> TableTick.GetFieldHigh
-	pricesHigh = [ reduce(max, pricesHigh[i*tmpInterval+1:i*tmpInterval+tmpMinutes]) for i in 0:length(listTs)-1 ]
+	pricesHigh = [ getTop005(pricesHigh[i*tmpInterval+1:i*tmpInterval+tmpMinutes]) for i in 0:length(listTs)-1 ]
 	pricesLow  = ts2ind.((listTs[1]:60:listTs[end]+postSecs) |> collect) |> TableTick.GetFieldLow
-	pricesLow  = [ reduce(min, pricesLow[i*tmpInterval+1:i*tmpInterval+tmpMinutes]) for i in 0:length(listTs)-1 ]
+	pricesLow  = [ getBot005(pricesLow[i*tmpInterval+1:i*tmpInterval+tmpMinutes]) for i in 0:length(listTs)-1 ]
 	pricesBase = GetBTCPriceWhen(listTs)
 	pricesHigh = (pricesHigh ./ pricesBase .- 1) .* 100
 	pricesLow  = (pricesLow ./ pricesBase .- 1) .* 100
+	return hcat(pricesHigh, pricesLow)
 	end
 
 
