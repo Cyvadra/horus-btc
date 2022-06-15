@@ -48,8 +48,9 @@ function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
 # data to matrix
 function GenerateX(anoRet::Dict{String,Vector})::Matrix{Float32}
 	sequences = Vector[]
+	baseList  = log.(anoRet["amountTotalTransfer"])
 	for k in dnnListLab
-		tmpList = log.(Vector{Float32}(anoRet[k]))
+		tmpList = log.(Vector{Float32}(anoRet[k])) - baseList
 		push!(sequences,
 			(ema(tmpList,3) - ema(tmpList,numMiddlefit)) ./ ema(tmpList,numMiddlefit)
 		)
