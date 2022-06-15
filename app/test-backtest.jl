@@ -32,6 +32,17 @@ toDate    = DateTime(2022,1,31,23,59,59)
 fromDateTest = DateTime(2022,3,1,0)
 toDateTest   = DateTime(2022,3,9,0)
 
+# params for generating orders
+const DIRECTION_SHORT = false
+const DIRECTION_LONG  = true
+TRADE_FEE = 0.04 / 30
+mutable struct Order
+	Direction::Bool
+	PositionPercentage::Float32
+	TakeProfit::Float32 # x.xx%, 1.0 means 1%
+	StopLoss::Float32 # x.xx%, like -5.0(%)
+	end
+
 # transform
 function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
 	cacheRet   = Dict{String,Vector}()
@@ -73,12 +84,37 @@ function GenerateY(anoRet::Dict{String,Vector})::Matrix
 	return hcat(pricesHigh, pricesLow)
 	end
 
-# dnn part
+# data preparation
 train_percentage = 0.8
 throttle_percentage = 0.1
 tmpRet = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict;
 X = GenerateX(tmpRet)[numMiddlefit:end, :]
 Y = GenerateY(tmpRet)[numMiddlefit:end, :]
+
+# manual part
+tmpNumSelectField = 1
+function TestP(X::Matrix)::Vector{Union{Nothing,Order}}
+	# X[numDataRow, numSelectField]
+	retOrders = Union{Nothing,Order}[nothing]
+	sizehint!(retOrders, size(X)[1])
+	prevVal = X[1, tmpNumSelectField]
+	for i in 2:size(X)[1]
+		if X[i, tmpNumSelectField] > prevVal
+			push!(retOrders, Order(
+				DIRECTION_LONG,
+				0.05,
+				1.0,
+				1.0,
+				))
+		else
+			push!(retOrders, nothing)
+		end
+	end
+	return retOrders
+	end
+
+
+# dnn part
 training_x = [ X[i,:] for i in 1:round(Int,train_percentage*size(X)[1]) ];
 training_y = [ Y[i,:] for i in 1:round(Int,train_percentage*size(Y)[1]) ];
 @assert length(training_x) == length(training_y)
@@ -93,18 +129,6 @@ inputSize = length(training_x[1])
 data      = zip(training_x, training_y);
 
 
-
-# params for generating orders
-
-const DIRECTION_SHORT = false
-const DIRECTION_LONG  = true
-TRADE_FEE = 0.04 / 30
-mutable struct Order
-	Direction::Bool
-	PositionPercentage::Float32
-	TakeProfit::Float32 # x.xx%, 1.0 means 1%
-	StopLoss::Float32 # x.xx%, like -5.0(%)
-	end
 
 # backtest
 
