@@ -206,7 +206,7 @@ while true
 	push!(lossListTest, this_loss)
 	push!(lossListTrain, throttle_loss)
 	# record
-	if this_loss < 0.95*prev_loss
+	if this_loss < 0.99*prev_loss
 		ps_saved = deepcopy(collect.(ps));
 		prev_loss = this_loss
 	end

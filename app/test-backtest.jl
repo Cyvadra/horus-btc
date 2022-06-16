@@ -156,7 +156,10 @@ mutable struct CurrentPosition
 	end
 
 function RunBacktestSequence(predicts::Vector{Union{Nothing,Order}}, anoRet::Dict{String,Vector})::Vector{Float64}
-	listTs   = anoRet["timestamp"][numMiddlefit:end]
+	listTs   = anoRet["timestamp"]
+	if length(listTs) > length(predicts)
+		listTs   = anoRet["timestamp"][numMiddlefit:end]
+	end
 	@assert length(predicts) == length(listTs)
 	listDiff = zeros(length(predicts))
 	currentPos = CurrentPosition(false, 0.0, 0.0, 0.0, 0.0, listTs[1])
@@ -169,7 +172,7 @@ function RunBacktestSequence(predicts::Vector{Union{Nothing,Order}}, anoRet::Dic
 			currentLow  = reduce(min, GetBTCLowWhen(listTs[i-1]:listTs[i])) / currentPos.Price # 0.9
 			currentClose= GetBTCCloseWhen(listTs[i])
 			# check TP/SL
-			if currentPos.Direction == DIRECTION_LONG
+			if currentPos.Direction == DIRECTION_LONG && !iszero(currentPos.SL) && !iszero(currentPos.TP)
 				if !(currentPos.SL < currentPos.TP)
 					@warn "baseline debug mode"
 				end
@@ -178,7 +181,7 @@ function RunBacktestSequence(predicts::Vector{Union{Nothing,Order}}, anoRet::Dic
 				elseif currentHigh >= (currentPos.TP/currentPos.Price)
 					listDiff[i] = (currentPos.TP - currentPos.Price) * currentPos.PositionPercentage
 				end
-			elseif currentPos.Direction == DIRECTION_SHORT
+			elseif currentPos.Direction == DIRECTION_SHORT && !iszero(currentPos.SL) && !iszero(currentPos.TP)
 				if !(currentPos.TP < currentPos.SL)
 					@warn "baseline debug mode"
 				end
@@ -217,6 +220,10 @@ function RunBacktestSequence(predicts::Vector{Union{Nothing,Order}}, anoRet::Dic
 				currentPos.Price = GetBTCCloseWhen(listTs[i])
 				currentPos.TP = currentPos.Price * (1.0 + 0.01*predicts[i].TakeProfit) # 42000 * 102%
 				currentPos.SL = currentPos.Price * (1.0 + 0.01*predicts[i].StopLoss) # 39000 * 88%
+				if iszero(predicts[i].TakeProfit) && iszero(predicts[i].StopLoss)
+					currentPos.TP = 0.0
+					currentPos.SL = 0.0
+				end
 				currentPos.Timestamp = listTs[i]
 			# if same direction
 			elseif currentPos.Direction == predicts[i].Direction
