@@ -123,7 +123,7 @@ TRAIN_WITH_GPU = true
 fromDate  = DateTime(2019,2,1,0)
 toDate    = DateTime(2022,1,31,23,59,59)
 fromDateTest = DateTime(2022,3,15,0)
-toDateTest   = DateTime(2022,5,20,0)
+toDateTest   = DateTime(2022,7,7,0)
 
 # Prepare Data
 X,Y = GenerateXY(fromDate, toDate);
