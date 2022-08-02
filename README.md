@@ -1,5 +1,10 @@
 # horus
 
+### Todos (version update):
+1. [ ] Integrate real-time network.
+3. [ ] Redefine and enrich feature fields.
+5. [ ] Backtest system.
+
 ### Todos:
 1. [x] Extract service-block_timestamp, use shared storage.
 
