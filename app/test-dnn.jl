@@ -48,7 +48,7 @@ function GenerateY(ts, postSecs::Int)
 	h = 100 * (h - c) / c
 	l = 100 * (l - c) / c
 	return [
-		p,
+		# p,
 		h,
 		l,
 	]
@@ -89,7 +89,8 @@ function GenerateXY(fromDate::DateTime, toDate::DateTime)
 				) |> ret2dict
 			tmpX = GenerateX(tmpRet)[numMiddlefit:end, :]
 			tmpY = GenerateY(tmpRet)[numMiddlefit:end, :]
-			append!(X, [ vcat(tmpX[i-numPrev+1:i,:]..., tmpY[i-1,1]) for i in numPrev+1:size(tmpX)[1] ])
+			# append!(X, [ vcat(tmpX[i-numPrev+1:i,:]..., tmpY[i-1,1]) for i in numPrev+1:size(tmpX)[1] ])
+			append!(X, [ vcat(tmpX[i-numPrev+1:i,:]...) for i in numPrev+1:size(tmpX)[1] ])
 			append!(Y, [ tmpY[i,:] for i in numPrev+1:size(tmpY)[1] ])
 			@assert length(X) == length(Y)
 		end
@@ -108,7 +109,8 @@ function GenerateTestXY(fromDate::DateTime, toDate::DateTime)
 			) |> ret2dict
 		tmpX = GenerateX(tmpRet)[numMiddlefit:end, :]
 		tmpY = GenerateY(tmpRet)[numMiddlefit:end, :]
-		append!(X, [ vcat(tmpX[i-numPrev+1:i,:]..., tmpY[i-1,1]) for i in numPrev+1:size(tmpX)[1] ])
+		# append!(X, [ vcat(tmpX[i-numPrev+1:i,:]..., tmpY[i-1,1]) for i in numPrev+1:size(tmpX)[1] ])
+		append!(X, [ vcat(tmpX[i-numPrev+1:i,:]...) for i in numPrev+1:size(tmpX)[1] ])
 		append!(Y, [ tmpY[i,:] for i in numPrev+1:size(tmpY)[1] ])
 		@assert length(X) == length(Y)
 	end
@@ -350,7 +352,8 @@ function RunBacktestSequence(fromDate::DateTime, toDate::DateTime)::Vector{Float
 	testRet = GenerateWindowedViewH3(fromDate, toDate) |> ret2dict
 	tmpX = GenerateX(testRet)[numMiddlefit:end, :]
 	tmpY = GenerateY(testRet)[numMiddlefit:end, :]
-	testX = [ vcat(tmpX[i-numPrev+1:i,:]..., tmpY[i-1]) for i in numPrev+1:size(tmpX)[1] ];
+	# testX = [ vcat(tmpX[i-numPrev+1:i,:]..., tmpY[i-1]) for i in numPrev+1:size(tmpX)[1] ];
+	testX = [ vcat(tmpX[i-numPrev+1:i,:]...) for i in numPrev+1:size(tmpX)[1] ];
 	predicts = GenerateP(testX)
 	return RunBacktestSequence(predicts, testRet)
 	end
