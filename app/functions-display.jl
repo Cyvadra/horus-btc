@@ -163,7 +163,7 @@ function GenerateTracesFull(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector
 			tmpList .-= baseList[i]
 		end
 		# tmpList     = plotfit(tmpList, -singleHeight:singleHeight, tmpBaseY)
-		tmpListMa   = ema(tmpList, numMiddlefit)
+		tmpListMa   = middlefit(tmpList, numMiddlefit)
 		tmpListBias = tmpList .- tmpListMa
 		push!(traces, 
 			PlotlyJS.scatter(
