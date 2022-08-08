@@ -11,7 +11,7 @@ include("./functions-generate_window.jl")
 include("./utils.jl")
 labCachePath = "/tmp/julia-lab-plot.html"
 numMiddlefit = 12
-SWITCH_lab_RANGE_SLIDER = true
+SWITCH_LAB_RANGE_SLIDER = true
 lab_color_up = "red"
 lab_color_down = "blue"
 lab_color_bias = "blue"
@@ -53,7 +53,7 @@ route("/lab") do
 		x-> x[1:end-3],
 		listTs
 		)
-	traces, tmpBaseY = GenerateTraces(tmpRet, simpList, listTs)
+	traces, tmpBaseY = GenerateTracesFull(tmpRet, dnnList, listTs)
 	pricesOpen, pricesHigh, pricesLow, pricesClose = plotfit_multi([pricesOpen, pricesHigh, pricesLow, pricesClose], 0:tmpBaseY, tmpBaseY/2)
 	push!(traces, 
 		PlotlyJS.candlestick(
@@ -77,7 +77,7 @@ route("/lab") do
 			Layout(
 				title_text = listTs[end] * " $latestH $latestL",
 				xaxis_title_text = "时间",
-				xaxis_rangeslider_visible = SWITCH_lab_RANGE_SLIDER,
+				xaxis_rangeslider_visible = SWITCH_LAB_RANGE_SLIDER,
 			)
 		);
 		height = round(Int, 1080*3),
@@ -179,9 +179,12 @@ function GenerateTracesFull(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector
 				marker_color = lab_color_bias,
 			)
 		)
-		tmpBaseY += 1.3singleHeight
+		tmpBaseY += 1.5singleHeight
 	end
-	tmpBaseY -= 1.3singleHeight
+	tmpBaseY -= 1.5singleHeight
 	tmpBaseY = round(Int, tmpBaseY)
 	return traces, tmpBaseY
 	end
+
+
+
