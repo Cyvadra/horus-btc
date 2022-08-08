@@ -5,7 +5,7 @@ TableResults
 Timestamp2FirstBlockN
 Timestamp2LastBlockN
 
-function GenerateWindowedView(intervalSecs::T, fromTs::T, toTs::T)::Vector{ResultCalculations} where T <: Signed
+function GenerateWindowedView_deprecated(intervalSecs::T, fromTs::T, toTs::T)::Vector{ResultCalculations} where T <: Signed
 	ret = ResultCalculations[]
 	for ts in fromTs+intervalSecs:intervalSecs:toTs
 		tmpRes = TableResults.GetRow(
@@ -49,6 +49,29 @@ function GenerateWindowedView(intervalSecs::T, fromTs::T, toTs::T)::Vector{Resul
 		tmpSum.numSupplierMomentumMean = map(x->x.numSupplierMomentumMean, tmpRes) |> Statistics.mean
 		tmpSum.numBuyerMomentumMean = map(x->x.numBuyerMomentumMean, tmpRes) |> Statistics.mean
 		tmpSum.numRegularBuyerMomentumMean = map(x->x.numRegularBuyerMomentumMean, tmpRes) |> Statistics.mean
+		push!(ret, tmpSum)
+	end
+	return ret
+	end
+
+function GenerateWindowedView(intervalSecs::T, fromTs::T, toTs::T)::Vector{ResultCalculations} where T <: Signed
+	ret = ResultCalculations[]
+	for ts in fromTs+intervalSecs:intervalSecs:toTs
+		tmpRes = TableResults.GetRow(
+			Timestamp2FirstBlockN(ts-intervalSecs):Timestamp2LastBlockN(ts)
+		)
+		tmpLen = 0.0 + max(1, length(tmpRes))
+		if length(tmpRes) == 0
+			@warn ts
+			@warn Timestamp2FirstBlockN(ts-intervalSecs), Timestamp2LastBlockN(ts)
+			tmpSum = deepcopy(ret[end])
+			tmpSum.timestamp = ts
+			push!(ret, tmpSum)
+			continue
+		end
+		# tmpSum = reduce(+, tmpRes)
+		tmpSum = merge(tmpRes)
+		tmpSum.timestamp = ts
 		push!(ret, tmpSum)
 	end
 	return ret
