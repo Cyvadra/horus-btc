@@ -163,19 +163,18 @@ function GenerateTracesFull(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector
 			tmpList .-= baseList[i]
 		end
 		# tmpList     = plotfit(tmpList, -singleHeight:singleHeight, tmpBaseY)
-		tmpListMa   = middlefit(tmpList, numMiddlefit)
-		tmpListBias = tmpList .- tmpListMa
+		tmpListMiddle   = middlefit(tmpList, numMiddlefit)
 		push!(traces, 
 			PlotlyJS.scatter(
-				x = axisX, y = plotfit(tmpListMa, -singleHeight:singleHeight, tmpBaseY),
+				x = axisX, y = plotfit(tmpListMiddle, -singleHeight:singleHeight, tmpBaseY),
 				name = translateDict[s]*"-ma",
 				marker_color = lab_color_ma,
 			)
 		)
 		push!(traces, 
 			PlotlyJS.scatter(
-				x = axisX, y = plotfit(tmpListBias, -singleHeight:singleHeight, tmpBaseY),
-				name = translateDict[s]*"-bias",
+				x = axisX, y = plotfit(tmpList, -singleHeight:singleHeight, tmpBaseY),
+				name = translateDict[s],
 				marker_color = lab_color_bias,
 			)
 		)
