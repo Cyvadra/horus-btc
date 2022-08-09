@@ -150,7 +150,7 @@ function GenerateTracesSimp(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector
 	return traces, tmpBaseY
 	end
 
-function GenerateTracesFull(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector, doStandardization::Bool=true) # Vector{GenericTrace}, tmpBaseY
+function GenerateTracesFull(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector, doStandardization::Bool=false) # Vector{GenericTrace}, tmpBaseY
 	singleHeight = 100
 	baseList = log.(tmpRet["amountTotalTransfer"])
 	traces = GenericTrace[]
@@ -163,14 +163,14 @@ function GenerateTracesFull(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector
 			tmpList .-= baseList[i]
 		end
 		# tmpList     = plotfit(tmpList, -singleHeight:singleHeight, tmpBaseY)
-		tmpListMiddle   = middlefit(tmpList, numMiddlefit)
-		push!(traces, 
-			PlotlyJS.scatter(
-				x = axisX, y = plotfit(tmpListMiddle, -singleHeight:singleHeight, tmpBaseY),
-				name = translateDict[s]*"-ma",
-				marker_color = lab_color_ma,
-			)
-		)
+		# tmpListMiddle   = middleget(tmpList, numMiddlefit)
+		# push!(traces, 
+		# 	PlotlyJS.scatter(
+		# 		x = axisX, y = plotfit(tmpListMiddle, -singleHeight:singleHeight, tmpBaseY),
+		# 		name = translateDict[s]*"-ma",
+		# 		marker_color = lab_color_ma,
+		# 	)
+		# )
 		push!(traces, 
 			PlotlyJS.scatter(
 				x = axisX, y = plotfit(tmpList, -singleHeight:singleHeight, tmpBaseY),
