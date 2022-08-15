@@ -54,7 +54,7 @@ route("/lab") do
 		listTs
 		)
 	traces, tmpBaseY = GenerateTracesFull(tmpRet, dnnList, listTs)
-	pricesOpen, pricesHigh, pricesLow, pricesClose = plotfit_multi([pricesOpen, pricesHigh, pricesLow, pricesClose], 0:tmpBaseY, tmpBaseY/2)
+	pricesOpen, pricesHigh, pricesLow, pricesClose = plotfit_multi([pricesOpen, pricesHigh, pricesLow, pricesClose], -tmpBaseY:tmpBaseY, 0)
 	push!(traces, 
 		PlotlyJS.candlestick(
 			x = listTs,
@@ -165,10 +165,9 @@ function GenerateTracesFull(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector
 				marker_color = lab_color_bias,
 			)
 		)
-		tmpBaseY += 1.5singleHeight
+		# tmpBaseY += 1.5singleHeight
 	end
-	tmpBaseY -= 1.5singleHeight
-	tmpBaseY = round(Int, tmpBaseY)
+	tmpBaseY = singleHeight
 	return traces, tmpBaseY
 	end
 
