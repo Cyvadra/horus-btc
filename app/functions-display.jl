@@ -87,7 +87,7 @@ route("/lab") do
 	f = read(labCachePath, String)
 	f = replace(f, "https://cdn.plot.ly/plotly-2.3.0.min.js" => "http://cdn.git2.biz/plotly-2.3.0.min.js")
 	f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" => "http://cdn.git2.biz/MathJax.js")
-	f = replace(f, "<meta chartset" => """<meta http-equiv="refresh" content="360" charset""")
+	# f = replace(f, "<meta chartset" => """<meta http-equiv="refresh" content="360" charset""")
 	return f
 	end
 
