@@ -14,7 +14,7 @@ numMiddlefit = 12
 SWITCH_LAB_RANGE_SLIDER = true
 lab_color_up = "red"
 lab_color_down = "blue"
-lab_color_bias = "blue"
+lab_color_bias = "grey"
 lab_color_ma = "purple"
 touch(labCachePath)
 route("/lab") do
@@ -150,27 +150,14 @@ function GenerateTracesSimp(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector
 	return traces, tmpBaseY
 	end
 
-function GenerateTracesFull(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector, doStandardization::Bool=false) # Vector{GenericTrace}, tmpBaseY
+function GenerateTracesFull(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector) # Vector{GenericTrace}, tmpBaseY
 	singleHeight = 100
-	baseList = log.(tmpRet["amountTotalTransfer"])
 	traces = GenericTrace[]
 	tmpBaseY = 0
 	# main lines
 	for i in 1:length(tmpKeys)
 		s = tmpKeys[i]
 		tmpList = log.(tmpRet[s])
-		if doStandardization
-			tmpList .-= baseList[i]
-		end
-		# tmpList     = plotfit(tmpList, -singleHeight:singleHeight, tmpBaseY)
-		# tmpListMiddle   = middleget(tmpList, numMiddlefit)
-		# push!(traces, 
-		# 	PlotlyJS.scatter(
-		# 		x = axisX, y = plotfit(tmpListMiddle, -singleHeight:singleHeight, tmpBaseY),
-		# 		name = translateDict[s]*"-ma",
-		# 		marker_color = lab_color_ma,
-		# 	)
-		# )
 		push!(traces, 
 			PlotlyJS.scatter(
 				x = axisX, y = plotfit(tmpList, -singleHeight:singleHeight, tmpBaseY),
