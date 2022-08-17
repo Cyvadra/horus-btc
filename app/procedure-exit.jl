@@ -1,0 +1,13 @@
+PipelineLocks["emergency_stop"] = true
+run(`curl localhost:8021`)
+sleep(1)
+tmpID = GetLastResultsID()
+TableAddressStatistics.Close()
+TableResultCalculations.Close()
+TableTick.Close()
+TableBlockTimestamp.Close()
+TableResults.Close()
+@assert length(AddressStringDict) == Int(AddressStringDict[TAG_MAX])
+tmpLen = length(AddressStringDict)
+GC.gc(true)
+WriteAddressStringDict("/mnt/data/bitcore/addr.$tmpID.$tmpLen.txt")
