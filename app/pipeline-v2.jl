@@ -146,11 +146,10 @@ PipelineLocks["synchronizing"] = false
 		@info "$(now()) Pulling up service..."
 		end
 
-	# AddressService.Open(true)
-	# TableResults.Open(true)
-	GlobalRuntime["LastDoneBlock"] = 736186
-	# SyncResults()
-	# SyncBlockInfo()
+	AddressService.Open(true)
+	TableResults.Open(true)
+	GlobalRuntime["LastDoneBlock"] = GetLastResultsID()
+	SyncResults()
 
 # listener
 using Sockets

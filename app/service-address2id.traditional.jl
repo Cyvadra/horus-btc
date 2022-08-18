@@ -13,9 +13,8 @@ tmpCache = Dict{Bool, String}()
 @info "$(now()) loading address list..."
 f = open(fileAddressString, "r")
 tmpCache[true] = readline(f)
-# prog = Progress(966186370)
-prog = Progress(976100446)
-while !isnothing(tmpCache[true])
+prog = Progress(1013371292) # modify here
+while length(tmpCache[true])>0
 	s = split(tmpCache[true],'\t')
 	tmpVal = parse(UInt32, s[2])
 	if tmpVal > AddressStringDict[TAG_MAX]
