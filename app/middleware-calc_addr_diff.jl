@@ -182,7 +182,7 @@ function MergeBlock2AddressState(n::Int)::Nothing
 		tmpAmount = bitcoreInt2Float64(c["value"])
 		if isNew(tmpId)
 			InitAddressState(tmpId, ts, tmpPrice)
-		else if !isequal(ts, AddressService.GetFieldTimestampLastActive(tmpId))
+		elseif !isequal(ts, AddressService.GetFieldTimestampLastActive(tmpId))
 			SubTouchAddressState(tmpId, ts, tmpPrice)
 		end
 		AddressService.SetFieldTimestampLastActive(tmpId, ts)
@@ -207,7 +207,7 @@ function MergeBlock2AddressState(n::Int)::Nothing
 		tmpAmount = bitcoreInt2Float64(c["value"])
 		if isNew(tmpId)
 			InitAddressState(tmpId, ts, tmpPrice)
-		else if !isequal(ts, AddressService.GetFieldTimestampLastActive(tmpId))
+		elseif !isequal(ts, AddressService.GetFieldTimestampLastActive(tmpId))
 			SubTouchAddressState(tmpId, ts, tmpPrice)
 		end
 		# judge whether winning
