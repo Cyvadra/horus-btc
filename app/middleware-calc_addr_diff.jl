@@ -20,6 +20,7 @@ mutable struct AddressDiff
 	LastSellPrice::Float32
 	end
 tplAddressDiff = AddressDiff(zeros(length(AddressDiff.types))...)
+# deprecated functions for previous version
 function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff} # (fromBlock, toBlock]
 	if fromBlock == toBlock
 		return AddressDiff[]
@@ -146,6 +147,27 @@ function MergeAddressState!(arrayDiff::Vector{AddressDiff}, coinPrice::Float32):
 coinsAll = GetBlockCoins(150000)
 coinsIn  = filter(x->true, coinsAll)
 coinsOut = filter(x->true, coinsIn)
+function InitAddressState(tmpId::UInt32, ts::Int32, tmpPrice::Float64)::Nothing
+	AddressService.SetFieldTimestampCreated(tmpId, ts)
+	AddressService.SetFieldAverageTradeIntervalSecs(tmpId, 3600)
+	AddressService.SetFieldLastPurchasePrice(tmpId, tmpPrice)
+	AddressService.SetFieldLastSellPrice(tmpId, tmpPrice)
+	AddressService.SetFieldNumWinning(tmpId, 1)
+	AddressService.SetFieldNumLossing(tmpId, 1)
+	AddressService.SetFieldUsdtAmountWon(tmpId, 0.1)
+	AddressService.SetFieldUsdtAmountLost(tmpId, 0.1)
+	return nothing
+	end
+function SubTouchAddressState(tmpId::UInt32, ts::Int32, tmpPrice::Float64)::Nothing
+	AddressService.SetFieldDiffNumTxTotal(tmpId, 1)
+	AddressService.SetFieldAverageTradeIntervalSecs(tmpId,
+			( AddressService.GetFieldAverageTradeIntervalSecs(tmpId) * AddressService.GetFieldNumTxTotal(tmpId) + ( ts - AddressService.GetFieldTimestampLastActive(tmpId) ) ) / ( AddressService.GetFieldNumTxTotal(tmpId) + 1 )
+	)
+	AddressService.SetFieldUsdtNetUnrealized(tmpId,
+		AddressService.GetFieldBalance(tmpId) * (tmpPrice - AddressService.GetFieldAveragePurchasePrice(tmpId))
+	)
+	return nothing
+	end
 function MergeBlock2AddressState(n::Int)::Nothing
 	empty!(coinsAll); empty!(coinsIn); empty!(coinsOut);
 	append!(coinsAll, GetBlockCoins(n))
@@ -159,13 +181,16 @@ function MergeBlock2AddressState(n::Int)::Nothing
 		tmpId = GenerateID(c["address"])
 		tmpAmount = bitcoreInt2Float64(c["value"])
 		if isNew(tmpId)
-			AddressService.SetFieldTimestampCreated(tmpId, ts)
+			InitAddressState(tmpId, ts, tmpPrice)
+		else if !isequal(ts, AddressService.GetFieldTimestampLastActive(tmpId))
+			SubTouchAddressState(tmpId, ts, tmpPrice)
 		end
 		AddressService.SetFieldTimestampLastActive(tmpId, ts)
 		AddressService.SetFieldTimestampLastReceived(tmpId, ts)
 		AddressService.SetFieldDiffAmountIncomeTotal(tmpId, tmpAmount)
 		AddressService.SetFieldDiffNumTxInTotal(tmpId, 1)
 		AddressService.SetFieldDiffUsdtPayed4Input(tmpId, tmpPrice * tmpAmount)
+		AddressService.SetFieldLastPurchasePrice(tmpId, tmpPrice)
 		AddressService.SetFieldAveragePurchasePrice(tmpId,
 			AddressService.GetFieldUsdtPayed4Input(tmpId) /
 			AddressService.GetFieldAmountIncomeTotal(tmpId)
@@ -181,8 +206,28 @@ function MergeBlock2AddressState(n::Int)::Nothing
 		tmpId = GenerateID(c["address"])
 		tmpAmount = bitcoreInt2Float64(c["value"])
 		if isNew(tmpId)
-			AddressService.SetFieldTimestampCreated(tmpId, ts)
+			InitAddressState(tmpId, ts, tmpPrice)
+		else if !isequal(ts, AddressService.GetFieldTimestampLastActive(tmpId))
+			SubTouchAddressState(tmpId, ts, tmpPrice)
 		end
+		# judge whether winning
+		if tmpPrice >= AddressService.GetFieldLastPurchasePrice(tmpId)
+			if !isequal(ts, AddressService.GetFieldTimestampLastPayed(tmpId))
+				AddressService.SetFieldDiffNumWinning(tmpId, 1)
+			end
+			AddressService.SetFieldDiffUsdtAmountWon(tmpId,
+				(tmpPrice - AddressService.GetFieldLastPurchasePrice(tmpId)) * tmpAmount
+			)
+		else # if loss
+			if !isequal(ts, AddressService.GetFieldTimestampLastPayed(tmpId))
+				AddressService.SetFieldDiffNumLossing(tmpId, 1)
+			end
+			AddressService.SetFieldDiffUsdtAmountLost(tmpId,
+				(AddressService.GetFieldLastPurchasePrice(tmpId) - tmpPrice) * tmpAmount
+		end
+		AddressService.SetFieldRateWinning(tmpId,
+			AddressService.GetFieldNumWinning(tmpId) / ( AddressService.GetFieldNumWinning(tmpId) + AddressService.GetFieldNumLossing(tmpId) )
+		)
 		AddressService.SetFieldTimestampLastActive(tmpId, ts)
 		AddressService.SetFieldTimestampLastPayed(tmpId, ts)
 		AddressService.SetFieldDiffAmountExpenseTotal(tmpId, tmpAmount)
