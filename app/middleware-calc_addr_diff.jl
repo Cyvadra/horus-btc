@@ -168,6 +168,7 @@ function SubTouchAddressState(tmpId::UInt32, ts::Int32, tmpPrice::Float64)::Noth
 	AddressService.SetFieldUsdtNetUnrealized(tmpId,
 		AddressService.GetFieldBalance(tmpId) * (tmpPrice - AddressService.GetFieldAveragePurchasePrice(tmpId))
 	)
+	AddressService.SetFieldTimestampLastActive(tmpId, ts)
 	return nothing
 	end
 function MergeBlock2AddressState(n::Int)::Nothing
@@ -187,7 +188,6 @@ function MergeBlock2AddressState(n::Int)::Nothing
 		elseif !isequal(ts, AddressService.GetFieldTimestampLastActive(tmpId))
 			SubTouchAddressState(tmpId, ts, tmpPrice)
 		end
-		AddressService.SetFieldTimestampLastActive(tmpId, ts)
 		AddressService.SetFieldTimestampLastReceived(tmpId, ts)
 		AddressService.SetFieldDiffAmountIncomeTotal(tmpId, tmpAmount)
 		AddressService.SetFieldDiffNumTxInTotal(tmpId, 1)
@@ -231,7 +231,6 @@ function MergeBlock2AddressState(n::Int)::Nothing
 		AddressService.SetFieldRateWinning(tmpId,
 			AddressService.GetFieldNumWinning(tmpId) / ( AddressService.GetFieldNumWinning(tmpId) + AddressService.GetFieldNumLossing(tmpId) )
 		)
-		AddressService.SetFieldTimestampLastActive(tmpId, ts)
 		AddressService.SetFieldTimestampLastPayed(tmpId, ts)
 		AddressService.SetFieldDiffAmountExpenseTotal(tmpId, tmpAmount)
 		AddressService.SetFieldDiffNumTxOutTotal(tmpId, 1)
