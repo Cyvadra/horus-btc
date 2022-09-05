@@ -161,7 +161,9 @@ function InitAddressState(tmpId::UInt32, ts::Int32, tmpPrice::Float64)::Nothing
 function SubTouchAddressState(tmpId::UInt32, ts::Int32, tmpPrice::Float64)::Nothing
 	AddressService.SetFieldDiffNumTxTotal(tmpId, 1)
 	AddressService.SetFieldAverageTradeIntervalSecs(tmpId,
+		round(Int32,
 			( AddressService.GetFieldAverageTradeIntervalSecs(tmpId) * AddressService.GetFieldNumTxTotal(tmpId) + ( ts - AddressService.GetFieldTimestampLastActive(tmpId) ) ) / ( AddressService.GetFieldNumTxTotal(tmpId) + 1 )
+		)
 	)
 	AddressService.SetFieldUsdtNetUnrealized(tmpId,
 		AddressService.GetFieldBalance(tmpId) * (tmpPrice - AddressService.GetFieldAveragePurchasePrice(tmpId))
