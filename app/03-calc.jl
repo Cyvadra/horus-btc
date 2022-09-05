@@ -64,7 +64,7 @@ include("./utils.jl")
 	=#
 
 # First version touch! function
-	function touch!(fromI::Int, toI::Int)::Nothing
+	function touch!(fromI::Int, toI::Int)::Nothing # not updated to version 5th,Sep. yet
 		coinPrice = 100.0
 		coinUsdt  = 1000.0
 		pos = 1
@@ -165,12 +165,20 @@ include("./utils.jl")
 				AddressService.SetFieldAmountExpenseTotal(pos, 0.0)
 				AddressService.SetFieldNumTxInTotal(pos, 1)
 				AddressService.SetFieldNumTxOutTotal(pos, 0)
+				AddressService.SetFieldNumTxTotal(pos, 1)
+				AddressService.SetFieldAverageTradeIntervalSecs(pos, 3600)
 				AddressService.SetFieldUsdtPayed4Input(pos, coinUsdt)
 				AddressService.SetFieldUsdtReceived4Output(pos, 0.0)
 				AddressService.SetFieldAveragePurchasePrice(pos, coinPrice)
+				AddressService.SetFieldLastPurchasePrice(pos, coinPrice)
 				AddressService.SetFieldLastSellPrice(pos, coinPrice)
 				AddressService.SetFieldUsdtNetRealized(pos, 0.0)
 				AddressService.SetFieldUsdtNetUnrealized(pos, 0.0)
+				AddressService.SetFieldNumWinning(pos, 1)
+				AddressService.SetFieldNumLossing(pos, 1)
+				AddressService.SetFieldUsdtAmountWon(pos, 0.1)
+				AddressService.SetFieldUsdtAmountLost(pos, 0.1)
+				AddressService.SetFieldRateWinning(pos, 0.0)
 				AddressService.SetFieldBalance(pos, sumAmount[_ind])
 			else
 				AddressService.SetFieldTimestampCreated(pos, sumTs[_ind])
@@ -181,32 +189,57 @@ include("./utils.jl")
 				AddressService.SetFieldAmountExpenseTotal(pos, abs(sumAmount[_ind]))
 				AddressService.SetFieldNumTxInTotal(pos, 0)
 				AddressService.SetFieldNumTxOutTotal(pos, 1)
+				AddressService.SetFieldNumTxTotal(pos, 1)
+				AddressService.SetFieldAverageTradeIntervalSecs(pos, 3600)
 				AddressService.SetFieldUsdtPayed4Input(pos, 0.0)
 				AddressService.SetFieldUsdtReceived4Output(pos, coinUsdt)
 				AddressService.SetFieldAveragePurchasePrice(pos, coinPrice)
+				AddressService.SetFieldLastPurchasePrice(pos, coinPrice)
 				AddressService.SetFieldLastSellPrice(pos, coinPrice)
 				AddressService.SetFieldUsdtNetRealized(pos, coinUsdt)
 				AddressService.SetFieldUsdtNetUnrealized(pos, 0.0)
+				AddressService.SetFieldNumWinning(pos, 1)
+				AddressService.SetFieldNumLossing(pos, 1)
+				AddressService.SetFieldUsdtAmountWon(pos, 0.1)
+				AddressService.SetFieldUsdtAmountLost(pos, 0.1)
+				AddressService.SetFieldRateWinning(pos, 0.0)
 				AddressService.SetFieldBalance(pos, sumAmount[_ind])
 			end
 			return nothing
 		end
 		tmpBalance = AddressService.GetFieldBalance(pos)
-		if sumAmount[_ind] < 0
+		# 5th,Sep. New fields:
+		# NumWinning, NumLossing, UsdtAmountWon, UsdtAmountLost, RateWinning, LastPurchasePrice
+		if sumAmount[_ind] < 0 # if sell bitcoin
 			AddressService.SetFieldDiffAmountExpenseTotal(pos, -sumAmount[_ind])
 			AddressService.SetFieldDiffNumTxOutTotal(pos, 1)
+			if coinPrice >= AddressService.GetFieldLastPurchasePrice(pos) # if win
+				if !isequal(sumTs[_ind], AddressService.GetFieldTimestampLastPayed(pos))
+					AddressService.SetFieldDiffNumWinning(pos, 1)
+				end
+				AddressService.SetFieldDiffUsdtAmountWon(pos, coinUsdt + sumAmount[_ind] * AddressService.GetFieldLastPurchasePrice(pos))
+			else # if loss
+				if !isequal(sumTs[_ind], AddressService.GetFieldTimestampLastPayed(pos))
+					AddressService.SetFieldDiffNumLossing(pos, 1)
+				end
+				AddressService.SetFieldDiffUsdtAmountLost(pos, -sumAmount[_ind] * AddressService.GetFieldLastPurchasePrice(pos) - coinUsdt)
+			end
+			AddressService.SetFieldRateWinning(pos,
+				AddressService.GetFieldNumWinning(pos) / ( AddressService.GetFieldNumWinning(pos) + AddressService.GetFieldNumLossing(pos) )
+			)
 			if AddressService.GetFieldTimestampLastPayed(pos) < sumTs[_ind]
 				AddressService.SetFieldTimestampLastPayed(pos, sumTs[_ind])
 			end
 			AddressService.SetFieldDiffUsdtReceived4Output(pos, coinUsdt)
 			AddressService.SetFieldLastSellPrice(pos, coinPrice)
-		else
+		else # if purchase bitcoin
 			AddressService.SetFieldDiffAmountIncomeTotal(pos, sumAmount[_ind])
 			AddressService.SetFieldDiffNumTxInTotal(pos, 1)
 			if AddressService.GetFieldTimestampLastReceived(pos) < sumTs[_ind]
 				AddressService.SetFieldTimestampLastReceived(pos, sumTs[_ind])
 			end
 			AddressService.SetFieldDiffUsdtPayed4Input(pos, coinUsdt)
+			AddressService.SetFieldLastPurchasePrice(pos, coinPrice)
 			if tmpBalance > 1e-9
 				AddressService.SetFieldAveragePurchasePrice(pos,
 					(coinUsdt + AddressService.GetFieldAveragePurchasePrice(pos) * tmpBalance) / (tmpBalance + sumAmount[_ind]) )
@@ -217,6 +250,12 @@ include("./utils.jl")
 		if tmpBalance < 0 && AddressService.GetFieldTimestampCreated(pos) > sumTs[_ind]
 			AddressService.SetFieldTimestampCreated(pos, sumTs[_ind])
 		end
+		# 5th,Sep. New fields:
+		# NumTxTotal, AverageTradeIntervalSecs
+		AddressService.SetFieldAverageTradeIntervalSecs(pos, 
+			( AddressService.GetFieldNumTxTotal(pos) * AddressService.GetFieldAverageTradeIntervalSecs(pos) + ( sumTs[_ind] - AddressService.GetFieldTimestampLastActive(pos) ) ) / ( AddressService.GetFieldNumTxTotal(pos) + 1 )
+		)
+		AddressService.SetFieldDiffNumTxTotal(pos, 1)
 		if AddressService.GetFieldTimestampLastActive(pos) < sumTs[_ind]
 			AddressService.SetFieldTimestampLastActive(pos, sumTs[_ind])
 		end
@@ -235,7 +274,7 @@ include("./utils.jl")
 
 # Generate AddressStatistics from TxRowsDF
 	tplAddressStatistics = AddressStatistics(zeros(length(AddressStatistics.types))...)
-	function GenerateAddrState(addrId::UInt32, ts::Int32)::AddressStatistics
+	function GenerateAddrState(addrId::UInt32, ts::Int32)::AddressStatistics # init new address
 		coinPrice = GetBTCPriceWhen(ts)
 		ret    = deepcopy(tplAddressStatistics)
 		tsLast = findlast(x->x<=ts, TxRowsDF.Timestamp)
@@ -260,6 +299,9 @@ include("./utils.jl")
 		ret.AmountExpenseTotal = abs(sum(tmpOut))
 		ret.NumTxInTotal  = length(tmpIn)
 		ret.NumTxOutTotal = length(tmpOut)
+		ret.NumTxTotal    = length(tmpIn) + length(tmpOut)
+		ret.AverageTradeIntervalSecs = 3600
+		ret.LastPurchasePrice = GetBTCPriceWhen(ret.TimestampLastReceived)
 		ret.LastSellPrice = GetBTCPriceWhen(ret.TimestampLastPayed)
 		tmpUsdt   = [ GetBTCPriceWhen(TxRowsDF.Timestamp[_ind]) * TxRowsDF.Amount[_ind] for _ind in inds ]
 		ret.UsdtPayed4Input      = sum(filter(x->x>0, tmpUsdt))
@@ -270,8 +312,15 @@ include("./utils.jl")
 		else
 			ret.AveragePurchasePrice = coinPrice
 		end
-		ret.UsdtNetRealized = ret.UsdtReceived4Output - ret.UsdtPayed4Input
+		tmpAmountDiff = ret.UsdtReceived4Output - ret.UsdtPayed4Input
+		ret.UsdtNetRealized = tmpAmountDiff
 		ret.UsdtNetUnrealized = ret.Balance * (coinPrice - ret.AveragePurchasePrice)
+		ret.NumWinning = 1
+		ret.NumLossing = 1
+		ret.UsdtAmountWon = 0.1
+		ret.UsdtAmountLost = 0.1
+		ret.RateWinning = 0.1
+		# ret.RateWinning = ret.NumWinning / (ret.NumWinning+ret.NumLossing+1)
 		return ret
 		end
 

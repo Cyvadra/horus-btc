@@ -15,14 +15,23 @@ mutable struct AddressStatistics
 	# statistics
 	NumTxInTotal::Int32
 	NumTxOutTotal::Int32
+	NumTxTotal::Int32
+	AverageTradeIntervalSecs::Int32
 	# relevant usdt amount
 	UsdtPayed4Input::Float64
 	UsdtReceived4Output::Float64
 	AveragePurchasePrice::Float32
+	LastPurchasePrice::Float32
 	LastSellPrice::Float32
 	# calculated extra
 	UsdtNetRealized::Float64
 	UsdtNetUnrealized::Float64
+	NumWinning::Int32
+	NumLossing::Int32
+	UsdtAmountWon::Float64
+	UsdtAmountLost::Float64
+	RateWinning::Float32
+	# basic
 	Balance::Float64
 	end
 

@@ -35,14 +35,23 @@ mutable struct AddressStatistics
 	# statistics
 	NumTxInTotal::Int32
 	NumTxOutTotal::Int32
+	NumTxTotal::Int32
+	AverageTradeIntervalSecs::Int32
 	# relevant usdt amount
 	UsdtPayed4Input::Float64
 	UsdtReceived4Output::Float64
 	AveragePurchasePrice::Float32
+	LastPurchasePrice::Float32
 	LastSellPrice::Float32
 	# calculated extra
 	UsdtNetRealized::Float64
 	UsdtNetUnrealized::Float64
+	NumWinning::Int32
+	NumLossing::Int32
+	UsdtAmountWon::Float64
+	UsdtAmountLost::Float64
+	RateWinning::Float32
+	# basic
 	Balance::Float64
 	end
 function GenerateState(startN::Int, endN::Int)::AddressStatistics
@@ -61,12 +70,20 @@ function GenerateState(startN::Int, endN::Int)::AddressStatistics
 		0, # AmountExpenseTotal Float64
 		0, # NumTxInTotal Int32
 		0, # NumTxOutTotal Int32
+		0, # NumTxTotal Int32
+		0, # AverageTradeIntervalSecs Int32
 		0, # UsdtPayed4Input Float64
 		0, # UsdtReceived4Output Float64
 		0, # AveragePurchasePrice Float32
+		0, # LastPurchasePrice Float32
 		0, # LastSellPrice Float32
 		0, # UsdtNetRealized Float64
 		0, # UsdtNetUnrealized Float64
+		0, # NumWinning Int32
+		0, # NumLossing Int32
+		0, # UsdtAmountWon Float64
+		0, # UsdtAmountLost Float64
+		0, # RateWinning Float32
 		0 , # Balance Float64
 	)
 	# general mint

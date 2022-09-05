@@ -1,17 +1,17 @@
 # horus
 
 ### Todos (version update):
-1. [ ] Integrate real-time network.
+1. [ ] Update middleware-calc_addr_diff.jl for new fields.
 3. [ ] Redefine and enrich feature fields.
-5. [ ] Backtest system.
 
 ### Todos:
-1. [x] Extract service-block_timestamp, use shared storage.
 
 ### Pending:
+1. [ ] Integrate real-time network.
 11. [x] Separate AddressService?
 
 ### Done:
+1. [x] Extract service-block_timestamp, use shared storage.
 1. [x] Init backtest framework.
 3. [x] Test simplest strategy.
 5. [x] Try quantumize that strategy.
