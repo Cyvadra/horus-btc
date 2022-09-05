@@ -2,7 +2,7 @@
 
 ### Todos (version update):
 1. [x] Update middleware-calc_addr_diff.jl for new fields.
-3. [ ] Redefine and enrich feature fields.
+3. [x] Redefine and enrich feature fields.
 
 ### Todos:
 

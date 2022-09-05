@@ -83,6 +83,9 @@ using Statistics
 	function getBot005(v::Vector)
 		return sort(v)[ceil(Int,length(v)*0.05)]
 		end
+	function getPercent(v::Vector, percentage::Real)
+		return v[round(Int,length(v)*percentage)]
+		end
 
 
 

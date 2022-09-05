@@ -54,26 +54,34 @@
 		amountWithdrawPercentBelow50::Float32
 		amountWithdrawPercentAbove80::Float32
 		amountWithdrawPercentAbove95::Float32
+		amountReceivedPercent25::Float32
+		amountReceivedPercent50::Float32
+		amountReceivedPercent75::Float32
+		amountReceivedMean::Float32
+		amountSentPercent25::Float32
+		amountSentPercent50::Float32
+		amountSentPercent75::Float32
+		amountSentMean::Float32
 		end
 	mutable struct CellAddressAccumulation
+		numRecentH3Sending::Int32
 		numRecentD3Sending::Int32
-		numWakeupD1Sending::Int32
-		numWakeupD3Sending::Int32
+		numWakeupH3Sending::Int32
+		numRecentH3Buying::Int32
 		numRecentD3Buying::Int32
-		numWakeupD1Buying::Int32
-		numWakeupD3Buying::Int32
+		numWakeupH3Buying::Int32
 		numContinuousD1Sending::Int32
 		numContinuousD3Sending::Int32
 		numContinuousW1Sending::Int32
 		numContinuousD1Buying::Int32
 		numContinuousD3Buying::Int32
 		numContinuousW1Buying::Int32
+		amountRecentH3Sending::Float32
 		amountRecentD3Sending::Float32
-		amountWakeupD1Sending::Float32
-		amountWakeupD3Sending::Float32
+		amountWakeupH3Sending::Float32
+		amountRecentH3Buying::Float32
 		amountRecentD3Buying::Float32
-		amountWakeupD1Buying::Float32
-		amountWakeupD3Buying::Float32
+		amountWakeupH3Buying::Float32
 		amountContinuousD1Sending::Float32
 		amountContinuousD3Sending::Float32
 		amountContinuousW1Sending::Float32
@@ -115,8 +123,12 @@
 	mutable struct CellAddressUsdtDiff
 		numRealizedProfit::Int32
 		numRealizedLoss::Int32
-		amountRealizedProfitBillion::Float64
-		amountRealizedLossBillion::Float64
+		amountRealizedProfitMillion::Float64
+		amountRealizedLossMillion::Float64
+		numWinning::Int32
+		numLossing::Int32
+		amountUsdtWonMillion::Float64
+		amountUsdtLostMillion::Float64
 		end
 	mutable struct CellAddressMomentum
 		# all in days
@@ -126,6 +138,19 @@
 		numBuyerMomentumMean::Float32
 		numRegularBuyerMomentum::Float32
 		numRegularBuyerMomentumMean::Float32
+		end
+	mutable struct CellAddressAverage
+		# new users are filtered
+		averageRateWinningBuyer::Float32
+		averageRateWinningSeller::Float32
+		averageUsdtNetRealizedBuyer::Float32
+		averageUsdtNetRealizedSeller::Float32
+		averageUsdtNetUnrealizedBuyer::Float32
+		averageUsdtNetUnrealizedSeller::Float32
+		averageUsdtAmountWonBuyer::Float32
+		averageUsdtAmountWonSeller::Float32
+		averageUsdtAmountLostBuyer::Float32
+		averageUsdtAmountLostSeller::Float32
 		end
 	function CalcAddressComparative(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressComparative
 		_len = length(cacheTs[])
@@ -148,6 +173,8 @@
 		concreteIndexes  = map(x->!x, cacheTagNew[])
 		concreteBalances = AddressService.GetFieldBalance(cacheAddrId[][ concreteIndexes ])
 		concretePercents = cacheAmount[][ concreteIndexes ] ./ concreteBalances
+		sortedAmountReceived = filter(x->x>0, cacheAmount[][ concreteIndexes ]) |> sort
+		sortedAmountSent     = abs.(filter(x->x<0, cacheAmount[][ concreteIndexes ])) |> sort
 		concreteAmounts  = abs.( cacheAmount[][ concreteIndexes ] )
 		tmpIndexes = (
 			cpb10 = map(x-> 0.00 < x <= 0.10, concretePercents),
@@ -185,6 +212,15 @@
 				reduce(+, concreteAmounts[tmpIndexes.wpb50]),
 				reduce(+, concreteAmounts[tmpIndexes.wpa80]),
 				reduce(+, concreteAmounts[tmpIndexes.wpa95]),
+
+				getPercent(sortedAmountReceived, 0.25),
+				getPercent(sortedAmountReceived, 0.5),
+				getPercent(sortedAmountReceived, 0.75),
+				Statistics.mean(sortedAmountReceived),
+				getPercent(sortedAmountSent, 0.25),
+				getPercent(sortedAmountSent, 0.5),
+				getPercent(sortedAmountSent, 0.75),
+				Statistics.mean(sortedAmountSent),
 			)
 		return ret
 		end
@@ -200,13 +236,13 @@
 		concreteAmountsSend  = concreteAmounts .< 0.0
 		concreteAmountsBuy   = concreteAmounts .> 0.0
 		tmpIndexes = (
-			recentD3Sending = map(t->tsMid-t < 3seconds.Day, concreteLastPayed),
-			wakeupD1Sending = map(t->tsMid-t > seconds.Day, concreteLastPayed),
-			wakeupD3Sending = map(t->tsMid-t > 3seconds.Day, concreteLastPayed),
+			recentH3Sending = map(t->tsMid-t < 3seconds.Hour, concreteLastPayed),
+			recentD3Sending = map(t->3seconds.Hour < tsMid-t < 3seconds.Day, concreteLastPayed),
+			wakeupH3Sending = map(t->tsMid-t > 3seconds.Hour, concreteLastPayed),
 
-			recentD3Buying = map(t->tsMid-t < 3seconds.Day, concreteLastReceived),
-			wakeupD1Buying = map(t->tsMid-t > seconds.Day, concreteLastReceived),
-			wakeupD3Buying = map(t->tsMid-t > 3seconds.Day, concreteLastReceived),
+			recentH3Buying = map(t->tsMid-t < 3seconds.Hour, concreteLastReceived),
+			recentD3Buying = map(t->3seconds.Hour < tsMid-t < 3seconds.Day, concreteLastReceived),
+			wakeupH3Buying = map(t->tsMid-t > 3seconds.Hour, concreteLastReceived),
 
 			contiD1Sending = map(t->tsMax-t > seconds.Day, concreteLastReceived) .&& concreteAmountsSend,
 			contiD3Sending = map(t->tsMax-t > 3seconds.Day, concreteLastReceived) .&& concreteAmountsSend,
@@ -218,12 +254,12 @@
 			)
 		concreteAmounts = abs.(concreteAmounts)
 		ret = CellAddressAccumulation(
+				safe_sum(tmpIndexes.recentH3Sending),
 				safe_sum(tmpIndexes.recentD3Sending),
-				safe_sum(tmpIndexes.wakeupD1Sending),
-				safe_sum(tmpIndexes.wakeupD3Sending),
+				safe_sum(tmpIndexes.wakeupH3Sending),
+				safe_sum(tmpIndexes.recentH3Buying),
 				safe_sum(tmpIndexes.recentD3Buying),
-				safe_sum(tmpIndexes.wakeupD1Buying),
-				safe_sum(tmpIndexes.wakeupD3Buying),
+				safe_sum(tmpIndexes.wakeupH3Buying),
 				safe_sum(tmpIndexes.contiD1Sending),
 				safe_sum(tmpIndexes.contiD3Sending),
 				safe_sum(tmpIndexes.contiW1Sending),
@@ -231,12 +267,12 @@
 				safe_sum(tmpIndexes.contiD3Buying),
 				safe_sum(tmpIndexes.contiW1Buying),
 				
+				reduce(+,concreteAmounts[tmpIndexes.recentH3Sending]),
 				reduce(+,concreteAmounts[tmpIndexes.recentD3Sending]),
-				reduce(+,concreteAmounts[tmpIndexes.wakeupD1Sending]),
-				reduce(+,concreteAmounts[tmpIndexes.wakeupD3Sending]),
+				reduce(+,concreteAmounts[tmpIndexes.wakeupH3Sending]),
+				reduce(+,concreteAmounts[tmpIndexes.recentH3Buying]),
 				reduce(+,concreteAmounts[tmpIndexes.recentD3Buying]),
-				reduce(+,concreteAmounts[tmpIndexes.wakeupD1Buying]),
-				reduce(+,concreteAmounts[tmpIndexes.wakeupD3Buying]),
+				reduce(+,concreteAmounts[tmpIndexes.wakeupH3Buying]),
 				reduce(+,concreteAmounts[tmpIndexes.contiD1Sending]),
 				reduce(+,concreteAmounts[tmpIndexes.contiD3Sending]),
 				reduce(+,concreteAmounts[tmpIndexes.contiW1Sending]),
@@ -351,12 +387,20 @@
 		for i in _indexes
 			coinPrice = GetBTCPriceWhen(cacheTs[][i])
 			boughtPrice = AddressService.GetFieldAveragePurchasePrice(cacheAddrId[][i])
-			if coinPrice > boughtPrice
+			if coinPrice >= boughtPrice
 				ret.numRealizedProfit += 1
-				ret.amountRealizedProfitBillion += Float64(coinPrice-boughtPrice) * abs(cacheAmount[][i]) / 1e9
+				ret.amountRealizedProfitMillion += Float64(coinPrice-boughtPrice) * abs(cacheAmount[][i]) / 1e6
 			else
 				ret.numRealizedLoss += 1
-				ret.amountRealizedLossBillion += Float64(boughtPrice-coinPrice) * abs(cacheAmount[][i]) / 1e9
+				ret.amountRealizedLossMillion += Float64(boughtPrice-coinPrice) * abs(cacheAmount[][i]) / 1e6
+			end
+			lastBoughtPrice = AddressService.GetFieldLastPurchasePrice(cacheAddrId[][i])
+			if coinPrice >= lastBoughtPrice
+				ret.numWinning += 1
+				ret.amountUsdtWonMillion += Float64(coinPrice-lastBoughtPrice) * abs(cacheAmount[][i]) / 1e6
+			else
+				ret.numLossing += 1
+				ret.amountUsdtLostMillion += Float64(lastBoughtPrice-coinPrice) * abs(cacheAmount[][i]) / 1e6
 			end
 		end
 		return ret
@@ -394,6 +438,23 @@
 				Statistics.mean(regularMomentum),
 			)
 		end
+	function CalcAddressAverage(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressAverage
+		concreteIndexes  = map(x->!x, cacheTagNew[])
+		indexesBuyer     = concreteIndexes .&& (cacheAmount[] .> 0.0)
+		indexesSeller    = concreteIndexes .&& (cacheAmount[] .< 0.0)
+		return CellAddressAverage(
+			AddressService.GetFieldRateWinning(indexesBuyer) |> Statistics.mean,
+			AddressService.GetFieldRateWinning(indexesSeller) |> Statistics.mean,
+			AddressService.GetFieldUsdtNetRealized(indexesBuyer) |> Statistics.mean,
+			AddressService.GetFieldUsdtNetRealized(indexesSeller) |> Statistics.mean,
+			AddressService.GetFieldUsdtNetUnrealized(indexesBuyer) |> Statistics.mean,
+			AddressService.GetFieldUsdtNetUnrealized(indexesSeller) |> Statistics.mean,
+			AddressService.GetFieldUsdtAmountWon(indexesBuyer) |> Statistics.mean,
+			AddressService.GetFieldUsdtAmountWon(indexesSeller) |> Statistics.mean,
+			AddressService.GetFieldUsdtAmountLost(indexesBuyer) |> Statistics.mean,
+			AddressService.GetFieldUsdtAmountLost(indexesSeller) |> Statistics.mean,
+			)
+		end
 	push!(Calculations, CalcCell(
 		CellAddressComparative, CalcAddressComparative))
 	push!(Calculations, CalcCell(
@@ -408,6 +469,8 @@
 		CellAddressUsdtDiff, CalcAddressUsdtDiff))
 	push!(Calculations, CalcCell(
 		CellAddressMomentum, CalcAddressMomentum))
+	push!(Calculations, CalcCell(
+		CellAddressAverage, CalcAddressAverage))
 
 	isdir("/tmp/julia-cache/") ? nothing : mkdir("/tmp/julia-cache/")
 
