@@ -224,6 +224,7 @@ function MergeBlock2AddressState(n::Int)::Nothing
 			end
 			AddressService.SetFieldDiffUsdtAmountLost(tmpId,
 				(AddressService.GetFieldLastPurchasePrice(tmpId) - tmpPrice) * tmpAmount
+			)
 		end
 		AddressService.SetFieldRateWinning(tmpId,
 			AddressService.GetFieldNumWinning(tmpId) / ( AddressService.GetFieldNumWinning(tmpId) + AddressService.GetFieldNumLossing(tmpId) )
