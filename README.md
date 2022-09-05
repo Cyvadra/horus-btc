@@ -1,7 +1,7 @@
 # horus
 
 ### Todos (version update):
-1. [ ] Update middleware-calc_addr_diff.jl for new fields.
+1. [x] Update middleware-calc_addr_diff.jl for new fields.
 3. [ ] Redefine and enrich feature fields.
 
 ### Todos:

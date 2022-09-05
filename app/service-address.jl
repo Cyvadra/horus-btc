@@ -26,6 +26,7 @@ mutable struct AddressStatistics
 	# calculated extra
 	UsdtNetRealized::Float64
 	UsdtNetUnrealized::Float64
+	# 5th,Sep. additional fields
 	NumWinning::Int32
 	NumLossing::Int32
 	UsdtAmountWon::Float64
