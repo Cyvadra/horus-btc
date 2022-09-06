@@ -98,7 +98,6 @@ PipelineLocks["synchronizing"] = false
 	function InitHistory(toDate::DateTime=DateTime(2019,1,1,0,0))::Nothing
 		baseTs    = dt2unix(toDate)
 		toBlock   = Timestamp2FirstBlockN(baseTs)
-		@info "Synchronizing from 0 to $toBlock"
 		tmpBlock  = TableTick.GetRow(1).Timestamp |> Timestamp2FirstBlockN
 		tmpPrice  = GetBTCPriceWhen(tmpBlock)
 		[ BlockPriceDict[i] = i * tmpPrice / toBlock for i in 1:tmpBlock ]; # overwrite dict in middleware-calc_addr_diff.jl
@@ -108,12 +107,10 @@ PipelineLocks["synchronizing"] = false
 			)
 			lastBlockN = GetLastProcessedTimestamp() |> Timestamp2LastBlockN |> x->x+1
 		end
-		for n in lastBlockN:toBlock
+		@info "Synchronizing from $lastBlockN to $toBlock"
+		@showprogress for n in lastBlockN:toBlock
 			MergeBlock2AddressState(n)
 			GlobalRuntime["LastDoneBlock"] = n
-			if rand() < 0.1
-				print("$n \t")
-			end
 		end
 		return nothing
 		end
