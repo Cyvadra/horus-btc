@@ -6,7 +6,6 @@ AddressStringDict = Dict{String,UInt32}()
 const NUM_NOT_EXIST = UInt32(0)
 const TAG_MAX = "maximum"
 AddressStringDict[TAG_MAX] = 1
-sizehint!(AddressStringDict, round(Int, 1.28e9))
 AddressStringLock = Threads.SpinLock()
 
 tmpCache = Dict{Bool, String}()
@@ -14,6 +13,19 @@ tmpCache = Dict{Bool, String}()
 f = open(fileAddressString, "r")
 tmpCache[true] = readline(f)
 prog = Progress(1013371292) # modify here
+
+for i in 1:1000 # initial loop for sizehint
+	s = split(tmpCache[true],'\t')
+	tmpVal = parse(UInt32, s[2])
+	if tmpVal > AddressStringDict[TAG_MAX]
+		AddressStringDict[TAG_MAX] = tmpVal
+	end
+	AddressStringDict[s[1]] = tmpVal
+	tmpCache[true] = readline(f)
+	next!(prog)
+	end
+sizehint!(AddressStringDict, round(Int, 1.28e9))
+
 while length(tmpCache[true])>0
 	s = split(tmpCache[true],'\t')
 	tmpVal = parse(UInt32, s[2])
