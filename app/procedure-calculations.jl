@@ -60,10 +60,10 @@
 	mutable struct CellAddressAccumulation
 		numRecentH3Sending::Int32
 		numRecentD3Sending::Int32
-		numWakeupH3Sending::Int32
+		numWakeupD3Sending::Int32
 		numRecentH3Buying::Int32
 		numRecentD3Buying::Int32
-		numWakeupH3Buying::Int32
+		numWakeupD3Buying::Int32
 		numContinuousD1Sending::Int32
 		numContinuousD3Sending::Int32
 		numContinuousW1Sending::Int32
@@ -72,10 +72,10 @@
 		numContinuousW1Buying::Int32
 		amountRecentH3Sending::Float32
 		amountRecentD3Sending::Float32
-		amountWakeupH3Sending::Float32
+		amountWakeupD3Sending::Float32
 		amountRecentH3Buying::Float32
 		amountRecentD3Buying::Float32
-		amountWakeupH3Buying::Float32
+		amountWakeupD3Buying::Float32
 		amountContinuousD1Sending::Float32
 		amountContinuousD3Sending::Float32
 		amountContinuousW1Sending::Float32
@@ -232,11 +232,11 @@
 		tmpIndexes = (
 			recentH3Sending = map(t->!iszero(t) && tsMid-t < 3seconds.Hour, concreteLastPayed),
 			recentD3Sending = map(t->!iszero(t) && 3seconds.Hour < tsMid-t < 3seconds.Day, concreteLastPayed),
-			wakeupH3Sending = map(t->!iszero(t) && tsMid-t > 3seconds.Hour, concreteLastPayed),
+			wakeupD3Sending = map(t->!iszero(t) && tsMid-t > 3seconds.Day, concreteLastPayed),
 
 			recentH3Buying = map(t->!iszero(t) && tsMid-t < 3seconds.Hour, concreteLastReceived),
 			recentD3Buying = map(t->!iszero(t) && 3seconds.Hour < tsMid-t < 3seconds.Day, concreteLastReceived),
-			wakeupH3Buying = map(t->tsMid-t > 3seconds.Hour, concreteLastReceived),
+			wakeupD3Buying = map(t->tsMid-t > 3seconds.Day, concreteLastReceived),
 
 			contiD1Sending = map(t->!iszero(t) && tsMax-t > seconds.Day, concreteLastReceived) .&& concreteAmountsSend,
 			contiD3Sending = map(t->!iszero(t) && tsMax-t > 3seconds.Day, concreteLastReceived) .&& concreteAmountsSend,
@@ -250,10 +250,10 @@
 		ret = CellAddressAccumulation(
 				safe_sum(tmpIndexes.recentH3Sending),
 				safe_sum(tmpIndexes.recentD3Sending),
-				safe_sum(tmpIndexes.wakeupH3Sending),
+				safe_sum(tmpIndexes.wakeupD3Sending),
 				safe_sum(tmpIndexes.recentH3Buying),
 				safe_sum(tmpIndexes.recentD3Buying),
-				safe_sum(tmpIndexes.wakeupH3Buying),
+				safe_sum(tmpIndexes.wakeupD3Buying),
 				safe_sum(tmpIndexes.contiD1Sending),
 				safe_sum(tmpIndexes.contiD3Sending),
 				safe_sum(tmpIndexes.contiW1Sending),
@@ -263,10 +263,10 @@
 				
 				reduce(+,concreteAmounts[tmpIndexes.recentH3Sending]),
 				reduce(+,concreteAmounts[tmpIndexes.recentD3Sending]),
-				reduce(+,concreteAmounts[tmpIndexes.wakeupH3Sending]),
+				reduce(+,concreteAmounts[tmpIndexes.wakeupD3Sending]),
 				reduce(+,concreteAmounts[tmpIndexes.recentH3Buying]),
 				reduce(+,concreteAmounts[tmpIndexes.recentD3Buying]),
-				reduce(+,concreteAmounts[tmpIndexes.wakeupH3Buying]),
+				reduce(+,concreteAmounts[tmpIndexes.wakeupD3Buying]),
 				reduce(+,concreteAmounts[tmpIndexes.contiD1Sending]),
 				reduce(+,concreteAmounts[tmpIndexes.contiD3Sending]),
 				reduce(+,concreteAmounts[tmpIndexes.contiW1Sending]),
