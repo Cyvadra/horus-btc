@@ -221,7 +221,7 @@
 	function CalcAddressAccumulation(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressAccumulation
 		tsMin = min( cacheTs[][1], cacheTs[][end] )
 		tsMax = max( cacheTs[][1], cacheTs[][end] )
-		tsMid = round(Int32, (tsMin+tsMax)/2)
+		tsMid = round(Int32, (0.0+tsMin+tsMax)/2)
 		concreteIndexes  = map(x->!x, cacheTagNew[])
 		ids = cacheAddrId[][concreteIndexes]
 		concreteLastPayed    = AddressService.GetFieldTimestampLastPayed(ids)
