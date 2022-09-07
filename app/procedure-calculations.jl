@@ -230,21 +230,21 @@
 		concreteAmountsSend  = concreteAmounts .< 0.0
 		concreteAmountsBuy   = concreteAmounts .> 0.0
 		tmpIndexes = (
-			recentH3Sending = map(t->tsMid-t < 3seconds.Hour, concreteLastPayed),
-			recentD3Sending = map(t->3seconds.Hour < tsMid-t < 3seconds.Day, concreteLastPayed),
-			wakeupH3Sending = map(t->tsMid-t > 3seconds.Hour, concreteLastPayed),
+			recentH3Sending = map(t->!iszero(t) && tsMid-t < 3seconds.Hour, concreteLastPayed),
+			recentD3Sending = map(t->!iszero(t) && 3seconds.Hour < tsMid-t < 3seconds.Day, concreteLastPayed),
+			wakeupH3Sending = map(t->!iszero(t) && tsMid-t > 3seconds.Hour, concreteLastPayed),
 
-			recentH3Buying = map(t->tsMid-t < 3seconds.Hour, concreteLastReceived),
-			recentD3Buying = map(t->3seconds.Hour < tsMid-t < 3seconds.Day, concreteLastReceived),
+			recentH3Buying = map(t->!iszero(t) && tsMid-t < 3seconds.Hour, concreteLastReceived),
+			recentD3Buying = map(t->!iszero(t) && 3seconds.Hour < tsMid-t < 3seconds.Day, concreteLastReceived),
 			wakeupH3Buying = map(t->tsMid-t > 3seconds.Hour, concreteLastReceived),
 
-			contiD1Sending = map(t->tsMax-t > seconds.Day, concreteLastReceived) .&& concreteAmountsSend,
-			contiD3Sending = map(t->tsMax-t > 3seconds.Day, concreteLastReceived) .&& concreteAmountsSend,
-			contiW1Sending = map(t->tsMax-t > 7seconds.Day, concreteLastReceived) .&& concreteAmountsSend,
+			contiD1Sending = map(t->!iszero(t) && tsMax-t > seconds.Day, concreteLastReceived) .&& concreteAmountsSend,
+			contiD3Sending = map(t->!iszero(t) && tsMax-t > 3seconds.Day, concreteLastReceived) .&& concreteAmountsSend,
+			contiW1Sending = map(t->!iszero(t) && tsMax-t > 7seconds.Day, concreteLastReceived) .&& concreteAmountsSend,
 
-			contiD1Buying  = map(t->tsMax-t >= seconds.Day, concreteLastPayed) .&& concreteAmountsBuy,
-			contiD3Buying  = map(t->tsMax-t > 3seconds.Day, concreteLastPayed) .&& concreteAmountsBuy,
-			contiW1Buying  = map(t->tsMax-t > 7seconds.Day, concreteLastPayed) .&& concreteAmountsBuy,
+			contiD1Buying  = map(t->!iszero(t) && tsMax-t >= seconds.Day, concreteLastPayed) .&& concreteAmountsBuy,
+			contiD3Buying  = map(t->!iszero(t) && tsMax-t > 3seconds.Day, concreteLastPayed) .&& concreteAmountsBuy,
+			contiW1Buying  = map(t->!iszero(t) && tsMax-t > 7seconds.Day, concreteLastPayed) .&& concreteAmountsBuy,
 			)
 		concreteAmounts = abs.(concreteAmounts)
 		ret = CellAddressAccumulation(
