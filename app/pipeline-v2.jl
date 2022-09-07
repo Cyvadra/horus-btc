@@ -95,7 +95,7 @@ PipelineLocks["synchronizing"] = false
 		end
 
 # for initialization
-	function InitHistory(toDate::DateTime=DateTime(2019,1,1,0,0))::Nothing
+	function InitHistory(toDate::DateTime=DateTime(2018,1,1,0,0))::Nothing
 		baseTs    = dt2unix(toDate)
 		toBlock   = Timestamp2FirstBlockN(baseTs)
 		tmpBlock  = TableTick.GetRow(1).Timestamp |> Timestamp2FirstBlockN
