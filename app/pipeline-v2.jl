@@ -95,7 +95,7 @@ PipelineLocks["synchronizing"] = false
 		end
 
 # for initialization
-	function InitHistory(toDate::DateTime=DateTime(2018,1,1,0,0))::Nothing
+	function InitHistory(toDate::DateTime=DateTime(2017,12,24,20,0))::Nothing
 		baseTs    = dt2unix(toDate)
 		toBlock   = Timestamp2FirstBlockN(baseTs)
 		tmpBlock  = TableTick.GetRow(1).Timestamp |> Timestamp2FirstBlockN
@@ -130,7 +130,7 @@ PipelineLocks["synchronizing"] = false
 		AddressService.SaveCopy("/mnt/data/AddressServiceDB-backup/")
 		AddressService.Close()
 		TableResults.Close()
-		AddressService.Open(false)
+		AddressService.Open(true)
 		TableResults.Open(true)
 		@info "$(now()) Synchronizing to present..."
 		SyncResults()
