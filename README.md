@@ -1,16 +1,17 @@
 # horus
 
-### Todos (version update):
-1. [x] Update middleware-calc_addr_diff.jl for new fields.
-3. [x] Redefine and enrich feature fields.
+### Issues:
+
 
 ### Todos:
 
 ### Pending:
 1. [ ] Integrate real-time network.
-11. [x] Separate AddressService?
+11. [ ] Separate AddressService?
 
 ### Done:
+1. [x] Update middleware-calc_addr_diff.jl for new fields.
+3. [x] Redefine and enrich feature fields.
 1. [x] Extract service-block_timestamp, use shared storage.
 1. [x] Init backtest framework.
 3. [x] Test simplest strategy.
@@ -25,8 +26,6 @@
 5. [x] Auto-save address2id service.
 7. [x] Feature: Different alignment of timestamp, so as to generate more data (after version update)
 1. [x] Update calculation service.
-
-### Issues:
 
 ### Cancelled:
 3. [ ] Train latest model.
