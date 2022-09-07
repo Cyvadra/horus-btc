@@ -59,6 +59,8 @@ using Statistics
 	safe_log(x)   = x > 0 ? log(1.0+x) : -log(1.0-x)
 	safe_log2(x)  = x > 0 ? log2(1.0+x) : -log2(1.0-x)
 	safe_log10(x) = x > 0 ? log10(1.0+x) : -log10(1.0-x)
+	safe_sum(arr) = isempty(arr) ? 0 : sum(arr)
+	safe_mean(arr) = isempty(arr) ? 0 : Statistics.mean(arr)
 	function normalise(v::Vector, rng::UnitRange)::Vector
 		v = deepcopy(v) .+ 0.00
 		s = sort(v)
@@ -84,7 +86,10 @@ using Statistics
 		return sort(v)[ceil(Int,length(v)*0.05)]
 		end
 	function getPercent(v::Vector, percentage::Real)
-		return v[round(Int,length(v)*percentage)]
+		if length(v) == 0
+			return 0.0
+		end
+		return v[ceil(Int,length(v)*percentage)]
 		end
 
 

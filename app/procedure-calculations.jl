@@ -10,12 +10,6 @@
 		Week  = 3600 * 24 * 7,
 		Month = 3600 * 24 * 30,
 		)
-	function safe_sum(arr)
-		if isempty(arr)
-			return 0
-		end
-		return sum(arr)
-		end
 
 	mutable struct CalcCell
 		resultType::DataType
@@ -216,11 +210,11 @@
 				getPercent(sortedAmountReceived, 0.25),
 				getPercent(sortedAmountReceived, 0.5),
 				getPercent(sortedAmountReceived, 0.75),
-				Statistics.mean(sortedAmountReceived),
+				safe_mean(sortedAmountReceived),
 				getPercent(sortedAmountSent, 0.25),
 				getPercent(sortedAmountSent, 0.5),
 				getPercent(sortedAmountSent, 0.75),
-				Statistics.mean(sortedAmountSent),
+				safe_mean(sortedAmountSent),
 			)
 		return ret
 		end
@@ -431,11 +425,11 @@
 		# return
 		return CellAddressMomentum(
 				sum(supplierMomentum),
-				Statistics.mean(supplierMomentum),
+				safe_mean(supplierMomentum),
 				sum(buyerMomentum),
-				Statistics.mean(supplierMomentum),
+				safe_mean(supplierMomentum),
 				sum(regularMomentum),
-				Statistics.mean(regularMomentum),
+				safe_mean(regularMomentum),
 			)
 		end
 	function CalcAddressAverage(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressAverage
@@ -443,16 +437,16 @@
 		indexesBuyer     = concreteIndexes .&& (cacheAmount[] .> 0.0)
 		indexesSeller    = concreteIndexes .&& (cacheAmount[] .< 0.0)
 		return CellAddressAverage(
-			AddressService.GetFieldRateWinning(indexesBuyer) |> Statistics.mean,
-			AddressService.GetFieldRateWinning(indexesSeller) |> Statistics.mean,
-			AddressService.GetFieldUsdtNetRealized(indexesBuyer) |> Statistics.mean,
-			AddressService.GetFieldUsdtNetRealized(indexesSeller) |> Statistics.mean,
-			AddressService.GetFieldUsdtNetUnrealized(indexesBuyer) |> Statistics.mean,
-			AddressService.GetFieldUsdtNetUnrealized(indexesSeller) |> Statistics.mean,
-			AddressService.GetFieldUsdtAmountWon(indexesBuyer) |> Statistics.mean,
-			AddressService.GetFieldUsdtAmountWon(indexesSeller) |> Statistics.mean,
-			AddressService.GetFieldUsdtAmountLost(indexesBuyer) |> Statistics.mean,
-			AddressService.GetFieldUsdtAmountLost(indexesSeller) |> Statistics.mean,
+			AddressService.GetFieldRateWinning(cacheAddrId[][indexesBuyer]) |> safe_mean,
+			AddressService.GetFieldRateWinning(cacheAddrId[][indexesSeller]) |> safe_mean,
+			AddressService.GetFieldUsdtNetRealized(cacheAddrId[][indexesBuyer]) |> safe_mean,
+			AddressService.GetFieldUsdtNetRealized(cacheAddrId[][indexesSeller]) |> safe_mean,
+			AddressService.GetFieldUsdtNetUnrealized(cacheAddrId[][indexesBuyer]) |> safe_mean,
+			AddressService.GetFieldUsdtNetUnrealized(cacheAddrId[][indexesSeller]) |> safe_mean,
+			AddressService.GetFieldUsdtAmountWon(cacheAddrId[][indexesBuyer]) |> safe_mean,
+			AddressService.GetFieldUsdtAmountWon(cacheAddrId[][indexesSeller]) |> safe_mean,
+			AddressService.GetFieldUsdtAmountLost(cacheAddrId[][indexesBuyer]) |> safe_mean,
+			AddressService.GetFieldUsdtAmountLost(cacheAddrId[][indexesSeller]) |> safe_mean,
 			)
 		end
 	push!(Calculations, CalcCell(
