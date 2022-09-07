@@ -53,6 +53,11 @@ using Statistics
 
 	function showme()
 		println(json(ans,2))
+		return nothing
+		end
+	function showme(anything)
+		println(json(anything,2))
+		return nothing
 		end
 
 # Statistics
