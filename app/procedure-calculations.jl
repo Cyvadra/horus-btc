@@ -424,11 +424,11 @@
 		regularMomentum = regularGaps .* cacheAmount[][regularIndexes]
 		# return
 		return CellAddressMomentum(
-				sum(supplierMomentum),
+				safe_sum(supplierMomentum),
 				safe_mean(supplierMomentum),
-				sum(buyerMomentum),
+				safe_sum(buyerMomentum),
 				safe_mean(supplierMomentum),
-				sum(regularMomentum),
+				safe_sum(regularMomentum),
 				safe_mean(regularMomentum),
 			)
 		end
