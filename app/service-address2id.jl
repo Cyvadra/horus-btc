@@ -41,10 +41,11 @@ function SetID(addr::AbstractString, n::UInt32)::Nothing
 		AddressHashDict[U32_TAG_MAX] = n
 		unlock(AddressIdLock)
 	end
+	WriteAddressLine(addr, n)
 	return nothing
 	end
 
-fileAddressLog = open(logAddressString, "w")
+fileAddressLog = open(logAddressString, "w+")
 function WriteAddressLine(addr::AbstractString, v::UInt32)::Nothing
 	write(fileAddressLog, "$addr\t$v\n")
 	return nothing
