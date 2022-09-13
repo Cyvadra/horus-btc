@@ -1,7 +1,7 @@
 include("./utils.jl");
 include("./config.jl");
 include("./service-address.jl");
-include("./service-address2id.traditional.jl");
+include("./service-address2id.jl");
 include("./service-FinanceDB.jl");
 include("./service-mongo.jl");
 include("./service-block_timestamp.jl");
