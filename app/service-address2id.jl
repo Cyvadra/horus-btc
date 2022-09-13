@@ -8,37 +8,36 @@ using CRC
 @info "Press Enter to continue."
 readline();
 const NUM_NOT_EXIST = UInt32(0)
-AddressHashList = fill(NUM_NOT_EXIST, typemax(UInt64))
-AddressMaxId   = UInt32(17)
-AddressDupLock = Threads.SpinLock()
+AddressHashDict = Dict{UInt64, UInt32}()
+sizehint!(AddressHashDict, round(Int, 1.28e9))
+AddressMaxId    = UInt32(17)
+AddressIdLock  = Threads.SpinLock()
 
 c64 = CRC.crc(CRC_64)
 
 function ReadID(addr::AbstractString)::UInt32
-	return AddressHashList[c64(addr)]
+	return get(AddressHashDict, c64(addr), NUM_NOT_EXIST)
 	end
 
 function GenerateID(addr::AbstractString)::UInt32
 	tmpCRC = c64(addr)
-	tmpN = AddressHashList[tmpCRC]
-	if tmpN == NUM_NOT_EXIST
-		lock(AddressDupLock)
-		n = AddressMaxId + UInt32(1)
-		AddressHashList[tmpCRC] = n
-		unlock(AddressDupLock)
-		WriteAddressLine(addr, n)
-		return n
-	else
-		return tmpN
+	if haskey(AddressHashDict, tmpCRC)
+		return AddressHashDict[tmpCRC]
 	end
+	lock(AddressIdLock)
+	n = AddressMaxId + UInt32(1)
+	AddressHashDict[tmpCRC] = n
+	unlock(AddressIdLock)
+	WriteAddressLine(addr, n)
+	return n
 	end
 
 function SetID(addr::AbstractString, n::UInt32)::Nothing
-	AddressHashList[c64(addr)] = n
+	AddressHashDict[c64(addr)] = n
 	if n > AddressMaxId
-		lock(AddressDupLock)
+		lock(AddressIdLock)
 		AddressMaxId = n
-		unlock(AddressDupLock)
+		unlock(AddressIdLock)
 	end
 	return nothing
 	end
