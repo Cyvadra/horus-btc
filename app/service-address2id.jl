@@ -28,6 +28,7 @@ function GenerateID(addr::AbstractString)::UInt32
 	lock(AddressIdLock)
 	n = AddressHashDict[U32_TAG_MAX] + UInt32(1)
 	AddressHashDict[tmpCRC] = n
+	AddressHashDict[U32_TAG_MAX] = n
 	unlock(AddressIdLock)
 	WriteAddressLine(addr, n)
 	return n
