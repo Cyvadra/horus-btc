@@ -33,6 +33,15 @@ function GenerateID(addr::AbstractString)::UInt32
 	end
 	end
 
+function SetID(addr::AbstractString, n::UInt32)::Nothing
+	AddressHashList[c64(addr)] = n
+	if n > AddressMaxId
+		lock(AddressDupLock)
+		AddressMaxId = n
+		unlock(AddressDupLock)
+	end
+	return nothing
+	end
 
 fileAddressLog = open(logAddressString, "w")
 function WriteAddressLine(addr::AbstractString, v::UInt32)::Nothing
