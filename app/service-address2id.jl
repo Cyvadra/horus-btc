@@ -22,10 +22,11 @@ function ReadID(addr::AbstractString)::UInt32
 
 function GenerateID(addr::AbstractString)::UInt32
 	tmpCRC = c64(addr)
+	lock(AddressIdLock)
 	if haskey(AddressHashDict, tmpCRC)
+		unlock(AddressIdLock)
 		return AddressHashDict[tmpCRC]
 	end
-	lock(AddressIdLock)
 	n = AddressHashDict[U32_TAG_MAX] + UInt32(1)
 	AddressHashDict[tmpCRC] = n
 	AddressHashDict[U32_TAG_MAX] = n
