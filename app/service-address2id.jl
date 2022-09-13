@@ -9,8 +9,9 @@ using CRC
 readline();
 const NUM_NOT_EXIST = UInt32(0)
 AddressHashDict = Dict{UInt64, UInt32}()
+U32_TAG_MAX     = typemax(UInt32)
+AddressHashDict[U32_TAG_MAX] = UInt32(17)
 sizehint!(AddressHashDict, round(Int, 1.28e9))
-AddressMaxId    = UInt32(17)
 AddressIdLock  = Threads.SpinLock()
 
 c64 = CRC.crc(CRC_64)
@@ -25,7 +26,7 @@ function GenerateID(addr::AbstractString)::UInt32
 		return AddressHashDict[tmpCRC]
 	end
 	lock(AddressIdLock)
-	n = AddressMaxId + UInt32(1)
+	n = AddressHashDict[U32_TAG_MAX] + UInt32(1)
 	AddressHashDict[tmpCRC] = n
 	unlock(AddressIdLock)
 	WriteAddressLine(addr, n)
@@ -34,9 +35,9 @@ function GenerateID(addr::AbstractString)::UInt32
 
 function SetID(addr::AbstractString, n::UInt32)::Nothing
 	AddressHashDict[c64(addr)] = n
-	if n > AddressMaxId
+	if n > AddressHashDict[U32_TAG_MAX]
 		lock(AddressIdLock)
-		AddressMaxId = n
+		AddressHashDict[U32_TAG_MAX] = n
 		unlock(AddressIdLock)
 	end
 	return nothing
