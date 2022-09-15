@@ -70,7 +70,7 @@ function GetBTCPriceWhen(ts::Union{Vector,UnitRange})::Vector{Float32}
 
 function syncBitcoin()::Bool
 	# get derivative
-	prevTs = TableTick.Findfirst(x->iszero(x), :Timestamp) |> x->x-1 |> TableTick.GetFieldTimestamp
+	prevTs = TableTick.Findfirst(iszero, :Timestamp) |> x->x-1 |> TableTick.GetFieldTimestamp
 	tmpN = (round(Int,time()) - round(Int,time()) % 60) - prevTs
 	tmpN = ceil(Int, tmpN / 60)
 	tmpN = min(tmpN, 1000)
@@ -111,15 +111,15 @@ function syncBitcoin()::Bool
 		)
 		prevTs = currentTs
 	end
-	# sysTimestamp = round(Int,
-	# 	datetime2unix(
-	# 		now() - Hour(8) - Minute(30)
-	# 	)
-	# )
-	# if sysTimestamp > prevTs
-	# 	sleep(1)
-	# 	return syncBitcoin()
-	# end
+	sysTimestamp = round(Int,
+		datetime2unix(
+			now() - Hour(8) - Minute(30)
+		)
+	)
+	if sysTimestamp > prevTs
+		sleep(1)
+		return syncBitcoin()
+	end
 	return true
 	end
 
