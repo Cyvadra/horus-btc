@@ -10,8 +10,12 @@ readline();
 const NUM_NOT_EXIST = UInt32(0)
 AddressHashDict = Dict{UInt64, UInt32}()
 U32_TAG_MAX     = typemax(UInt32)
-AddressHashDict[U32_TAG_MAX] = UInt32(17)
-sizehint!(AddressHashDict, round(Int, 1.28e9))
+if isfile(jldAddressIdFile)
+	OpenAddressIDs(jldAddressIdFile)
+else
+	AddressHashDict[U32_TAG_MAX] = UInt32(17)
+	sizehint!(AddressHashDict, round(Int, 1.28e9))
+end
 AddressIdLock  = Threads.SpinLock()
 
 c64 = CRC.crc(CRC_64)
