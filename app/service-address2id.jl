@@ -1,6 +1,6 @@
 
 using ProgressMeter
-using Dates
+using Dates, JLD2
 using CRC
 
 @info "Please mannually drop caches for better memory performance!"
@@ -46,7 +46,19 @@ function SetID(addr::AbstractString, n::UInt32)::Nothing
 	return nothing
 	end
 
-fileAddressLog = open(logAddressString, "w+")
+function SaveAddressIDs(jldFilePath::AbstractString=jldAddressIdFile)::Nothing
+	JLD2.save(jldFilePath, "AddressHashDict", AddressHashDict)
+	return nothing
+	end
+function OpenAddressIDs(jldFilePath::AbstractString=jldAddressIdFile)::Nothing
+	tmpRes = JLD2.load(jldFilePath)
+	global AddressHashDict
+	AddressHashDict = tmpRes[collect(keys(tmpRet))[1]]
+	sizehint!(AddressHashDict, round(Int, 1.28e9))
+	return nothing
+	end
+
+fileAddressLog = open(logAddressString, "a+")
 function WriteAddressLine(addr::AbstractString, v::UInt32)::Nothing
 	write(fileAddressLog, "$addr\t$v\n")
 	return nothing
