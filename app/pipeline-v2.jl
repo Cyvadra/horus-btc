@@ -132,6 +132,7 @@ PipelineLocks["synchronizing"] = false
 		TableResults.Close()
 		AddressService.Open(true)
 		TableResults.Open(true)
+		GlobalRuntime["LastDoneBlock"] = GetLastProcessedTimestamp() |> Timestamp2LastBlockN
 		@info "$(now()) Synchronizing to present..."
 		SyncResults()
 		@info "$(now()) Pulling up service..."
