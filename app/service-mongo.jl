@@ -105,7 +105,7 @@ function GetBlockCoins(height::Int)::Vector{Mongoc.BSON} # use with caution, may
 			"\$or": [ {"mintHeight":$height}, {"spentHeight":$height} ]
 			}""")
 		) )
-	Random.shuffle!(shuffleRng, retList)
+	# Random.shuffle!(shuffleRng, retList)
 	return retList
 	end
 function GetBlockCoinsInRange(fromBlock::Int, toBlock::Int)::Vector{Mongoc.BSON} # [fromBlock, toBlock]
@@ -121,7 +121,7 @@ function GetBlockCoinsInRange(fromBlock::Int, toBlock::Int)::Vector{Mongoc.BSON}
 			]
 			}""")
 		) )
-	Random.shuffle!(shuffleRng, retList)
+	# Random.shuffle!(shuffleRng, retList)
 	return retList
 	end
 
