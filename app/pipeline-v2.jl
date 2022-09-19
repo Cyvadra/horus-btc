@@ -144,6 +144,20 @@ PipelineLocks["synchronizing"] = false
 		SyncResults()
 		@info "$(now()) Pulling up service..."
 		end
+	function saveWorkspace()
+		@assert Timestamp2LastBlockN(GetLastProcessedTimestamp()) == GetLastResultsID()
+		tmpId = GetLastResultsID()
+		tmpFolder = "/media/jason89757/hdd/$tmpId/"
+		ispath(tmpFolder) ? nothing : mkdir(tmpFolder)
+		AddressService.SaveCopy(tmpFolder*"AddressServiceDB-v2/")
+		TableResults.SaveCopy(tmpFolder*"results-flexible/")
+		@info "Writing address2id jld file..."
+		SaveAddressIDs(tmpFolder*"addr.hashdict.jld2")
+		@info "Copying address log file..."
+		flush(fileAddressLog)
+		cp(logAddressString, tmpFolder*"addr.runtime.log")
+		@info "Done."
+		end
 
 	AddressService.Open(true)
 	TableResults.Open(true)
