@@ -130,6 +130,15 @@ function removePolars!(v::Vector)::Vector
 	return v
 	end
 
+function plotfit(v::Vector, rng)::Vector
+	s = sort(v)
+	vMin, vMax = s[1], s[end]
+	vBias = vMax - vMin
+	v .-= vMin
+	v ./= vBias / (rng[end] - rng[1])
+	v .+= rng[1]
+	return v
+	end
 
 
 
