@@ -162,7 +162,7 @@ PipelineLocks["synchronizing"] = false
 	AddressService.Open(true)
 	TableResults.Open(true)
 	@assert Timestamp2LastBlockN(GetLastProcessedTimestamp()) == GetLastResultsID()
-	GlobalRuntime["LastDoneBlock"] = GetLastResultsID()
+	GlobalRuntime["LastDoneBlock"] = Timestamp2LastBlockN(GetLastProcessedTimestamp())
 	SyncResults()
 
 # listener
