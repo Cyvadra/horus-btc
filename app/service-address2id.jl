@@ -59,7 +59,6 @@ function SetID(addr::AbstractString, n::UInt32)::Nothing
 		AddressHashDict[U32_TAG_MAX] = n
 		unlock(AddressIdLock)
 	end
-	WriteAddressLine(addr, n)
 	return nothing
 	end
 
