@@ -102,6 +102,21 @@ function GetAddressCoins(addr::String)::Vector{Mongoc.BSON}
 		)
 	)
 	end
+function GetAddressBalances(addr::String)
+	tmpCoins = GetAddressCoins(addr)
+	tmpRng = tmpCoins[1]["mintHeight"]:findmax( map(x->x["spentHeight"], tmpCoins) )[1]
+	retList = zeros(length(tmpRng))
+	for i in 1:length(tmpCoins)
+		startNum = tmpCoins[i]["mintHeight"]-tmpRng[1]+1
+		endNum = tmpCoins[i]["spentHeight"]-tmpRng[1]+1
+		if endNum < 1
+			endNum = length(retList)
+		end
+		retList[startNum:endNum] .+= tmpCoins[i]["value"]
+	end
+	retList = bitcoreInt2Float64.(retList)
+	return collect(tmpRng), retList
+	end
 function GetBlockCoins(height::Int)::Vector{Mongoc.BSON} # use with caution, may cause duplicate values
 	retList = collect( Mongoc.find(
 		MongoCollection("coins"),
