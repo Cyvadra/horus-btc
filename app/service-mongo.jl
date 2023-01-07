@@ -95,7 +95,12 @@ function GetAddressCoins(addr::String)::Vector{Mongoc.BSON}
 	tmpBson = Mongoc.BSON("""{
 		"chain":"BTC", "network":"mainnet", "address":"$addr"
 		}""")
-	collect(Mongoc.find(db["coins"], tmpBson))
+	filter(x->x["mintHeight"]>0,
+		sort!(
+			collect(Mongoc.find(db["coins"], tmpBson)),
+			by=x->x["mintHeight"]
+		)
+	)
 	end
 function GetBlockCoins(height::Int)::Vector{Mongoc.BSON} # use with caution, may cause duplicate values
 	retList = collect( Mongoc.find(
