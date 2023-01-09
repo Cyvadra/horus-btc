@@ -20,8 +20,8 @@ AddressBalanceList = zeros(Float64, round(Int, 1.28e9))
 
 # define procedure
 function locateChunk(v::Float64)
-	p = findfirst(x->x>=v, BALANCE_CHUNKS)
-	isnothing(p) ? length(BALANCE_CHUNKS) : p
+	# actually +1
+	v < BALANCE_CHUNKS[end] ? findfirst(x->x>=v, BALANCE_CHUNKS) : length(BALANCE_CHUNKS)
 	end
 
 @showprogress for n in 1:771111
