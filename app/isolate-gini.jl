@@ -66,3 +66,11 @@ function gini(wagedistarray::Matrix)
 		)
 	return 1 - Gwages/Swages[end]
 end
+
+function labGiniBase(n)
+	a = reduce(+, BalanceCounterMatrix[1:n,:]; dims=1)[:]
+	b = reduce(+, BalanceAmountMatrix[1:n,:]; dims=1)[:]
+	a = a ./ -a[1]
+	gini( hcat(b[3:end], a[3:end]) )
+	end
+
