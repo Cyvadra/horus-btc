@@ -49,4 +49,12 @@ function locateChunk(v::Float64)
 	BalanceAmountMatrix[n, tmpChunks] .+= AddressBalanceList[a]
 	end
 
-
+function gini(wagedistarray::Matrix)
+	Swages = cumsum(wagedistarray[:,1].*wagedistarray[:,2])
+	Gwages = Swages[1]*wagedistarray[1,2] +
+		sum(
+			wagedistarray[2:end,2] .* 
+			(Swages[2:end]+Swages[1:end-1])
+		)
+	return 1 - Gwages/Swages[end]
+end
