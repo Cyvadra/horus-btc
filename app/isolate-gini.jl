@@ -24,29 +24,37 @@ function locateChunk(v::Float64)
 	isnothing(p) ? length(BALANCE_CHUNKS) : p
 	end
 
-@showprogress for n in 1:550000
+@showprogress for n in 1:771111
 	# mint
 	currentCoins = GetCoinsByMintHeight(n)
 	a = ReadID.(map(x->x["address"], currentCoins))
 	b = bitcoreInt2Float64.(map(x->x["value"], currentCoins))
 	tmpChunks = locateChunk.(AddressBalanceList[a])
-	BalanceCounterMatrix[n, tmpChunks] .-= 1
-	BalanceAmountMatrix[n, tmpChunks] .-= AddressBalanceList[a]
+	for i in 1:length(tmpChunks)
+		BalanceCounterMatrix[n, tmpChunks[i]] -= 1
+		BalanceAmountMatrix[n, tmpChunks[i]] -= AddressBalanceList[a[i]]
+	end
 	AddressBalanceList[a] .+= b
 	tmpChunks = locateChunk.(AddressBalanceList[a])
-	BalanceCounterMatrix[n, tmpChunks] .+= 1
-	BalanceAmountMatrix[n, tmpChunks] .+= AddressBalanceList[a]
+	for i in 1:length(tmpChunks)
+		BalanceCounterMatrix[n, tmpChunks[i]] += 1
+		BalanceAmountMatrix[n, tmpChunks[i]] += AddressBalanceList[a[i]]
+	end
 	# spent
 	currentCoins = GetCoinsBySpentHeight(n)
 	a = ReadID.(map(x->x["address"], currentCoins))
 	b = bitcoreInt2Float64.(map(x->x["value"], currentCoins))
 	tmpChunks = locateChunk.(AddressBalanceList[a])
-	BalanceCounterMatrix[n, tmpChunks] .-= 1
-	BalanceAmountMatrix[n, tmpChunks] .-= AddressBalanceList[a]
+	for i in 1:length(tmpChunks)
+		BalanceCounterMatrix[n, tmpChunks[i]] -= 1
+		BalanceAmountMatrix[n, tmpChunks[i]] -= AddressBalanceList[a[i]]
+	end
 	AddressBalanceList[a] .-= b # difference here
 	tmpChunks = locateChunk.(AddressBalanceList[a])
-	BalanceCounterMatrix[n, tmpChunks] .+= 1
-	BalanceAmountMatrix[n, tmpChunks] .+= AddressBalanceList[a]
+	for i in 1:length(tmpChunks)
+		BalanceCounterMatrix[n, tmpChunks[i]] += 1
+		BalanceAmountMatrix[n, tmpChunks[i]] += AddressBalanceList[a[i]]
+	end
 	end
 
 function gini(wagedistarray::Matrix)
