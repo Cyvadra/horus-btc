@@ -12,8 +12,8 @@ BALANCE_CHUNKS = JLD2.load("/mnt/data/bitcore/balance.chunks.jld2")["BALANCE_CHU
 =#
 
 # define results
-BalanceCounterMatrix = Matrix{Int32}(undef, 780000, 10000);
-BalanceAmountMatrix = Matrix{Float64}(undef, 780000, 10000);
+BalanceCounterMatrix = Matrix{Int32}(undef, 780000, length(BALANCE_CHUNKS));
+BalanceAmountMatrix = Matrix{Float64}(undef, 780000, length(BALANCE_CHUNKS));
 BalanceCounterMatrix .= 0
 BalanceAmountMatrix .= 0.0
 AddressBalanceList = zeros(Float64, round(Int, 1.28e9))
@@ -24,7 +24,7 @@ function locateChunk(v::Float64)
 	v < BALANCE_CHUNKS[end] ? findfirst(x->x>=v, BALANCE_CHUNKS) : length(BALANCE_CHUNKS)
 	end
 
-@showprogress for n in 1:771111
+@showprogress for n in 1:771122
 	# mint
 	currentCoins = GetCoinsByMintHeight(n)
 	a = ReadID.(map(x->x["address"], currentCoins))
