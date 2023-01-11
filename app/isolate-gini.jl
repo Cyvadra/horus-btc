@@ -76,12 +76,14 @@ function labGiniBase(n)
 
 a = reduce(+, BalanceCounterMatrix[1:1,:]; dims=1)[:];
 b = reduce(+, BalanceAmountMatrix[1:1,:]; dims=1)[:];
-retList = zeros(Float64, size(BalanceAmountMatrix)[1]);
-@showprogress for i in 2:220000
+retListGini = zeros(Float64, size(BalanceAmountMatrix)[1]);
+retListMean = zeros(Float64, size(BalanceAmountMatrix)[1]);
+@showprogress for i in 2:770949
 	global a
 	global b
 	a = a .+ BalanceCounterMatrix[i,:]
 	b = b .+ BalanceAmountMatrix[i,:]
-	retList[i] = gini( hcat(b[2:end], a[2:end] ./ -a[1] ) )
+	retListGini[i] = gini( hcat(b[2:end-3600], a[2:end-3600] ./ (-a[1]-sum(a[end-3600:end])) ) )
+	retListMean[i] = sum(b[2:end]) / -a[1]
 	end
 
