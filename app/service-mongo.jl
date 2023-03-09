@@ -180,7 +180,6 @@ function ProcessBlockN(height::Int)::Vector{cacheTx}
 				timeStamp
 				))
 		end
-		Random.shuffle!(shuffleRng, tmpList)
 		append!(retList, tmpList)
 		empty!(tmpList)
 	end
