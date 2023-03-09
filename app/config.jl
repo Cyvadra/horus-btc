@@ -10,7 +10,7 @@ jldAddressIdFile  = "$rootPath/bitcore/addr.hashdict.jld2"
 folderMarket      = "$rootPath/BTC_USDT_1m/"
 folderResults     = "$rootPath/results-flexible/"
 folderBlockPairs  = "$rootPath/block-timestamp/"
-
+folderTransactions= "$rootPath/transactions-btc/"
 
 
 
