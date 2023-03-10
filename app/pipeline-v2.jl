@@ -147,7 +147,7 @@ PipelineLocks["synchronizing"] = false
 	function saveWorkspace()
 		@assert Timestamp2LastBlockN(GetLastProcessedTimestamp()) == GetLastResultsID()
 		tmpId = GetLastResultsID()
-		tmpFolder = "/media/jason89757/hdd/$tmpId/"
+		tmpFolder = "/mnt/hdd/$tmpId/"
 		ispath(tmpFolder) ? nothing : mkdir(tmpFolder)
 		AddressService.SaveCopy(tmpFolder*"AddressServiceDB-v2/")
 		TableResults.SaveCopy(tmpFolder*"results-flexible/")
