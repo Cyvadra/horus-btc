@@ -36,6 +36,9 @@ end
 function ReadID(addr::AbstractString)::UInt32
 	return get(AddressHashDict, c64(addr), NUM_NOT_EXIST)
 	end
+function HardReadID(addr::AbstractString)::UInt32
+	return AddressHashDict[c64(addr)]
+	end
 
 function GenerateID(addr::AbstractString)::UInt32
 	tmpCRC = c64(addr)
