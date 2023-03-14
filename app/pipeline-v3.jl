@@ -5,6 +5,7 @@ include("./service-address2id.jl");
 include("./service-FinanceDB.jl");
 include("./service-mongo.jl");
 include("./service-block_timestamp.jl");
+include("./service-transactions.jl");
 include("./middleware-calc_addr_diff.jl");
 include("./procedure-calculations.jl");
 include("./middleware-results-flexible.jl");
@@ -33,6 +34,70 @@ PipelineLocks["synchronizing"] = false
 		println()
 		return latestBlockHeight
 		end
+
+# Digest transactions
+	tmpBalanceDict
+	sizehint!(tmpBalanceDict, round(Int,1.28e9))
+	tmpBalanceDiffDict = Dict{UInt32,Float64}()
+	function DigestTransactionsOnBlock(n)
+		@assert iszero( TableTx.GetFieldBlockNum( GetSeqBlockCoinsRange(n-1)[end]+1 ) )
+		timeStamp = UInt32(round(Int, datetime2unix(
+			GetBlockInfo(height)["timeNormalized"]
+			)))
+		tmpCoins = GetBlockCoins(height)
+		tmpList  = Vector{cacheTx}()
+		@assert length(tmpBalanceDiffDict) == 0
+		# proceed block coins
+			inputs  = filter(x->x["spentHeight"]==height, tmpCoins)
+			outputs = filter(x->x["mintHeight"]==height, tmpCoins)
+			addrs   = unique(vcat(
+				map(x->x["address"], inputs),
+				map(x->x["address"], outputs),
+				))
+			sizehint!(tmpBalanceDiffDict, length(addrs))
+			for addr in addrs
+				if !haskey(tmpBalanceDict, GenerateID(addr))
+					tmpBalanceDict[HardReadID(addr)] = 0.0
+				end
+				tmpBalanceDiffDict[HardReadID(addr)] = 0.0
+			end
+			tmpAmount = 0.0
+			for c in inputs
+				tmpAmount = -bitcoreInt2Float64(c["value"])
+				push!(tmpList, cacheTx(
+					HardReadID(c["address"]),
+					height,
+					tmpBalanceDict[HardReadID(c["address"])],
+					0.0,
+					c["mintHeight"],
+					c["spentHeight"],
+					tmpAmount,
+					timeStamp,
+					))
+				tmpBalanceDiffDict[HardReadID(c["address"])] += tmpAmount
+			end
+			for c in outputs
+				tmpAmount = bitcoreInt2Float64(c["value"])
+				push!(tmpList, cacheTx(
+					HardReadID(c["address"]),
+					height,
+					tmpBalanceDict[HardReadID(c["address"])],
+					0.0,
+					c["mintHeight"],
+					c["spentHeight"],
+					tmpAmount,
+					timeStamp,
+					))
+				tmpBalanceDiffDict[HardReadID(c["address"])] += tmpAmount
+			end
+			for i in 1:length(tmpList)
+				tmpList[i].balanceAfterBlock = tmpList[i].balanceBeforeBlock + tmpBalanceDiffDict[tmpList[i].addressId]
+			end
+			empty!(tmpBalanceDiffDict)
+		# save to disk
+			TableTx.BatchInsert(tmpList)
+		return nothing
+	end
 
 # Period predict
 	function CalculateResultOnBlock(n)::ResultCalculations
@@ -82,6 +147,7 @@ PipelineLocks["synchronizing"] = false
 			sleep(5)
 		end
 		@showprogress for n in fromBlock:toBlock
+			DigestTransactionsOnBlock(n)
 			TableResults.SetRow(
 				n,
 				CalculateResultOnBlock(n)
