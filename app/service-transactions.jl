@@ -16,7 +16,11 @@ mutable struct cacheTx
 TableTx = MmapDB.GenerateCode(cacheTx)
 TableTx.Open(true)
 
+cacheTableTxBlockId = Dict{Int, Int}()
 function txLocateBlock(n::Int, tmpCounter::Int=1024)
+	if haskey(cacheTableTxBlockId, n)
+		return cacheTableTxBlockId[n]
+	end
 	n = Int32(n)
 	currentPos = TableTx.GetFieldBlockNum(tmpCounter)
 	tmpStep = 65535
@@ -45,7 +49,9 @@ function txLocateBlock(n::Int, tmpCounter::Int=1024)
 	end
 	# find first
 	tmpCounter = max(tmpCounter-tmpStep, 1)
-	TableTx.Findnext(x->x>=n, :blockNum, tmpCounter)
+	tmpCounter = TableTx.Findnext(x->x>=n, :blockNum, tmpCounter)
+	cacheTableTxBlockId[Int(n)] = tmpCounter
+	return tmpCounter
 	end
 
 function GetSeqBlockCoinsRange(n::Int)
