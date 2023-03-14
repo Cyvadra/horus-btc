@@ -137,6 +137,8 @@
 		# new users are filtered
 		averageRateWinningBuyer::Float32
 		averageRateWinningSeller::Float32
+		averageRateWinningBuyerWeighted::Float32
+		averageRateWinningSellerWeighted::Float32
 		averageUsdtNetRealizedBuyer::Float32
 		averageUsdtNetRealizedSeller::Float32
 		averageUsdtNetUnrealizedBuyer::Float32
@@ -145,6 +147,14 @@
 		averageUsdtAmountWonSeller::Float32
 		averageUsdtAmountLostBuyer::Float32
 		averageUsdtAmountLostSeller::Float32
+		averageMintTimestampBuyer::Float32
+		averageMintTimestampSeller::Float32
+		averageMintTimestampBuyerWeighted::Float32
+		averageMintTimestampSellerWeighted::Float32
+		averageSpentTimestampBuyer::Float32
+		averageSpentTimestampSeller::Float32
+		averageSpentTimestampBuyerWeighted::Float32
+		averageSpentTimestampSellerWeighted::Float32
 		end
 	function CalcAddressComparative(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressComparative
 		_len = length(cacheTs[])
@@ -436,9 +446,13 @@
 		concreteIndexes  = map(x->!x, cacheTagNew[])
 		indexesBuyer     = concreteIndexes .&& (cacheAmount[] .> 0.0)
 		indexesSeller    = concreteIndexes .&& (cacheAmount[] .< 0.0)
+		weightBuyer      = safe_weight(cacheAmount[][indexesBuyer])
+		weightSeller     = safe_weight(cacheAmount[][indexesSeller])
 		return CellAddressAverage(
 			AddressService.GetFieldRateWinning(cacheAddrId[][indexesBuyer]) |> safe_mean,
 			AddressService.GetFieldRateWinning(cacheAddrId[][indexesSeller]) |> safe_mean,
+			AddressService.GetFieldRateWinning(cacheAddrId[][indexesBuyer]) .* weightBuyer |> safe_sum,
+			AddressService.GetFieldRateWinning(cacheAddrId[][indexesSeller]) .* weightSeller |> safe_sum,
 			AddressService.GetFieldUsdtNetRealized(cacheAddrId[][indexesBuyer]) |> safe_mean,
 			AddressService.GetFieldUsdtNetRealized(cacheAddrId[][indexesSeller]) |> safe_mean,
 			AddressService.GetFieldUsdtNetUnrealized(cacheAddrId[][indexesBuyer]) |> safe_mean,
@@ -447,6 +461,14 @@
 			AddressService.GetFieldUsdtAmountWon(cacheAddrId[][indexesSeller]) |> safe_mean,
 			AddressService.GetFieldUsdtAmountLost(cacheAddrId[][indexesBuyer]) |> safe_mean,
 			AddressService.GetFieldUsdtAmountLost(cacheAddrId[][indexesSeller]) |> safe_mean,
+			AddressService.GetFieldAverageMintTimestamp(cacheAddrId[][indexesBuyer]) |> safe_mean,
+			AddressService.GetFieldAverageMintTimestamp(cacheAddrId[][indexesSeller]) |> safe_mean,
+			AddressService.GetFieldAverageMintTimestamp(cacheAddrId[][indexesBuyer]) .* weightBuyer |> safe_sum,
+			AddressService.GetFieldAverageMintTimestamp(cacheAddrId[][indexesSeller]) .* weightSeller |> safe_sum,
+			AddressService.GetFieldAverageSpentTimestamp(cacheAddrId[][indexesBuyer]) |> safe_mean,
+			AddressService.GetFieldAverageSpentTimestamp(cacheAddrId[][indexesSeller]) |> safe_mean,
+			AddressService.GetFieldAverageSpentTimestamp(cacheAddrId[][indexesBuyer]) .* weightBuyer |> safe_sum,
+			AddressService.GetFieldAverageSpentTimestamp(cacheAddrId[][indexesSeller]) .* weightSeller |> safe_sum,
 			)
 		end
 	push!(Calculations, CalcCell(
