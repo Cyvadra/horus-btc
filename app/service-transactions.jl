@@ -21,14 +21,21 @@ function txLocateBlock(n::Int, tmpCounter::Int=1024)
 	if haskey(cacheTableTxBlockId, n)
 		return cacheTableTxBlockId[n]
 	end
+	tmpCounter = tmpCounter - tmpCounter % 1024 + 1024
 	n = Int32(n)
 	currentPos = TableTx.GetFieldBlockNum(tmpCounter)
 	tmpStep = 65535
 	lastSign = currentPos < n
 	# enlarge number
-	while currentPos < n
+	while currentPos < n && !iszero(currentPos)
 		tmpCounter += tmpStep
 		currentPos = TableTx.GetFieldBlockNum(tmpCounter)
+	end
+	if iszero(currentPos)
+		@assert max(TableTx.GetFieldBlockNum(tmpCounter-tmpStep:tmpCounter)...) >= n
+		tmpCounter = TableTx.Findnext(x->x>=n, :blockNum, tmpCounter-tmpStep)
+		cacheTableTxBlockId[Int(n)] = tmpCounter
+		return tmpCounter
 	end
 	# locate position
 	while currentPos < n || currentPos > n
@@ -56,7 +63,7 @@ function txLocateBlock(n::Int, tmpCounter::Int=1024)
 
 function GetSeqBlockCoinsRange(n::Int)
 	a = txLocateBlock(n)
-	b = txLocateBlock(n+1, a) - 1
+	b = TableTx.Findnext(x->!isequal(x,n), :blockNum, a)-1
 	return a:b
 	end
 
