@@ -66,6 +66,14 @@ using Statistics
 	safe_log10(x) = x > 0 ? log10(1.0+x) : -log10(1.0-x)
 	safe_sum(arr) = isempty(arr) ? 0 : sum(arr)
 	safe_mean(arr) = isempty(arr) ? 0 : Statistics.mean(arr)
+	function safe_weight(arr)
+		if isempty(arr)
+			return Float64[]
+		else
+			tmpSum = sum(abs.(arr))
+			return map(x->abs(x)/tmpSum, arr)
+		end
+		end
 	function normalise(v::Vector, rng::UnitRange)::Vector
 		v = deepcopy(v) .+ 0.00
 		s = sort(v)
