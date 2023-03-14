@@ -40,6 +40,9 @@ PipelineLocks["synchronizing"] = false
 	sizehint!(tmpBalanceDict, round(Int,1.28e9))
 	tmpBalanceDiffDict = Dict{UInt32,Float64}()
 	function DigestTransactionsOnBlock(n)
+		if iszero(n-1)
+			return nothing
+		end
 		tmpVal = TableTx.GetFieldBlockNum( GetSeqBlockCoinsRange(n-1)[end]+1 )
 		if !iszero(tmpVal)
 			return nothing
@@ -178,6 +181,7 @@ PipelineLocks["synchronizing"] = false
 		end
 		@info "Synchronizing from $lastBlockN to $toBlock"
 		@showprogress for n in lastBlockN:toBlock
+			# DigestTransactionsOnBlock(n)
 			MergeBlock2AddressState(n)
 			GlobalRuntime["LastDoneBlock"] = n
 		end
