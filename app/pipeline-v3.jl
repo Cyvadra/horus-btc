@@ -101,16 +101,16 @@ PipelineLocks["synchronizing"] = false
 
 # Period predict
 	function CalculateResultOnBlock(n)::ResultCalculations
-		coins = GetBlockCoins(n)
-		coinsMint   = filter(x->x["mintHeight"]==n, coins)
-		coinsSpent  = filter(x->x["spentHeight"]==n, coins)
-		cacheAddrId = map(x->GenerateID(x["address"]), coinsMint)
-		cacheAmount = bitcoreInt2Float64.(map(x->x["value"], coinsMint))
+		coins = TableTx.GetRow(GetSeqBlockCoinsRange(n))
+		coinsMint   = filter(x->x.mintHeight==n, coins)
+		coinsSpent  = filter(x->x.spentHeight==n, coins)
+		cacheAddrId = map(x->x.addressId, coinsMint)
+		cacheAmount = abs.(map(x->x.amount, coinsMint))
 		append!(cacheAddrId,
-			map(x->GenerateID(x["address"]), coinsSpent)
+			map(x->x.addressId, coinsSpent)
 			)
 		append!(cacheAmount,
-			0 .- bitcoreInt2Float64.(map(x->x["value"], coinsSpent))
+			0.0 .- abs.(map(x->x.amount, coinsSpent))
 			)
 		cacheTagNew = isNew(cacheAddrId)
 		cacheTs = fill(BlockNum2Timestamp(n), length(cacheAmount))
