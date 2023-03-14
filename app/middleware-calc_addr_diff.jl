@@ -1,152 +1,7 @@
-
-using Mongoc
-
-# include("./service-address.jl");
-# include("./service-address2id.traditional.jl");
 # include("./service-FinanceDB.jl");
-# include("./service-mongo.jl");
+# include("./service-transactions.jl");
 # include("./service-block_timestamp.jl");
 
-mutable struct AddressDiff
-	AddressId::UInt32
-	TimestampLastReceived::Int32
-	TimestampLastPayed::Int32
-	AmountIncomeTotal::Float64
-	AmountExpenseTotal::Float64
-	NumTxInTotal::Int32
-	NumTxOutTotal::Int32
-	UsdtPayed4Input::Float64
-	UsdtReceived4Output::Float64
-	LastSellPrice::Float32
-	end
-tplAddressDiff = AddressDiff(zeros(length(AddressDiff.types))...)
-# deprecated functions for previous version
-function Address2StateDiff(fromBlock::Int, toBlock::Int)::Vector{AddressDiff} # (fromBlock, toBlock]
-	if fromBlock == toBlock
-		return AddressDiff[]
-	end
-	fromBlock += 1
-	ret = Vector{AddressDiff}()
-	coinsAll = GetBlockCoinsInRange(fromBlock, toBlock)
-	sort!(coinsAll, by=x->x["address"])
-	counter = 1
-	counterNext = findnext(
-		x->x["address"] !== coinsAll[counter]["address"],
-		coinsAll,
-		counter
-	)
-	if isnothing(counterNext)
-		if length(coinsAll) == 1
-			push!(ret, AddressDiff(
-				GenerateID(coinsAll[counter]["address"]),
-				coinsAll[counter]["mintHeight"] |> BlockNum2Timestamp,
-				0,
-				coinsAll[counter]["value"] |> bitcoreInt2Float64,
-				0,
-				1,
-				0,
-				(coinsAll[counter]["value"] |> bitcoreInt2Float64) * GetBTCPriceWhen(BlockNum2Timestamp(coinsAll[counter]["mintHeight"])),
-				0,
-				0,
-				))
-			return ret
-		else
-			throw("enexpected $toBlock")
-		end
-	end
-	while !isnothing(counterNext)
-		counterNext -= 1
-		currentDiff = AddressDiff(zeros(length(AddressDiff.types))...)
-		currentDiff.AddressId = GenerateID(coinsAll[counter]["address"])
-		coins     = coinsAll[counter:counterNext]
-		mintRange = map(x->fromBlock <= x["mintHeight"] <= toBlock, coins)
-		spentRange= map(x->fromBlock <= x["spentHeight"] <= toBlock, coins)
-		mintNums  = map(x->x["mintHeight"], coins[mintRange])
-		spentNums = map(x->x["spentHeight"], coins[spentRange])
-		blockNums = sort!(vcat(mintNums, spentNums))
-		if length(blockNums) > 0
-			if length(mintNums) > 0
-				currentDiff.TimestampLastReceived = mintNums[end] |> BlockNum2Timestamp
-				currentDiff.AmountIncomeTotal = map(
-					x->x["value"],
-					coins[mintRange]
-				) |> sum |> bitcoreInt2Float64
-				currentDiff.NumTxInTotal = length(mintNums)
-			end
-			if length(spentNums) > 0
-				currentDiff.TimestampLastPayed = spentNums[end] |> BlockNum2Timestamp
-				currentDiff.AmountExpenseTotal = map(
-					x->x["value"],
-					coins[spentRange]
-				) |> sum |> bitcoreInt2Float64
-				currentDiff.NumTxOutTotal = length(spentNums)
-			end
-		end
-		# LastSellPrice
-			if length(spentNums) > 0
-				currentDiff.LastSellPrice = GetBTCPriceWhen(BlockNum2Timestamp(spentNums[end]))
-			end
-		# Usdt
-			if length(mintNums) > 0
-				currentDiff.UsdtPayed4Input = map(
-					x->bitcoreInt2Float64(x["value"]) * GetPriceAtBlockN(x["mintHeight"]),
-					coins
-				) |> sum
-			end
-			if length(spentNums) > 0
-				currentDiff.UsdtReceived4Output = map(
-					x->bitcoreInt2Float64(x["value"]) * GetPriceAtBlockN(x["spentHeight"]),
-					coins[spentRange]
-				) |> sum
-			end
-		counter = counterNext + 1
-		addr    = coinsAll[counter]["address"]
-		counterNext = findnext(
-			x->x["address"] !== addr,
-			coinsAll,
-			counter
-		)
-		push!(ret, currentDiff)
-	end
-	return ret
-	end
-function MergeAddressState!(arrayDiff::Vector{AddressDiff}, coinPrice::Float32)::Int
-	counter = 0
-	for d in arrayDiff
-		baseState = AddressService.GetRow(d.AddressId)
-		if d.TimestampLastReceived > 0
-			baseState.TimestampLastReceived = d.TimestampLastReceived
-			baseState.AmountIncomeTotal += d.AmountIncomeTotal
-			baseState.NumTxInTotal += d.NumTxInTotal
-			baseState.UsdtPayed4Input += d.UsdtPayed4Input
-			if iszero(baseState.TimestampCreated)
-				baseState.TimestampCreated = d.TimestampLastReceived
-			end
-		end
-		if d.TimestampLastPayed > 0
-			baseState.TimestampLastPayed = d.TimestampLastPayed
-			baseState.AmountExpenseTotal += d.AmountExpenseTotal
-			baseState.NumTxOutTotal += d.NumTxOutTotal
-			baseState.UsdtReceived4Output += d.UsdtReceived4Output
-			baseState.LastSellPrice = d.LastSellPrice
-		end
-		baseState.TimestampLastActive = max(baseState.TimestampLastReceived, baseState.TimestampLastPayed)
-		baseState.AveragePurchasePrice = baseState.UsdtPayed4Input / baseState.AmountIncomeTotal
-		baseState.UsdtNetRealized = baseState.UsdtReceived4Output - baseState.UsdtPayed4Input
-		baseState.Balance = baseState.AmountIncomeTotal - baseState.AmountExpenseTotal
-		if baseState.Balance < 0
-			throw(d.AddressId)
-		end
-		baseState.UsdtNetUnrealized = baseState.Balance * (coinPrice - baseState.AveragePurchasePrice)
-		AddressService.SetRow(d.AddressId, baseState)
-		counter += 1
-	end
-	return counter
-	end
-
-coinsAll = GetBlockCoins(150000)
-coinsIn  = filter(x->true, coinsAll)
-coinsOut = filter(x->true, coinsIn)
 function InitAddressState(tmpId::UInt32, ts::Int32, tmpPrice::Float64)::Nothing
 	AddressService.SetFieldTimestampCreated(tmpId, ts)
 	AddressService.SetFieldAverageTradeIntervalSecs(tmpId, 3600)
@@ -156,6 +11,8 @@ function InitAddressState(tmpId::UInt32, ts::Int32, tmpPrice::Float64)::Nothing
 	AddressService.SetFieldNumLossing(tmpId, 1)
 	AddressService.SetFieldUsdtAmountWon(tmpId, 0.1)
 	AddressService.SetFieldUsdtAmountLost(tmpId, 0.1)
+	AddressService.SetFieldAverageMintTimestamp(ts)
+	AddressService.SetFieldAverageSpentTimestamp(ts)
 	return nothing
 	end
 function SubTouchAddressState(tmpId::UInt32, ts::Int32, tmpPrice::Float64)::Nothing
@@ -172,22 +29,24 @@ function SubTouchAddressState(tmpId::UInt32, ts::Int32, tmpPrice::Float64)::Noth
 	return nothing
 	end
 function MergeBlock2AddressState(n::Int)::Nothing
-	empty!(coinsAll); empty!(coinsIn); empty!(coinsOut);
-	append!(coinsAll, GetBlockCoins(n))
-	append!(coinsIn,  filter(x->x["mintHeight"]==n, coinsAll))
-	append!(coinsOut, filter(x->x["spentHeight"]==n, coinsAll))
-	tmpId    = UInt32(0)
+	ids = collect(GetSeqBlockCoinsRange(n))
+	tmpIds     = TableTx.GetFieldAddressId(ids)
+	tmpAmounts = TableTx.GetFieldAmount(ids)
+	coinsIn    = findall(x->x>=0.0, tmpAmounts)
+	coinsOut   = findall(x->x<0.0, tmpAmounts)
 	ts       = n |> BlockNum2Timestamp
 	tmpPrice = GetPriceAtBlockN(n)
-	tmpAmount= 0.0
-	for c in coinsIn
-		tmpId = GenerateID(c["address"])
-		tmpAmount = bitcoreInt2Float64(c["value"])
+	for i in coinsIn
+		tmpId = tmpIds[i]
+		tmpAmount = tmpAmounts[i]
 		if isNew(tmpId)
 			InitAddressState(tmpId, ts, tmpPrice)
 		elseif !isequal(ts, AddressService.GetFieldTimestampLastActive(tmpId))
 			SubTouchAddressState(tmpId, ts, tmpPrice)
 		end
+		AddressService.SetFieldAverageMintTimestamp(tmpId,
+			( AddressService.GetFieldAverageMintTimestamp(tmpId) * AddressService.GetFieldAmountIncomeTotal(tmpId) + ts * tmpAmount ) / ( AddressService.GetFieldAmountIncomeTotal(tmpId) + tmpAmount)
+		)
 		AddressService.SetFieldTimestampLastReceived(tmpId, ts)
 		AddressService.SetFieldDiffAmountIncomeTotal(tmpId, tmpAmount)
 		AddressService.SetFieldDiffNumTxInTotal(tmpId, 1)
@@ -204,14 +63,17 @@ function MergeBlock2AddressState(n::Int)::Nothing
 			AddressService.GetFieldAmountIncomeTotal(tmpId) - AddressService.GetFieldAmountExpenseTotal(tmpId)
 			)
 	end
-	for c in coinsOut
-		tmpId = GenerateID(c["address"])
-		tmpAmount = bitcoreInt2Float64(c["value"])
+	for i in coinsOut
+		tmpId = tmpIds[i]
+		tmpAmount = abs(tmpAmounts[i])
 		if isNew(tmpId)
 			InitAddressState(tmpId, ts, tmpPrice)
 		elseif !isequal(ts, AddressService.GetFieldTimestampLastActive(tmpId))
 			SubTouchAddressState(tmpId, ts, tmpPrice)
 		end
+		AddressService.SetFieldAverageSpentTimestamp(tmpId,
+			( AddressService.GetFieldAverageSpentTimestamp(tmpId) * AddressService.GetFieldAmountExpenseTotal(tmpId) + ts * tmpAmount ) / ( AddressService.GetFieldAmountExpenseTotal(tmpId) + tmpAmount)
+		)
 		# judge whether winning
 		if tmpPrice >= AddressService.GetFieldLastPurchasePrice(tmpId)
 			if !isequal(ts, AddressService.GetFieldTimestampLastPayed(tmpId))
