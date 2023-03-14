@@ -11,6 +11,8 @@ function InitAddressState(tmpId::UInt32, ts::Int32, tmpPrice::Float64)::Nothing
 	AddressService.SetFieldNumLossing(tmpId, 1)
 	AddressService.SetFieldUsdtAmountWon(tmpId, 0.1)
 	AddressService.SetFieldUsdtAmountLost(tmpId, 0.1)
+	AddressService.SetFieldAverageMintTimestamp(ts)
+	AddressService.SetFieldAverageSpentTimestamp(ts)
 	return nothing
 	end
 function SubTouchAddressState(tmpId::UInt32, ts::Int32, tmpPrice::Float64)::Nothing
@@ -42,6 +44,9 @@ function MergeBlock2AddressState(n::Int)::Nothing
 		elseif !isequal(ts, AddressService.GetFieldTimestampLastActive(tmpId))
 			SubTouchAddressState(tmpId, ts, tmpPrice)
 		end
+		AddressService.SetFieldAverageMintTimestamp(tmpId,
+			( AddressService.GetFieldAverageMintTimestamp(tmpId) * AddressService.GetFieldAmountIncomeTotal(tmpId) + ts * tmpAmount ) / ( AddressService.GetFieldAmountIncomeTotal(tmpId) + tmpAmount)
+		)
 		AddressService.SetFieldTimestampLastReceived(tmpId, ts)
 		AddressService.SetFieldDiffAmountIncomeTotal(tmpId, tmpAmount)
 		AddressService.SetFieldDiffNumTxInTotal(tmpId, 1)
@@ -60,12 +65,15 @@ function MergeBlock2AddressState(n::Int)::Nothing
 	end
 	for i in coinsOut
 		tmpId = tmpIds[i]
-		tmpAmount = tmpAmounts[i]
+		tmpAmount = abs(tmpAmounts[i])
 		if isNew(tmpId)
 			InitAddressState(tmpId, ts, tmpPrice)
 		elseif !isequal(ts, AddressService.GetFieldTimestampLastActive(tmpId))
 			SubTouchAddressState(tmpId, ts, tmpPrice)
 		end
+		AddressService.SetFieldAverageSpentTimestamp(tmpId,
+			( AddressService.GetFieldAverageSpentTimestamp(tmpId) * AddressService.GetFieldAmountExpenseTotal(tmpId) + ts * tmpAmount ) / ( AddressService.GetFieldAmountExpenseTotal(tmpId) + tmpAmount)
+		)
 		# judge whether winning
 		if tmpPrice >= AddressService.GetFieldLastPurchasePrice(tmpId)
 			if !isequal(ts, AddressService.GetFieldTimestampLastPayed(tmpId))
