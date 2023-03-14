@@ -70,8 +70,8 @@ using Statistics
 		if isempty(arr)
 			return Float64[]
 		else
-			tmpSum = sum(abs.(arr))
-			return map(x->abs(x)/tmpSum, arr)
+			tmpSum = sum(arr)
+			return map(x->x/tmpSum, arr)
 		end
 		end
 	function normalise(v::Vector, rng::UnitRange)::Vector
