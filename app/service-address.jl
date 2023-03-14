@@ -26,12 +26,15 @@ mutable struct AddressStatistics
 	# calculated extra
 	UsdtNetRealized::Float64
 	UsdtNetUnrealized::Float64
-	# 5th,Sep. additional fields
+	# 5th,Sep,2022 additional fields
 	NumWinning::Int32
 	NumLossing::Int32
 	UsdtAmountWon::Float64
 	UsdtAmountLost::Float64
 	RateWinning::Float32
+	# 14th,Mar,2023 momentum
+	AverageMintTimestamp::Int32
+	AverageSpentTimestamp::Int32
 	# basic
 	Balance::Float64
 	end
