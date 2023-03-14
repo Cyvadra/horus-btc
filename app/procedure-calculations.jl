@@ -97,6 +97,16 @@
 		amountSupplierBalanceBelow60::Float32
 		amountSupplierBalanceBelow80::Float32
 		amountSupplierBalanceAbove95::Float32
+		averageRateWinningSupplier::Float32
+		averageRateWinningSupplierWeighted::Float32
+		averageUsdtNetRealizedSupplier::Float32
+		averageUsdtNetUnrealizedSupplier::Float32
+		averageUsdtAmountWonSupplier::Float32
+		averageUsdtAmountLostSupplier::Float32
+		averageMintTimestampSupplier::Float32
+		averageMintTimestampSupplierWeighted::Float32
+		averageSpentTimestampSupplier::Float32
+		averageSpentTimestampSupplierWeighted::Float32
 		end
 	mutable struct CellAddressBuyer
 		balanceBuyerMean::Float32
@@ -113,6 +123,16 @@
 		amountBuyerBalanceBelow80::Float32
 		amountBuyerBalanceAbove80::Float32
 		amountBuyerBalanceAbove95::Float32
+		averageRateWinningBuyer::Float32
+		averageRateWinningBuyerWeighted::Float32
+		averageUsdtNetRealizedBuyer::Float32
+		averageUsdtNetUnrealizedBuyer::Float32
+		averageUsdtAmountWonBuyer::Float32
+		averageUsdtAmountLostBuyer::Float32
+		averageMintTimestampBuyer::Float32
+		averageMintTimestampBuyerWeighted::Float32
+		averageSpentTimestampBuyer::Float32
+		averageSpentTimestampBuyerWeighted::Float32
 		end
 	mutable struct CellAddressUsdtDiff
 		numRealizedProfit::Int32
@@ -132,29 +152,6 @@
 		numBuyerMomentumMean::Float32
 		numRegularBuyerMomentum::Float32
 		numRegularBuyerMomentumMean::Float32
-		end
-	mutable struct CellAddressAverage
-		# new users are filtered
-		averageRateWinningBuyer::Float32
-		averageRateWinningSeller::Float32
-		averageRateWinningBuyerWeighted::Float32
-		averageRateWinningSellerWeighted::Float32
-		averageUsdtNetRealizedBuyer::Float32
-		averageUsdtNetRealizedSeller::Float32
-		averageUsdtNetUnrealizedBuyer::Float32
-		averageUsdtNetUnrealizedSeller::Float32
-		averageUsdtAmountWonBuyer::Float32
-		averageUsdtAmountWonSeller::Float32
-		averageUsdtAmountLostBuyer::Float32
-		averageUsdtAmountLostSeller::Float32
-		averageMintTimestampBuyer::Float32
-		averageMintTimestampSeller::Float32
-		averageMintTimestampBuyerWeighted::Float32
-		averageMintTimestampSellerWeighted::Float32
-		averageSpentTimestampBuyer::Float32
-		averageSpentTimestampSeller::Float32
-		averageSpentTimestampBuyerWeighted::Float32
-		averageSpentTimestampSellerWeighted::Float32
 		end
 	function CalcAddressComparative(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressComparative
 		_len = length(cacheTs[])
@@ -291,6 +288,7 @@
 		concreteIndexes  = concreteIndexes .&& (cacheAmount[] .< 0.0)
 		concreteBalances = abs.(AddressService.GetFieldBalance(
 			cacheAddrId[][ concreteIndexes ]))
+		weightSupplier   = safe_weight(concreteBalances)
 		concreteAmounts  = abs.(cacheAmount[][ concreteIndexes ])
 		if length(concreteBalances) < 10
 			if isempty(concreteBalances)
@@ -330,6 +328,16 @@
 				reduce(+, concreteAmounts[
 					map(x -> x >= sortedBalances[ceil(Int, 0.95*end)], concreteBalances)
 					]),
+				AddressService.GetFieldRateWinning(cacheAddrId[][concreteIndexes]) |> safe_mean,
+				AddressService.GetFieldRateWinning(cacheAddrId[][concreteIndexes]) .* weightSupplier |> safe_sum,
+				AddressService.GetFieldUsdtNetRealized(cacheAddrId[][concreteIndexes]) |> safe_mean,
+				AddressService.GetFieldUsdtNetUnrealized(cacheAddrId[][concreteIndexes]) |> safe_mean,
+				AddressService.GetFieldUsdtAmountWon(cacheAddrId[][concreteIndexes]) |> safe_mean,
+				AddressService.GetFieldUsdtAmountLost(cacheAddrId[][concreteIndexes]) |> safe_mean,
+				AddressService.GetFieldAverageMintTimestamp(cacheAddrId[][concreteIndexes]) |> safe_mean,
+				AddressService.GetFieldAverageMintTimestamp(cacheAddrId[][concreteIndexes]) .* weightSupplier |> safe_sum,
+				AddressService.GetFieldAverageSpentTimestamp(cacheAddrId[][concreteIndexes]) |> safe_mean,
+				AddressService.GetFieldAverageSpentTimestamp(cacheAddrId[][concreteIndexes]) .* weightSupplier |> safe_sum,
 			)
 		return ret
 		end
@@ -338,6 +346,7 @@
 		buyerIndexes  = buyerIndexes .&& cacheAmount[] .> 0.0
 		buyerBalances = abs.(AddressService.GetFieldBalance(
 			cacheAddrId[][ buyerIndexes ]))
+		weightBuyer   = safe_weight(buyerBalances)
 		buyerAmounts  = cacheAmount[][ buyerIndexes ]
 		if length(buyerBalances) < 10
 			if isempty(buyerBalances)
@@ -380,6 +389,16 @@
 				reduce(+, buyerAmounts[
 					map(x -> x >= sortedBalances[ceil(Int, 0.95*end)], buyerBalances)
 					]),
+				AddressService.GetFieldRateWinning(cacheAddrId[][buyerIndexes]) |> safe_mean,
+				AddressService.GetFieldRateWinning(cacheAddrId[][buyerIndexes]) .* weightBuyer |> safe_sum,
+				AddressService.GetFieldUsdtNetRealized(cacheAddrId[][buyerIndexes]) |> safe_mean,
+				AddressService.GetFieldUsdtNetUnrealized(cacheAddrId[][buyerIndexes]) |> safe_mean,
+				AddressService.GetFieldUsdtAmountWon(cacheAddrId[][buyerIndexes]) |> safe_mean,
+				AddressService.GetFieldUsdtAmountLost(cacheAddrId[][buyerIndexes]) |> safe_mean,
+				AddressService.GetFieldAverageMintTimestamp(cacheAddrId[][buyerIndexes]) |> safe_mean,
+				AddressService.GetFieldAverageMintTimestamp(cacheAddrId[][buyerIndexes]) .* weightBuyer |> safe_sum,
+				AddressService.GetFieldAverageSpentTimestamp(cacheAddrId[][buyerIndexes]) |> safe_mean,
+				AddressService.GetFieldAverageSpentTimestamp(cacheAddrId[][buyerIndexes]) .* weightBuyer |> safe_sum,
 			)
 		return ret
 		end
@@ -442,35 +461,6 @@
 				safe_mean(regularMomentum),
 			)
 		end
-	function CalcAddressAverage(cacheAddrId::Base.RefValue, cacheTagNew::Base.RefValue, cacheAmount::Base.RefValue, cacheTs::Base.RefValue)::CellAddressAverage
-		concreteIndexes  = map(x->!x, cacheTagNew[])
-		indexesBuyer     = concreteIndexes .&& (cacheAmount[] .> 0.0)
-		indexesSeller    = concreteIndexes .&& (cacheAmount[] .< 0.0)
-		weightBuyer      = safe_weight(cacheAmount[][indexesBuyer])
-		weightSeller     = safe_weight(cacheAmount[][indexesSeller])
-		return CellAddressAverage(
-			AddressService.GetFieldRateWinning(cacheAddrId[][indexesBuyer]) |> safe_mean,
-			AddressService.GetFieldRateWinning(cacheAddrId[][indexesSeller]) |> safe_mean,
-			AddressService.GetFieldRateWinning(cacheAddrId[][indexesBuyer]) .* weightBuyer |> safe_sum,
-			AddressService.GetFieldRateWinning(cacheAddrId[][indexesSeller]) .* weightSeller |> safe_sum,
-			AddressService.GetFieldUsdtNetRealized(cacheAddrId[][indexesBuyer]) |> safe_mean,
-			AddressService.GetFieldUsdtNetRealized(cacheAddrId[][indexesSeller]) |> safe_mean,
-			AddressService.GetFieldUsdtNetUnrealized(cacheAddrId[][indexesBuyer]) |> safe_mean,
-			AddressService.GetFieldUsdtNetUnrealized(cacheAddrId[][indexesSeller]) |> safe_mean,
-			AddressService.GetFieldUsdtAmountWon(cacheAddrId[][indexesBuyer]) |> safe_mean,
-			AddressService.GetFieldUsdtAmountWon(cacheAddrId[][indexesSeller]) |> safe_mean,
-			AddressService.GetFieldUsdtAmountLost(cacheAddrId[][indexesBuyer]) |> safe_mean,
-			AddressService.GetFieldUsdtAmountLost(cacheAddrId[][indexesSeller]) |> safe_mean,
-			AddressService.GetFieldAverageMintTimestamp(cacheAddrId[][indexesBuyer]) |> safe_mean,
-			AddressService.GetFieldAverageMintTimestamp(cacheAddrId[][indexesSeller]) |> safe_mean,
-			AddressService.GetFieldAverageMintTimestamp(cacheAddrId[][indexesBuyer]) .* weightBuyer |> safe_sum,
-			AddressService.GetFieldAverageMintTimestamp(cacheAddrId[][indexesSeller]) .* weightSeller |> safe_sum,
-			AddressService.GetFieldAverageSpentTimestamp(cacheAddrId[][indexesBuyer]) |> safe_mean,
-			AddressService.GetFieldAverageSpentTimestamp(cacheAddrId[][indexesSeller]) |> safe_mean,
-			AddressService.GetFieldAverageSpentTimestamp(cacheAddrId[][indexesBuyer]) .* weightBuyer |> safe_sum,
-			AddressService.GetFieldAverageSpentTimestamp(cacheAddrId[][indexesSeller]) .* weightSeller |> safe_sum,
-			)
-		end
 	push!(Calculations, CalcCell(
 		CellAddressComparative, CalcAddressComparative))
 	push!(Calculations, CalcCell(
@@ -485,8 +475,6 @@
 		CellAddressUsdtDiff, CalcAddressUsdtDiff))
 	push!(Calculations, CalcCell(
 		CellAddressMomentum, CalcAddressMomentum))
-	push!(Calculations, CalcCell(
-		CellAddressAverage, CalcAddressAverage))
 
 	isdir("/tmp/julia-cache/") ? nothing : mkdir("/tmp/julia-cache/")
 
