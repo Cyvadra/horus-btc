@@ -40,7 +40,10 @@ PipelineLocks["synchronizing"] = false
 	sizehint!(tmpBalanceDict, round(Int,1.28e9))
 	tmpBalanceDiffDict = Dict{UInt32,Float64}()
 	function DigestTransactionsOnBlock(n)
-		@assert iszero( TableTx.GetFieldBlockNum( GetSeqBlockCoinsRange(n-1)[end]+1 ) )
+		tmpVal = TableTx.GetFieldBlockNum( GetSeqBlockCoinsRange(n-1)[end]+1 )
+		if !iszero(tmpVal)
+			return nothing
+		end
 		timeStamp = UInt32(round(Int, datetime2unix(
 			GetBlockInfo(height)["timeNormalized"]
 			)))
@@ -97,7 +100,7 @@ PipelineLocks["synchronizing"] = false
 		# save to disk
 			TableTx.BatchInsert(tmpList)
 		return nothing
-	end
+		end
 
 # Period predict
 	function CalculateResultOnBlock(n)::ResultCalculations
