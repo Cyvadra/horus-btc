@@ -3,10 +3,6 @@ using ProgressMeter
 using Dates, JLD2
 using CRC
 
-@info "Please mannually drop caches for better memory performance!"
-@info "echo 3 > /proc/sys/vm/drop_caches"
-@info "Press Enter to continue."
-readline();
 const NUM_NOT_EXIST = UInt32(0)
 AddressHashDict = Dict{UInt64, UInt32}()
 U32_TAG_MAX     = typemax(UInt32)
