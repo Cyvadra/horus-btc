@@ -476,7 +476,7 @@
 	push!(Calculations, CalcCell(
 		CellAddressMomentum, CalcAddressMomentum))
 
-	isdir("/tmp/julia-cache/") ? nothing : mkdir("/tmp/julia-cache/")
+	isdir(folderStructures) ? nothing : mkdir(folderStructures)
 
 	function GenerateAndLoadResultCalculations()::String
 		s = "mutable struct ResultCalculations\n"
@@ -489,10 +489,9 @@
 			end
 		end
 		s *= "end"
-		tmpFileName = "/tmp/julia-cache/" * join(rand('a':'z',6)) * ".jl"
+		tmpFileName = folderStructures * "ResultCalculations" * ".jl"
 		write(tmpFileName, s)
 		include(tmpFileName)
-		rm(tmpFileName)
 		return s
 		end
 
@@ -525,10 +524,9 @@
 		ret.timestamp = cacheTs[end]
 		return ret
 		end"
-		tmpFileName = "/tmp/julia-cache/" * join(rand('a':'z',6)) * ".jl"
+		tmpFileName = folderStructures * "DoCalculations" * ".jl"
 		write(tmpFileName, s)
 		include(tmpFileName)
-		rm(tmpFileName)
 		return s
 		end
 
