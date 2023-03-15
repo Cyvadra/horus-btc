@@ -13,6 +13,8 @@ function InitAddressState(tmpId::UInt32, ts::Int32, tmpPrice::Float64)::Nothing
 	AddressService.SetFieldUsdtAmountLost(tmpId, 0.1)
 	AddressService.SetFieldAverageMintTimestamp(tmpId, ts)
 	AddressService.SetFieldAverageSpentTimestamp(tmpId, ts)
+	AddressService.SetFieldAmountIncomeTotal(tmpId, 1e-9)
+	AddressService.SetFieldAmountExpenseTotal(tmpId, 1e-9)
 	return nothing
 	end
 function SubTouchAddressState(tmpId::UInt32, ts::Int32, tmpPrice::Float64)::Nothing
@@ -32,13 +34,13 @@ function MergeBlock2AddressState(n::Int)::Nothing
 	ids = collect(GetSeqBlockCoinsRange(n))
 	tmpIds     = TableTx.GetFieldAddressId(ids)
 	tmpAmounts = TableTx.GetFieldAmount(ids)
-	coinsIn    = findall(x->x>=0.0, tmpAmounts)
+	coinsIn    = findall(x->x>0.0, tmpAmounts)
 	coinsOut   = findall(x->x<0.0, tmpAmounts)
 	ts       = n |> BlockNum2Timestamp
 	tmpPrice = GetPriceAtBlockN(n)
 	for i in coinsIn
 		tmpId = tmpIds[i]
-		tmpAmount = tmpAmounts[i]
+		tmpAmount = abs(tmpAmounts[i])
 		if isNew(tmpId)
 			InitAddressState(tmpId, ts, tmpPrice)
 		elseif !isequal(ts, AddressService.GetFieldTimestampLastActive(tmpId))
@@ -46,7 +48,7 @@ function MergeBlock2AddressState(n::Int)::Nothing
 		end
 		AddressService.SetFieldAverageMintTimestamp(tmpId,
 			round(Int32,
-				( AddressService.GetFieldAverageMintTimestamp(tmpId) * AddressService.GetFieldAmountIncomeTotal(tmpId) + ts * tmpAmount ) / ( AddressService.GetFieldAmountIncomeTotal(tmpId) + tmpAmount)
+				( 1.0 * AddressService.GetFieldAverageMintTimestamp(tmpId) * AddressService.GetFieldAmountIncomeTotal(tmpId) + ts * tmpAmount ) / ( 1.0 * AddressService.GetFieldAmountIncomeTotal(tmpId) + tmpAmount)
 			)
 		)
 		AddressService.SetFieldTimestampLastReceived(tmpId, ts)
@@ -75,7 +77,7 @@ function MergeBlock2AddressState(n::Int)::Nothing
 		end
 		AddressService.SetFieldAverageSpentTimestamp(tmpId,
 			round(Int32,
-				( AddressService.GetFieldAverageSpentTimestamp(tmpId) * AddressService.GetFieldAmountExpenseTotal(tmpId) + ts * tmpAmount ) / ( AddressService.GetFieldAmountExpenseTotal(tmpId) + tmpAmount)
+				( 1.0 * AddressService.GetFieldAverageSpentTimestamp(tmpId) * AddressService.GetFieldAmountExpenseTotal(tmpId) + ts * tmpAmount ) / ( 1.0 * AddressService.GetFieldAmountExpenseTotal(tmpId) + tmpAmount)
 			)
 		)
 		# judge whether winning
