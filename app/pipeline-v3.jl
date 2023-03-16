@@ -48,14 +48,14 @@ PipelineLocks["synchronizing"] = false
 			return nothing
 		end
 		timeStamp = UInt32(round(Int, datetime2unix(
-			GetBlockInfo(height)["timeNormalized"]
+			GetBlockInfo(n)["timeNormalized"]
 			)))
-		tmpCoins = GetBlockCoins(height)
+		tmpCoins = GetBlockCoins(n)
 		tmpList  = Vector{cacheTx}()
 		@assert length(tmpBalanceDiffDict) == 0
 		# proceed block coins
-			inputs  = filter(x->x["spentHeight"]==height, tmpCoins)
-			outputs = filter(x->x["mintHeight"]==height, tmpCoins)
+			inputs  = filter(x->x["spentHeight"]==n, tmpCoins)
+			outputs = filter(x->x["mintHeight"]==n, tmpCoins)
 			addrs   = unique(vcat(
 				map(x->x["address"], inputs),
 				map(x->x["address"], outputs),
@@ -72,7 +72,7 @@ PipelineLocks["synchronizing"] = false
 				tmpAmount = -bitcoreInt2Float64(c["value"])
 				push!(tmpList, cacheTx(
 					HardReadID(c["address"]),
-					height,
+					n,
 					tmpBalanceDict[HardReadID(c["address"])],
 					0.0,
 					c["mintHeight"],
@@ -86,7 +86,7 @@ PipelineLocks["synchronizing"] = false
 				tmpAmount = bitcoreInt2Float64(c["value"])
 				push!(tmpList, cacheTx(
 					HardReadID(c["address"]),
-					height,
+					n,
 					tmpBalanceDict[HardReadID(c["address"])],
 					0.0,
 					c["mintHeight"],
