@@ -178,6 +178,14 @@ function syncBitcoinIndex()
 	return nothing
 	end
 
+function GetBTCHighestWhen(ts::Union{Vector,UnitRange})::Float32
+	@assert iszero(ts[end] % 3600)
+	return reduce( max, TableTickIndex.GetFieldHigh(ts2ind_findex(t1):ts2ind_findex(t2)) )
+	end
+function GetBTCLowestWhen(ts::Union{Vector,UnitRange})::Float32
+	@assert iszero(ts[end] % 3600)
+	return reduce( min, TableTickIndex.GetFieldLow(ts2ind_findex(ts[1]):ts2ind_findex(ts[end])) )
+	end
 
 
 
