@@ -123,3 +123,69 @@ function syncBitcoin()::Bool
 	return true
 	end
 
+
+mutable struct TickIndex3600 # 1h view
+	Timestamp::Int32
+	Open::Float32
+	High::Float32
+	Low::Float32
+	Close::Float32
+	Middle::Float32
+	Average::Float32
+	Volume::Float32
+	end
+function initFinanceIndex()
+	tmpFolder = folderMarket * "index/"
+	MmapDB.Init(tmpFolder)
+	TableTickIndex = MmapDB.GenerateCode(TickIndex3600)
+	TableTickIndex.Open(true)
+	end
+const baseTickIndexTs = TableTick.GetFieldTimestamp(1) - TableTick.GetFieldTimestamp(1) % 3600 + 7200
+function ts2ind_findex(ts)::Int32
+	if ts - baseTickIndexTs <= 0
+		return 1
+	else
+		return ceil(Int32, (ts - baseTickIndexTs + 1)/3600)
+	end
+	end
+function GetBTCLastTsIndex()::Int32
+	(TableTickIndex.Findfirst(x->iszero(x), :Timestamp) - 1) |> TableTickIndex.GetFieldTimestamp
+	end
+function calcFinanceIndex(ts)
+	ts = ts - ts % 3600
+	tmpRng = ts2ind.(collect(ts-3600:60:ts))
+	TableTickIndex.SetRow( ts2ind_findex(ts),
+		ts,
+		TableTick.GetFieldOpen(tmpRng[1]),
+		reduce(max, TableTick.GetFieldHigh(tmpRng)),
+		reduce(min, TableTick.GetFieldLow(tmpRng)),
+		TableTick.GetFieldClose(tmpRng[end]),
+		TableTick.GetFieldClose(tmpRng) |> middle,
+		sum(
+			(TableTick.GetFieldHigh(tmpRng) .+ TableTick.GetFieldLow(tmpRng)) .* TableTick.GetFieldVolume(tmpRng)
+		) / sum(TableTick.GetFieldVolume(tmpRng)) / 2,
+		sum(TableTick.GetFieldVolume(tmpRng)),
+		)
+	end
+function syncBitcoinIndex()
+	prevTs = TableTickIndex.Findfirst(x->iszero(x), :Timestamp) - 1 |> TableTickIndex.GetFieldTimestamp
+	lastTs = (TableTick.Findfirst(x->iszero(x), :Timestamp) - 1) |> TableTick.GetFieldTimestamp
+	if lastTs - prevTs >= 3600
+		for t in prevTs+3600:3600:lastTs
+			calcFinanceIndex(t)
+		end
+	end
+	return nothing
+	end
+
+
+
+
+
+
+
+
+
+
+
+# eof
