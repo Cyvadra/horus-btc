@@ -119,6 +119,8 @@ function syncBitcoin()::Bool
 	if sysTimestamp > prevTs
 		sleep(1)
 		return syncBitcoin()
+	else
+		syncBitcoinIndex()
 	end
 	return true
 	end
