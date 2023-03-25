@@ -94,8 +94,12 @@ function syncBitcoin()::Bool
 	rm(cacheMarket)
 	# write data
 	for i in 1:length(ret)
-		currentTs = floor(Int, ret[i][1]/1000)
+		currentTs = round(Int, ret[i][1]/1000)
 		if !iszero(currentTs - prevTs - 60)
+			if currentTs > prevTs
+				print(currentTs - prevTs - 60); print(' ')
+				continue
+			end
 			throw("error timestamp $currentTs $prevTs")
 		end
 		pos = ts2ind(currentTs)
@@ -116,6 +120,7 @@ function syncBitcoin()::Bool
 			now() - Hour(8) - Minute(30)
 		)
 	)
+	@show unix2dt(prevTs)
 	if sysTimestamp > prevTs
 		sleep(1)
 		return syncBitcoin()
