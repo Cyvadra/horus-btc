@@ -74,11 +74,11 @@ function syncBitcoin()::Bool
 	tmpN = (round(Int,time()) - round(Int,time()) % 60) - prevTs
 	tmpN = ceil(Int, tmpN / 60)
 	tmpN = min(tmpN, 1000)
-	if tmpN <= 2
+	if tmpN <= 1
 		return true
 	end
 	# fetch data
-	url = "https://www.binance.com/api/v3/klines?startTime=$(prevTs)000&limit=$tmpN&symbol=BTCUSDT&interval=1m"
+	url = "https://www.binance.com/api/v3/klines?startTime=$(prevTs)000&limit=$tmpN&symbol=BTCBUSD&interval=1m"
 	try
 		sleep(1)
 		run(pipeline(
