@@ -516,6 +516,7 @@
 			tmpNames = string.(fieldnames(c.resultType))
 			for j in 1:length(tmpTypes)
 				s *= "
+		@assert !isnan(listTask[$tmpCounter].result.$(tmpNames[j]))
 		ret.$(tmpNames[j]) += listTask[$tmpCounter].result.$(tmpNames[j])"
 			end
 			tmpCounter += 1
