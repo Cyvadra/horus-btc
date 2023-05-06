@@ -15,6 +15,7 @@ using ThreadSafeDicts # private repo
 GlobalRuntime = ThreadSafeDict{String,Any}();
 PipelineLocks = ThreadSafeDict{String, Bool}();
 PipelineLocks["synchronizing"] = false
+GlobalRuntime["skip_safe_check"] = true
 
 # Sync BlockPairs
 	function SyncBlockInfo()::Int
@@ -40,12 +41,16 @@ PipelineLocks["synchronizing"] = false
 	sizehint!(tmpBalanceDict, round(Int,1.28e9))
 	tmpBalanceDiffDict = Dict{UInt32,Float64}()
 	function DigestTransactionsOnBlock(n)
-		if iszero(n-1)
-			return nothing
-		end
-		tmpVal = TableTx.GetFieldBlockNum( GetSeqBlockCoinsRange(n-1)[end]+1 )
-		if !iszero(tmpVal)
-			return nothing
+		if !GlobalRuntime["skip_safe_check"]
+			if iszero(n-1)
+				TableTx.Config["lastNewID"] = 0
+			end
+			if n > 1
+				tmpVal = TableTx.GetFieldBlockNum( GetSeqBlockCoinsRange(n-1)[end]+1 )
+				if !iszero(tmpVal)
+					return nothing
+				end
+			end
 		end
 		timeStamp = UInt32(round(Int, datetime2unix(
 			GetBlockInfo(n)["timeNormalized"]
@@ -181,7 +186,7 @@ PipelineLocks["synchronizing"] = false
 		end
 		@info "Synchronizing from $lastBlockN to $toBlock"
 		@showprogress for n in lastBlockN:toBlock
-			# DigestTransactionsOnBlock(n)
+			DigestTransactionsOnBlock(n)
 			MergeBlock2AddressState(n)
 			GlobalRuntime["LastDoneBlock"] = n
 		end

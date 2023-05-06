@@ -21,7 +21,7 @@ function txLocateBlock(n::Int, tmpCounter::Int=1024)
 	if haskey(cacheTableTxBlockId, n)
 		return cacheTableTxBlockId[n]
 	end
-	tmpCounter = tmpCounter - tmpCounter % 1024 + 1024
+	tmpCounter = max(1, tmpCounter - tmpCounter % 1024 + 1024)
 	n = Int32(n)
 	currentPos = TableTx.GetFieldBlockNum(tmpCounter)
 	tmpStep = 65535
@@ -32,8 +32,8 @@ function txLocateBlock(n::Int, tmpCounter::Int=1024)
 		currentPos = TableTx.GetFieldBlockNum(tmpCounter)
 	end
 	if iszero(currentPos)
-		@assert max(TableTx.GetFieldBlockNum(tmpCounter-tmpStep:tmpCounter)...) >= n
-		tmpCounter = TableTx.Findnext(x->x>=n, :blockNum, tmpCounter-tmpStep)
+		@assert max(TableTx.GetFieldBlockNum(max(tmpCounter-tmpStep,1):tmpCounter)...) >= n
+		tmpCounter = TableTx.Findnext(x->x>=n, :blockNum, max(tmpCounter-tmpStep,1))
 		cacheTableTxBlockId[Int(n)] = tmpCounter
 		return tmpCounter
 	end
