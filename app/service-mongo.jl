@@ -22,7 +22,7 @@ mongoClients = [ Mongoc.Client("mongodb://localhost:27017") for i in 1:Threads.n
 mongoDBs    = map(x->x["bitcore"], mongoClients)
 @show collect(Mongoc.find_collections(db))
 function MongoCollection(key::String)::Mongoc.Collection
-	return mongoDBs[Threads.threadid()][key]
+	return rand(mongoDBs)[key]
 	end
 
 # Middlewares: Get data from mongodb
