@@ -67,7 +67,7 @@ function GetSeqBlockCoinsRange(n::Int)
 	return a:b
 	end
 
-
+# EOF
 
 
 
