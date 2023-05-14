@@ -48,8 +48,7 @@ function isNew(ids::Vector{UInt32})::Vector{Bool}
 	end
 
 function GetLastProcessedTimestamp()::Int32
-	tmpVal = AddressService.Findlast(x->!iszero(x), :TimestampLastActive)
-	return max( AddressService.GetFieldTimestampLastActive(tmpVal-3000:tmpVal+100)... )
+	return reduce(max, AddressService.AddressStatisticsDict[:TimestampLastActive])
 	end
 
 
