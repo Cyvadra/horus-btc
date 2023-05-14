@@ -71,7 +71,11 @@ using Statistics
 			return Float64[]
 		else
 			tmpSum = sum(arr)
-			return map(x->x/tmpSum, arr)
+			if iszero(tmpSum)
+				return ones(length(arr)) ./ length(arr)
+			else
+				return map(x->x/tmpSum, arr)
+			end
 		end
 		end
 	function normalise(v::Vector, rng::UnitRange)::Vector
