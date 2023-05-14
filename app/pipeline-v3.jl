@@ -15,7 +15,7 @@ using ThreadSafeDicts # private repo
 GlobalRuntime = ThreadSafeDict{String,Any}();
 PipelineLocks = ThreadSafeDict{String, Bool}();
 PipelineLocks["synchronizing"] = false
-GlobalRuntime["skip_safe_check"] = true
+GlobalRuntime["runtime_assert"] = true
 
 # Sync BlockPairs
 	function SyncBlockInfo()::Int
@@ -41,7 +41,7 @@ GlobalRuntime["skip_safe_check"] = true
 	sizehint!(tmpBalanceDict, round(Int,1.28e9))
 	tmpBalanceDiffDict = Dict{UInt32,Float64}()
 	function DigestTransactionsOnBlock(n)
-		if !GlobalRuntime["skip_safe_check"]
+		if !GlobalRuntime["runtime_assert"]
 			if iszero(n-1)
 				TableTx.Config["lastNewID"] = 0
 			end
