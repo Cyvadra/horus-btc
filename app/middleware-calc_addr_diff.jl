@@ -15,6 +15,7 @@ function InitAddressState(tmpId::UInt32, ts::Int32, tmpPrice::Float64)::Nothing
 	AddressService.SetFieldAverageSpentTimestamp(tmpId, ts)
 	AddressService.SetFieldAmountIncomeTotal(tmpId, 1e-9)
 	AddressService.SetFieldAmountExpenseTotal(tmpId, 1e-9)
+	AddressService.SetFieldTimestampLastActive(tmpId, ts)
 	return nothing
 	end
 function SubTouchAddressState(tmpId::UInt32, ts::Int32, tmpPrice::Float64)::Nothing
