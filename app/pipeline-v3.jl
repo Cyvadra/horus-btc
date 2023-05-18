@@ -41,13 +41,14 @@ GlobalRuntime["runtime_assert"] = true
 	sizehint!(tmpBalanceDict, round(Int,1.28e9))
 	tmpBalanceDiffDict = Dict{UInt32,Float64}()
 	function DigestTransactionsOnBlock(n)
-		if !GlobalRuntime["runtime_assert"]
+		if GlobalRuntime["runtime_assert"]
 			if iszero(n-1)
 				TableTx.Config["lastNewID"] = 0
 			end
 			if n > 1
 				tmpVal = TableTx.GetFieldBlockNum( GetSeqBlockCoinsRange(n-1)[end]+1 )
 				if !iszero(tmpVal)
+					@info "skip digest"
 					return nothing
 				end
 			end
@@ -57,6 +58,7 @@ GlobalRuntime["runtime_assert"] = true
 			)))
 		tmpCoins = GetBlockCoins(n)
 		tmpList  = Vector{cacheTx}()
+		global tmpBalanceDict, tmpBalanceDiffDict
 		@assert length(tmpBalanceDiffDict) == 0
 		# proceed block coins
 			inputs  = filter(x->x["spentHeight"]==n, tmpCoins)
