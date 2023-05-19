@@ -227,7 +227,7 @@ GlobalRuntime["runtime_assert"] = true
 	function saveWorkspace()
 		@assert Timestamp2LastBlockN(GetLastProcessedTimestamp()) == GetLastResultsID()
 		tmpId = GetLastResultsID()
-		tmpFolder = "/mnt/hdd/$tmpId/"
+		tmpFolder = "/mnt/array/$tmpId/"
 		ispath(tmpFolder) ? nothing : mkdir(tmpFolder)
 		AddressService.SaveCopy(tmpFolder*"AddressServiceDB-v2/")
 		TableResults.SaveCopy(tmpFolder*"results-flexible/")
