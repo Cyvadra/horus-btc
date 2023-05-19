@@ -229,7 +229,7 @@ GlobalRuntime["runtime_assert"] = true
 		tmpId = GetLastResultsID()
 		tmpFolder = "/mnt/array/$tmpId/"
 		ispath(tmpFolder) ? nothing : mkdir(tmpFolder)
-		AddressService.SaveCopy(tmpFolder*"AddressServiceDB-v2/")
+		AddressService.SaveCopy(tmpFolder*"AddressServiceDB-v3/")
 		TableResults.SaveCopy(tmpFolder*"results-flexible/")
 		@info "Writing address2id jld file..."
 		SaveAddressIDs(tmpFolder*"addr.hashdict.jld2")
