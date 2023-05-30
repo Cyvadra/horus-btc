@@ -70,7 +70,7 @@ GlobalRuntime["runtime_assert"] = true
 			sizehint!(tmpBalanceDiffDict, length(addrs))
 			for addr in addrs
 				if !haskey(tmpBalanceDict, GenerateID(addr))
-					tmpBalanceDict[HardReadID(addr)] = 0.0
+					tmpBalanceDict[HardReadID(addr)] = AddressService.GetFieldBalance(HardReadID(addr))
 				end
 				tmpBalanceDiffDict[HardReadID(addr)] = 0.0
 			end
@@ -104,7 +104,9 @@ GlobalRuntime["runtime_assert"] = true
 				tmpBalanceDiffDict[HardReadID(c["address"])] += tmpAmount
 			end
 			for i in 1:length(tmpList)
-				tmpList[i].balanceAfterBlock = tmpList[i].balanceBeforeBlock + tmpBalanceDiffDict[tmpList[i].addressId]
+				tmpVal = tmpList[i].balanceBeforeBlock + tmpBalanceDiffDict[tmpList[i].addressId]
+				tmpList[i].balanceAfterBlock = tmpVal
+				tmpBalanceDict[tmpList[i].addressId] = tmpVal
 			end
 			empty!(tmpBalanceDiffDict)
 		# save to disk
