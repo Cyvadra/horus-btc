@@ -231,14 +231,23 @@ GlobalRuntime["runtime_assert"] = true
 		tmpId = GetLastResultsID()
 		tmpFolder = "/mnt/array/$tmpId/"
 		ispath(tmpFolder) ? nothing : mkdir(tmpFolder)
-		AddressService.SaveCopy(tmpFolder*"AddressServiceDB-v3/")
+		@info "$(now()) Writing AddressService..."
+		AddressService.SaveJLD(tmpFolder*"AddressServiceDB-v3/")
+		@info "$(now()) Writing results..."
 		TableResults.SaveCopy(tmpFolder*"results-flexible/")
-		@info "Writing address2id jld file..."
+		@info "$(now()) Writing address2id jld file..."
 		SaveAddressIDs(tmpFolder*"addr.hashdict.jld2")
-		@info "Copying address log file..."
+		@info "$(now()) Copying address log file..."
 		flush(fileAddressLog)
 		cp(logAddressString, tmpFolder*"addr.runtime.log")
-		@info "Done."
+		@info "$(now()) Copying transactions data..."
+		TableTx.SaveJLD(tmpFolder*"transactions-btc/")
+		@info "$(now()) Writing address balance..."
+		JLD2.save(tmpFolder*"addr.balance.jld2", "tmpBalanceDict", tmpBalanceDict)
+		@info "$(now()) Copying market data..."
+		TableTick.SaveCopy(tmpFolder*"BTC_USDT_1m/")
+		TableBlockTimestamp.SaveCopy(tmpFolder*"block-timestamp/")
+		@info "$(now()) Done."
 		end
 
 	AddressService.Open(true)
