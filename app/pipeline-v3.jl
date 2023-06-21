@@ -56,16 +56,16 @@ GlobalRuntime["runtime_assert"] = true
 		timeStamp = UInt32(round(Int, datetime2unix(
 			GetBlockInfo(n)["timeNormalized"]
 			)))
-		tmpCoins = GetBlockCoins(n)
+		inputs, outputs = GetBlockCoins(n)
 		tmpList  = Vector{cacheTx}()
 		global tmpBalanceDict, tmpBalanceDiffDict
 		@assert length(tmpBalanceDiffDict) == 0
 		# proceed block coins
-			inputs  = filter(x->x["spentHeight"]==n, tmpCoins)
-			outputs = filter(x->x["mintHeight"]==n, tmpCoins)
+			# inputs  = filter(x->x["spentHeight"]==n, tmpCoins)
+			# outputs = filter(x->x["mintHeight"]==n, tmpCoins)
 			addrs   = unique(vcat(
-				map(x->x["address"], inputs),
-				map(x->x["address"], outputs),
+				map(x->x[1], inputs),
+				map(x->x[1], outputs),
 				))
 			sizehint!(tmpBalanceDiffDict, length(addrs))
 			for addr in addrs
@@ -76,32 +76,32 @@ GlobalRuntime["runtime_assert"] = true
 			end
 			tmpAmount = 0.0
 			for c in inputs
-				tmpAmount = -bitcoreInt2Float64(c["value"])
+				tmpAmount = -c[2]
 				push!(tmpList, cacheTx(
-					HardReadID(c["address"]),
+					HardReadID(c[1]),
 					n,
-					tmpBalanceDict[HardReadID(c["address"])],
+					tmpBalanceDict[HardReadID(c[1])],
 					0.0,
-					c["mintHeight"],
-					c["spentHeight"],
+					c[3],
+					n,
 					tmpAmount,
 					timeStamp,
 					))
-				tmpBalanceDiffDict[HardReadID(c["address"])] += tmpAmount
+				tmpBalanceDiffDict[HardReadID(c[1])] += tmpAmount
 			end
 			for c in outputs
-				tmpAmount = bitcoreInt2Float64(c["value"])
+				tmpAmount = c[2]
 				push!(tmpList, cacheTx(
-					HardReadID(c["address"]),
+					HardReadID(c[1]),
 					n,
-					tmpBalanceDict[HardReadID(c["address"])],
+					tmpBalanceDict[HardReadID(c[1])],
 					0.0,
-					c["mintHeight"],
-					c["spentHeight"],
+					n,
+					0,
 					tmpAmount,
 					timeStamp,
 					))
-				tmpBalanceDiffDict[HardReadID(c["address"])] += tmpAmount
+				tmpBalanceDiffDict[HardReadID(c[1])] += tmpAmount
 			end
 			for i in 1:length(tmpList)
 				tmpVal = tmpList[i].balanceBeforeBlock + tmpBalanceDiffDict[tmpList[i].addressId]
