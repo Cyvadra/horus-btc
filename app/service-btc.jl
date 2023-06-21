@@ -24,6 +24,7 @@ function GetBlockCoins(height::Int)
 	vIn     = []
 	vOut    = []
 	tmpLock = Threads.SpinLock()
+	p = Progress(length(tmpTransactions), dt=1.0)
 	Threads.@threads for tx in tmpTransactions
 		dictTx = lambdaGetBlockCoinsTx(tx)
 		tmpListIn  = map(lambdaProcessInput, filter(x->haskey(x,"txid"), dictTx["vin"]))
@@ -31,6 +32,7 @@ function GetBlockCoins(height::Int)
 		lock(tmpLock)
 		append!(vIn, tmpListIn)
 		append!(vOut, tmpListOut)
+		next!(p)
 		unlock(tmpLock)
 		dictTx = nothing
 	end
