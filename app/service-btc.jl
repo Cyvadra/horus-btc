@@ -13,8 +13,10 @@ function lambdaGetBlockCoinsTx(txid::AbstractString)
 	JSON.Parser.parse(rawTx)
 	end
 function lambdaProcessInput(x)
-	tmpObject = filter(xx->isequal(xx["n"],x["vout"]), lambdaGetBlockCoinsTx(x["txid"])["vout"])[1]
-	return pubkey2address(tmpObject) => tmpObject["value"]
+	tmpSource = lambdaGetBlockCoinsTx(x["txid"])
+	tmpObject = filter(xx->isequal(xx["n"],x["vout"]), tmpSource["vout"])[1]
+	tmpNum = JSON.Parser.parse( exec("bitcoin-cli getblock " * tmpSource["blockhash"]) )["height"]
+	return (pubkey2address(tmpObject), tmpObject["value"], tmpNum)
 	end
 function GetBlockCoins(height::Int)
 	# global height, tmpHash, tmpDict, tmpTransactions, vIn, vOut, dictTx
@@ -28,7 +30,7 @@ function GetBlockCoins(height::Int)
 	Threads.@threads for tx in tmpTransactions
 		dictTx = lambdaGetBlockCoinsTx(tx)
 		tmpListIn  = map(lambdaProcessInput, filter(x->haskey(x,"txid"), dictTx["vin"]))
-		tmpListOut = map(x-> pubkey2address(x) => x["value"], dictTx["vout"])
+		tmpListOut = map(x->(pubkey2address(x), x["value"], height), dictTx["vout"])
 		lock(tmpLock)
 		append!(vIn, tmpListIn)
 		append!(vOut, tmpListOut)
