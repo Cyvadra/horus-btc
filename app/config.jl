@@ -1,5 +1,5 @@
 
-rootPath          = "/mnt/data/horus-storage/rolling"
+rootPath          = "/mnt/spare/horus-storage/rolling"
 ramPath           = "/tmp"
 
 # tsFile            = "$rootPath/bitcore/BlockTimestamps.dict.jld2"

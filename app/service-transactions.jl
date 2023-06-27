@@ -14,7 +14,7 @@ mutable struct cacheTx
 	end
 
 TableTx = MmapDB.GenerateCode(cacheTx)
-TableTx.Open(true)
+TableTx.OpenJLD(folderTransactions)
 
 cacheTableTxBlockId = Dict{Int, Int}()
 function txLocateBlock(n::Int, tmpCounter::Int=1024)
