@@ -24,11 +24,12 @@ function locateChunk(v::Float64)
 	v < BALANCE_CHUNKS[end] ? findfirst(x->x>=v, BALANCE_CHUNKS) : length(BALANCE_CHUNKS)
 	end
 
-@showprogress for n in 1:777988
+@showprogress for n in 1:GetLastResultsID()
+	allCoins = TableTx.GetRow(GetSeqBlockCoinsRange(n))
 	# mint
-	currentCoins = GetCoinsByMintHeight(n)
-	a = ReadID.(map(x->x["address"], currentCoins))
-	b = bitcoreInt2Float64.(map(x->x["value"], currentCoins))
+	currentCoins = filter(x->x.amount > 0.0, allCoins)
+	a = map(x->x.addressId, currentCoins)
+	b = map(x->x.amount, currentCoins)
 	tmpChunks = locateChunk.(AddressBalanceList[a])
 	for i in 1:length(tmpChunks)
 		BalanceCounterMatrix[n, tmpChunks[i]] -= 1
@@ -41,9 +42,9 @@ function locateChunk(v::Float64)
 		BalanceAmountMatrix[n, tmpChunks[i]] += AddressBalanceList[a[i]]
 	end
 	# spent
-	currentCoins = GetCoinsBySpentHeight(n)
-	a = ReadID.(map(x->x["address"], currentCoins))
-	b = bitcoreInt2Float64.(map(x->x["value"], currentCoins))
+	currentCoins = filter(x->x.amount < 0.0, allCoins)
+	a = map(x->x.addressId, currentCoins)
+	b = abs.( map(x->x.amount, currentCoins) )
 	tmpChunks = locateChunk.(AddressBalanceList[a])
 	for i in 1:length(tmpChunks)
 		BalanceCounterMatrix[n, tmpChunks[i]] -= 1
@@ -78,7 +79,7 @@ a = reduce(+, BalanceCounterMatrix[1:1,:]; dims=1)[:];
 b = reduce(+, BalanceAmountMatrix[1:1,:]; dims=1)[:];
 retListGini = zeros(Float64, size(BalanceAmountMatrix)[1]);
 retListMean = zeros(Float64, size(BalanceAmountMatrix)[1]);
-@showprogress for i in 2:770949
+@showprogress for i in 2:793422
 	global a
 	global b
 	a = a .+ BalanceCounterMatrix[i,:]
