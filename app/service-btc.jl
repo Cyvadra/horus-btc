@@ -63,7 +63,11 @@ function GetBlockInfo(height)
 	tmpDict["timeNormalized"] = unix2datetime(tmpDict["time"])
 	return tmpDict
 	end
-
+function GetLatestBlockNum()::Int
+	tmpHash = exec("bitcoin-cli getbestblockhash")
+	tmpDict = JSON.Parser.parse( exec("bitcoin-cli getblock $tmpHash 1") )
+	return tmpDict["height"]
+	end
 
 
 

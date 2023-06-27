@@ -3,7 +3,7 @@ include("./config.jl");
 include("./service-address.jl");
 include("./service-address2id.jl");
 include("./service-FinanceDB.jl");
-include("./service-mongo.jl");
+include("./service-btc.jl");
 include("./service-block_timestamp.jl");
 include("./service-transactions.jl");
 include("./middleware-calc_addr_diff.jl");
@@ -20,17 +20,12 @@ GlobalRuntime["runtime_assert"] = true
 # Sync BlockPairs
 	function SyncBlockInfo()::Int
 		println("Synchronizing Block Info")
-		latestBlockHeight = 1
-		while true
-			try
-				latestBlockHeight = GetLastBlockNum()
-				ts = round(Int32, GetBlockInfo(latestBlockHeight+1)["timeNormalized"] |> datetime2unix)
-				TableBlockTimestamp.SetRow(latestBlockHeight+1, latestBlockHeight+1, ts)
-				print("$(latestBlockHeight+1)\t")
-			catch
-				println()
-				return latestBlockHeight
-			end
+		lastBlockHeight = GetLastBlockNum()
+		latestBlockHeight = GetLatestBlockNum()
+		println("$(now()) \t $lastBlockHeight ==> $latestBlockHeight")
+		@showprogress for h in lastBlockHeight+1 : latestBlockHeight
+			ts = round(Int32, GetBlockInfo(h)["timeNormalized"] |> datetime2unix)
+			TableBlockTimestamp.SetRow(h, h, ts)
 		end
 		println()
 		return latestBlockHeight
