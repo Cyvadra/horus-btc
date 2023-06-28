@@ -16,6 +16,9 @@ end
 TableTick = MmapDB.GenerateCode(Tick)
 TableTick.Open(true)
 const baseTickTs = TableTick.GetFieldTimestamp(1) - 60
+MmapDB.Init(folderMarket * "index/")
+TableTickIndex = MmapDB.GenerateCode(TickIndex3600)
+TableTickIndex.Open(true)
 
 function ts2ind(ts)::Int32
 	if ts - baseTickTs < 60
@@ -140,12 +143,6 @@ mutable struct TickIndex3600 # 1h view
 	Middle::Float32
 	Average::Float32
 	Volume::Float32
-	end
-function initFinanceIndex()
-	tmpFolder = folderMarket * "index/"
-	MmapDB.Init(tmpFolder)
-	TableTickIndex = MmapDB.GenerateCode(TickIndex3600)
-	TableTickIndex.Open(true)
 	end
 const baseTickIndexTs = TableTick.GetFieldTimestamp(1) - TableTick.GetFieldTimestamp(1) % 3600 + 7200
 function ts2ind_findex(ts)::Int32
