@@ -1,6 +1,6 @@
 
 function exec(cmd::AbstractString)
-	tmpHash = bytes2hex(rand(UInt8,3))
+	tmpHash = bytes2hex(rand(UInt8,6)) * bytes2hex(rand(UInt8,3))
 	tmpFileCommand = "/tmp/julia.run." * tmpHash * ".jl"
 	tmpFileCache   = "/tmp/julia.run." * tmpHash * ".out"
 	tmpFileErr     = "/tmp/julia.run." * tmpHash * ".err"
