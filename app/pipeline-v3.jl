@@ -247,6 +247,10 @@ GlobalRuntime["runtime_assert"] = true
 
 	AddressService.Open(true)
 	TableResults.Open(true)
+	# TableTickIndex
+		MmapDB.Init(folderMarket * "index/")
+		TableTickIndex = MmapDB.GenerateCode(TickIndex3600)
+		TableTickIndex.Open(true)
 	@assert Timestamp2LastBlockN(GetLastProcessedTimestamp()) == GetLastResultsID()
 	GlobalRuntime["LastDoneBlock"] = Timestamp2LastBlockN(GetLastProcessedTimestamp())
 	SyncResults()
