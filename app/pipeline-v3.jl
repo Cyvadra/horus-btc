@@ -222,6 +222,7 @@ GlobalRuntime["runtime_assert"] = true
 		@info "$(now()) Pulling up service..."
 		end
 	function saveWorkspace()
+		PipelineLocks["accepted"] = true
 		@assert Timestamp2LastBlockN(GetLastProcessedTimestamp()) == GetLastResultsID()
 		tmpId = GetLastResultsID()
 		tmpFolder = "/mnt/array/$tmpId/"
@@ -243,6 +244,8 @@ GlobalRuntime["runtime_assert"] = true
 		TableTick.SaveCopy(tmpFolder*"BTC_USDT_1m/")
 		TableBlockTimestamp.SaveCopy(tmpFolder*"block-timestamp/")
 		@info "$(now()) Done."
+		PipelineLocks["accepted"] = false
+		nothing
 		end
 
 	AddressService.Open(true)
