@@ -33,7 +33,7 @@ GlobalRuntime["runtime_assert"] = true
 		end
 
 # Digest transactions
-	tmpBalanceDict = JLD2.load("/mnt/data/horus-storage/rolling/addr.balance.jld2")["tmpBalanceDict"]
+	tmpBalanceDict = JLD2.load(rootPath*"/addr.balance.jld2")["tmpBalanceDict"]
 	sizehint!(tmpBalanceDict, round(Int,1.28e9))
 	tmpBalanceDiffDict = Dict{UInt32,Float64}()
 	function DigestTransactionsOnBlock_direct(n)
