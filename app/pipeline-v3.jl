@@ -25,8 +25,13 @@ GlobalRuntime["runtime_assert"] = true
 		latestBlockHeight = GetLatestBlockNum()
 		println("$(now()) \t $lastBlockHeight ==> $latestBlockHeight")
 		@showprogress for h in lastBlockHeight+1 : latestBlockHeight
-			ts = round(Int32, GetBlockInfo(h)["timeNormalized"] |> datetime2unix)
-			TableBlockTimestamp.SetRow(h, h, ts)
+			try
+				ts = round(Int32, GetBlockInfo(h)["timeNormalized"] |> datetime2unix)
+				TableBlockTimestamp.SetRow(h, h, ts)
+			catch e
+				@warn e
+				break
+			end
 		end
 		println()
 		return latestBlockHeight
@@ -355,8 +360,10 @@ function tcpTrigger(conn::TCPSocket)::Nothing
 		  	SyncResults()
 		  catch e
 		  	@warn e
+		  	return nothing
+		  finally
+		  	PipelineLocks["accepted"] = false
 		  end
-	  	PipelineLocks["accepted"] = false
 	  end
   catch err
     print("connection ended with error $err")
