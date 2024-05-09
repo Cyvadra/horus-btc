@@ -81,7 +81,7 @@ function syncBitcoin()::Bool
 		return true
 	end
 	# fetch data
-	url = "https://www.binance.com/api/v3/klines?startTime=$(prevTs)000&limit=$tmpN&symbol=BTCBUSD&interval=1m"
+	url = "https://www.binance.com/api/v3/klines?startTime=$(prevTs)000&limit=$tmpN&symbol=BTCUSDT&interval=1m"
 	try
 		sleep(1)
 		run(pipeline(
