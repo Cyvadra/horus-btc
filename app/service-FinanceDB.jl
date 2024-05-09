@@ -17,6 +17,16 @@ TableTick = MmapDB.GenerateCode(Tick)
 TableTick.Open(true)
 const baseTickTs = TableTick.GetFieldTimestamp(1) - 60
 MmapDB.Init(folderMarket * "index/")
+mutable struct TickIndex3600 # 1h view
+	Timestamp::Int32
+	Open::Float32
+	High::Float32
+	Low::Float32
+	Close::Float32
+	Middle::Float32
+	Average::Float32
+	Volume::Float32
+	end
 TableTickIndex = MmapDB.GenerateCode(TickIndex3600)
 TableTickIndex.Open(true)
 
@@ -133,17 +143,6 @@ function syncBitcoin()::Bool
 	return true
 	end
 
-
-mutable struct TickIndex3600 # 1h view
-	Timestamp::Int32
-	Open::Float32
-	High::Float32
-	Low::Float32
-	Close::Float32
-	Middle::Float32
-	Average::Float32
-	Volume::Float32
-	end
 const baseTickIndexTs = TableTick.GetFieldTimestamp(1) - TableTick.GetFieldTimestamp(1) % 3600 + 7200
 function ts2ind_findex(ts)::Int32
 	if ts - baseTickIndexTs <= 0
