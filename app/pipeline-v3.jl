@@ -24,10 +24,9 @@ GlobalRuntime["runtime_assert"] = true
 		toBlock   = Timestamp2LastBlockN(currentTs)
 		end
 	function SyncBlockInfo()::Int
-		println("Synchronizing Block Info")
 		lastBlockHeight = GetLastBlockNum()
 		latestBlockHeight = GetLatestBlockNum()
-		println("$(now()) \t $lastBlockHeight ==> $latestBlockHeight")
+		println("$(now()) \t Synchronizing Block Info: $lastBlockHeight ==> $latestBlockHeight")
 		@showprogress for h in lastBlockHeight+1 : latestBlockHeight
 			try
 				ts = round(Int32, GetBlockInfo(h)["timeNormalized"] |> datetime2unix)
