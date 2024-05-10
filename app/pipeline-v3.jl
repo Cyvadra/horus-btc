@@ -19,6 +19,10 @@ PipelineLocks["synchronizing"] = false
 GlobalRuntime["runtime_assert"] = true
 
 # Sync BlockPairs
+	function GetLatestBlockNum()
+		currentTs = round(Int, time())
+		toBlock   = Timestamp2LastBlockN(currentTs)
+		end
 	function SyncBlockInfo()::Int
 		println("Synchronizing Block Info")
 		lastBlockHeight = GetLastBlockNum()
