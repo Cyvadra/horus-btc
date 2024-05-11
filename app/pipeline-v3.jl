@@ -20,8 +20,7 @@ GlobalRuntime["runtime_assert"] = true
 
 # Sync BlockPairs
 	function GetLatestBlockNum()
-		currentTs = round(Int, time())
-		toBlock   = Timestamp2LastBlockN(currentTs)
+		return Mongoc.find_one(MongoCollection("blocks"), options=Mongoc.BSON("""{"sort":{"height":-1}}"""))["height"]
 		end
 	function SyncBlockInfo()::Int
 		lastBlockHeight = GetLastBlockNum()
