@@ -11,7 +11,7 @@ jldAddressBalance = "$rootPath/addr.balance.jld2"
 folderAddressDB   = "$ramPath/AddressServiceDB-v3/"
 folderStructures  = "$ramPath/julia-cache/"
 folderMarket      = "$rootPath/BTC_USDT_1m/"
-folderResults     = "$rootPath/results-flexible-v3/"
+folderResults     = "$rootPath/results-flexible/"
 folderBlockPairs  = "$rootPath/block-timestamp/"
 folderTransactions= "$rootPath/transactions-btc/"
 
