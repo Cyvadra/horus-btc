@@ -41,7 +41,7 @@ GlobalRuntime["runtime_assert"] = true
 
 # Digest transactions
 	tmpBalanceDict = JLD2.load(rootPath*"/addr.balance.jld2")["tmpBalanceDict"]
-	sizehint!(tmpBalanceDict, round(Int,1.28e9))
+	sizehint!(tmpBalanceDict, round(Int,1.88e9))
 	tmpBalanceDiffDict = Dict{UInt32,Float64}()
 	function DigestTransactionsOnBlock_direct(n)
 		if GlobalRuntime["runtime_assert"]
@@ -281,8 +281,8 @@ GlobalRuntime["runtime_assert"] = true
 		end
 
 	function firstSync()
-		AddressService.Create!(round(Int,1.28e9))
-		TableResults.Create!(999999)
+		AddressService.Create!(round(Int,1.88e9))
+		TableResults.Create!(1999999)
 		@info "$(now()) Initializing history..."
 		InitHistory()
 		@info "$(now()) Saving history..."
