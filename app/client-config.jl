@@ -34,8 +34,8 @@ translateDict = Dict{String,String}(
 	"numContinuousD3Sending" => "三日卖出计数",
 	"numContinuousW1Buying" => "一周买入计数",
 	"numContinuousW1Sending" => "一周卖出计数",
-	"amountRealizedLossBillion" => "止损总额",
-	"amountRealizedProfitBillion" => "止盈总额",
+	"amountRealizedLossMillion" => "止损总额",
+	"amountRealizedProfitMillion" => "止盈总额",
 	"amountRecentD3Buying" => "近期买入",
 	"amountRecentD3Sending" => "近期卖出",
 	"numRealizedLoss" => "止损计数",
@@ -105,7 +105,7 @@ translateDict = Dict{String,String}(
 
 simpList = String[
 	# 止盈止损
-	"amountRealizedLossBillion", "amountRealizedProfitBillion",
+	"amountRealizedLossMillion", "amountRealizedProfitMillion",
 	# 资金动向
 	"amountContinuousD1Buying", "amountContinuousD1Sending",
 	"amountContinuousD3Buying", "amountContinuousD3Sending",
@@ -117,8 +117,8 @@ simpList = String[
 	]
 
 dnnListTest = String[
-	"amountRealizedLossBillion",
-	"amountRealizedProfitBillion",
+	"amountRealizedLossMillion",
+	"amountRealizedProfitMillion",
 	"amountChargePercentEquals100",
 	"amountContinuousD1Buying",
 	"amountContinuousD1Sending",
@@ -137,8 +137,8 @@ dnnListLab = String[
 	"amountChargePercentBelow95",
 	"amountContinuousD1Buying",
 	"amountContinuousD3Buying",
-	"amountRealizedLossBillion",
-	"amountRealizedProfitBillion",
+	"amountRealizedLossMillion",
+	"amountRealizedProfitMillion",
 	"amountSupplierBalanceAbove95",
 	"amountSupplierBalanceBelow40",
 	"amountSupplierBalanceBelow60",
@@ -187,8 +187,8 @@ dnnList = String[
 	"numContinuousD3Sending",
 	"numContinuousW1Buying",
 	"numContinuousW1Sending",
-	"amountRealizedLossBillion",
-	"amountRealizedProfitBillion",
+	"amountRealizedLossMillion",
+	"amountRealizedProfitMillion",
 	"amountRecentD3Buying",
 	"amountRecentD3Sending",
 	"numRealizedLoss",
