@@ -16,6 +16,22 @@ lab_color_up = "red"
 lab_color_down = "blue"
 lab_color_bias = "grey"
 lab_color_ma = "purple"
+
+TableResultCalculations.Open(true)
+cacheTs = 0
+function ret2dict(tmpRet::Vector{ResultCalculations})::Dict{String,Vector}
+	cacheRet   = Dict{String,Vector}()
+	for s in tmpSyms
+		if occursin("Billion", string(s))
+			cacheRet[string(s)] = map(x->getfield(x,s), tmpRet) .* 1e9
+		else
+			cacheRet[string(s)] = map(x->getfield(x,s), tmpRet)
+		end
+	end
+	return cacheRet
+	end
+tmpSyms = ResultCalculations |> fieldnames |> collect |> sort;
+
 touch(labCachePath)
 route("/lab") do
 	global cacheTs
@@ -173,3 +189,105 @@ function GenerateTracesFull(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector
 
 
 
+briefCachePath = "/tmp/julia-brief-plot.html"
+numMiddlefit = 12
+SWITCH_BRIEF_RANGE_SLIDER = true
+brief_color_up = "red"
+brief_color_down = "blue"
+brief_color_bias = "grey"
+brief_color_ma = "purple"
+touch(briefCachePath)
+route("/brief") do
+	tmpAgent = Genie.headers()["User-Agent"]
+	if !occursin("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)", tmpAgent)
+		if !occursin("Nokia G50 Build/RKQ1.210303.002", tmpAgent) && !occursin("Nokia 7 plus Build/PPR1.180610.011", tmpAgent) && !occursin("MHA-AL00 Build/HUAWEIMHA-AL00", tmpAgent)
+			if occursin("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.53 Safari/537.36", tmpAgent)
+				nothing
+			else
+				@warn tmpAgent
+				return ""
+			end
+		end
+	end
+	global cacheTs
+	# get params
+	n = parse(Int, Genie.params(:num, "14"))
+	tmpWindow = parse(Int, Genie.params(:interval, "7200"))
+	# check cache
+	if round(Int,time()) - cacheTs < 10
+		return read(briefCachePath, String)
+	else
+		cacheTs = round(Int,time())
+	end
+	tmpNow  = now() |> dt2unix
+	tmpTs   = min(GetBTCLastTs(), GetLastResultsTimestamp())
+	# SyncBlockInfo()
+	# syncBitcoin()
+	tmpTs   = tmpNow - tmpNow % 300
+	tmpTs   = min(GetBTCLastTs(), tmpTs)
+	tmpDt   = unix2dt(tmpTs)
+	tmpRet  = GenerateWindowedView(Int32(tmpWindow), dt2unix(tmpDt-Day(n)), dt2unix(tmpDt)) |> ret2dict
+	listTs  = tmpRet["timestamp"]
+	latestH   = reduce( max,
+		GetBTCHighWhen(listTs[end]-300:round(Int,time()))
+		)
+	latestL   = reduce( min,
+		filter(x->x>0,
+			GetBTCLowWhen(listTs[end]-300:round(Int,time()))
+		)
+		)
+	pricesOpen, pricesHigh, pricesLow, pricesClose = GenerateOHLC(listTs, tmpWindow)
+	# plot
+	listTs = map(
+		x-> string( unix2datetime(x) + Hour(8) ),
+		tmpRet["timestamp"]
+		)
+	listTs = map(
+		# x-> x[end-10:end-9] * "-" * x[end-7:end-3],
+		x-> x[1:end-3],
+		listTs
+		)
+	traces, tmpBaseY = GenerateTraces(tmpRet, simpList, listTs)
+	pricesOpen, pricesHigh, pricesLow, pricesClose = plotfit_multi([pricesOpen, pricesHigh, pricesLow, pricesClose], 0:tmpBaseY, tmpBaseY/2)
+	push!(traces, 
+		PlotlyJS.candlestick(
+			x = listTs,
+			open = pricesOpen,
+			high = pricesHigh,
+			low = pricesLow,
+			close = pricesClose,
+			name = "实际值", yaxis = "实际值")
+	)
+	push!(traces, PlotlyJS.scatter(
+		x = listTs, y = ema(pricesClose,7), name="ema", marker_color="purple")
+	)
+	push!(traces, PlotlyJS.scatter(
+		x = listTs, y = ma(pricesClose,7), name="ma", marker_color="yellow")
+	)
+	f = open(briefCachePath, "w")
+	PlotlyJS.savefig(f,
+		PlotlyJS.plot(
+			traces,
+			Layout(
+				title_text = listTs[end] * " $latestH $latestL",
+				xaxis_title_text = "时间",
+				xaxis_rangeslider_visible = SWITCH_BRIEF_RANGE_SLIDER,
+			)
+		);
+		height = round(Int, 1080*3),
+		format = "html"
+	)
+	close(f)
+	f = read(briefCachePath, String)
+	f = replace(f, "https://cdn.plot.ly/plotly-2.3.0.min.js" => "http://cdn.git2.biz/plotly-2.3.0.min.js")
+	f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" => "http://cdn.git2.biz/MathJax.js")
+	f = replace(f, "<meta chartset" => """<meta http-equiv="refresh" content="360" charset""")
+	return f
+	end
+
+GenerateTraces = GenerateTracesFull
+
+
+
+
+# EOF
