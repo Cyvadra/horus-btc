@@ -187,6 +187,41 @@ function GenerateTracesFull(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector
 	return traces, tmpBaseY
 	end
 
+function GenerateTracesHash(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector, doStandardization::Bool=true) # Vector{GenericTrace}, tmpBaseY
+	singleHeight = 100
+	baseList = log.( abs.( (tmpRet["amountTotalTransfer"]) ) )
+	traces = GenericTrace[]
+	tmpBaseY = 0
+	# main lines
+	for i in 1:length(tmpKeys)
+		s = tmpKeys[i]
+		tmpList = log.( abs.( (tmpRet[s]) ) )
+		if doStandardization
+			tmpList .-= baseList[i]
+		end
+		# tmpList     = plotfit(tmpList, -singleHeight:singleHeight, tmpBaseY)
+		tmpListMa   = ema(tmpList, numMiddlefit)
+		tmpListBias = tmpList .- tmpListMa
+		push!(traces, 
+			PlotlyJS.scatter(
+				x = axisX, y = plotfit(tmpListMa, -singleHeight:singleHeight, tmpBaseY),
+				name = ConvertFieldName2Hash(s)*"-ma",
+				marker_color = brief_color_ma,
+			)
+		)
+		push!(traces, 
+			PlotlyJS.scatter(
+				x = axisX, y = plotfit(tmpListBias, -singleHeight:singleHeight, tmpBaseY),
+				name = ConvertFieldName2Hash(s)*"-bias",
+				marker_color = brief_color_bias,
+			)
+		)
+		tmpBaseY += 1.3singleHeight
+	end
+	tmpBaseY -= 1.3singleHeight
+	tmpBaseY = round(Int, tmpBaseY)
+	return traces, tmpBaseY
+	end
 
 
 briefCachePath = "/tmp/julia-brief-plot.html"
@@ -284,6 +319,98 @@ route("/brief") do
 	f = replace(f, "<meta chartset" => """<meta http-equiv="refresh" content="360" charset""")
 	return f
 	end
+
+route("/export") do
+	tmpAgent = Genie.headers()["User-Agent"]
+	if !occursin("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)", tmpAgent)
+		if !occursin("Nokia G50 Build/RKQ1.210303.002", tmpAgent) && !occursin("Nokia 7 plus Build/PPR1.180610.011", tmpAgent) && !occursin("MHA-AL00 Build/HUAWEIMHA-AL00", tmpAgent)
+			if occursin("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.53 Safari/537.36", tmpAgent)
+				nothing
+			else
+				@warn tmpAgent
+				return ""
+			end
+		end
+	end
+	global cacheTs
+	# get params
+	n = parse(Int, Genie.params(:num, "2341"))
+	tmpWindow = parse(Int, Genie.params(:interval, "21600"))
+	# check cache
+	if round(Int,time()) - cacheTs < 10
+		return read(briefCachePath, String)
+	else
+		cacheTs = round(Int,time())
+	end
+	tmpNow  = now() |> dt2unix
+	tmpTs   = min(GetBTCLastTs(), GetLastResultsTimestamp())
+	# SyncBlockInfo()
+	# syncBitcoin()
+	tmpTs   = tmpNow - tmpNow % 86400
+	tmpTs   = min(GetBTCLastTs(), tmpTs)
+	tmpDt   = unix2dt(tmpTs)
+	tmpRet  = GenerateWindowedView(Int32(tmpWindow), dt2unix(tmpDt-Day(n)), dt2unix(tmpDt)) |> ret2dict
+	listTs  = tmpRet["timestamp"]
+	latestH   = reduce( max,
+		GetBTCHighWhen(listTs[end]-300:round(Int,time()))
+		)
+	latestL   = reduce( min,
+		filter(x->x>0,
+			GetBTCLowWhen(listTs[end]-300:round(Int,time()))
+		)
+		)
+	pricesOpen, pricesHigh, pricesLow, pricesClose = GenerateOHLC(listTs, tmpWindow)
+	# plot
+	listTs = map(
+		x-> string( unix2datetime(x) + Hour(8) ),
+		tmpRet["timestamp"]
+		)
+	listTs = map(
+		# x-> x[end-10:end-9] * "-" * x[end-7:end-3],
+		x-> x[1:end-3],
+		listTs
+		)
+	exportSyms = string.( collect(fieldnames(ResultCalculations))[2:end] );
+	traces, tmpBaseY = GenerateTracesHash(tmpRet, simpList, listTs)
+	pricesOpen, pricesHigh, pricesLow, pricesClose = plotfit_multi([pricesOpen, pricesHigh, pricesLow, pricesClose], 0:tmpBaseY, tmpBaseY/2)
+	push!(traces, 
+		PlotlyJS.candlestick(
+			x = listTs,
+			open = pricesOpen,
+			high = pricesHigh,
+			low = pricesLow,
+			close = pricesClose,
+			name = "实际值", yaxis = "实际值")
+	)
+	push!(traces, PlotlyJS.scatter(
+		x = listTs, y = ema(pricesClose,7), name="ema", marker_color="purple")
+	)
+	push!(traces, PlotlyJS.scatter(
+		x = listTs, y = ma(pricesClose,7), name="ma", marker_color="yellow")
+	)
+	f = open(briefCachePath, "w")
+	PlotlyJS.savefig(f,
+		PlotlyJS.plot(
+			traces,
+			Layout(
+				title_text = listTs[end] * " $latestH $latestL",
+				xaxis_title_text = "时间",
+				xaxis_rangeslider_visible = SWITCH_BRIEF_RANGE_SLIDER,
+			)
+		);
+		height = round(Int, 1080*3),
+		format = "html"
+	)
+	close(f)
+	f = read(briefCachePath, String)
+	f = replace(f, "https://cdn.plot.ly/plotly-2.3.0.min.js" => "http://cdn.git2.biz/plotly-2.3.0.min.js")
+	f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" => "http://cdn.git2.biz/MathJax.js")
+	f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_SVG.js" => "http://cdn.git2.biz/config/TeX-AMS-MML_SVG.js")
+	f = replace(f, "<meta chartset" => """<meta http-equiv="refresh" content="360" charset""")
+	return f
+	end
+
+
 
 GenerateTraces = GenerateTracesFull
 
