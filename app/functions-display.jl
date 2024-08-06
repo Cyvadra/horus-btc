@@ -1,6 +1,7 @@
 
 using Genie, PlotlyJS
 
+include("/tmp/julia-cache/ResultCalculations.jl")
 include("./client-config.jl")
 include("./config.jl")
 include("./functions-ma.jl")
@@ -101,7 +102,7 @@ route("/lab") do
 	)
 	close(f)
 	f = read(labCachePath, String)
-	f = replace(f, "https://cdn.plot.ly/plotly-2.3.0.min.js" => "http://cdn.git2.biz/plotly-2.3.0.min.js")
+	f = replace(f, "https://cdn.plot.ly/plotly-2.3.0.min.js" => "http://cdn.git2.biz/plotly-2.34.0.min.js")
 	f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" => "http://cdn.git2.biz/MathJax.js")
 	# f = replace(f, "<meta chartset" => """<meta http-equiv="refresh" content="360" charset""")
 	return f
@@ -187,6 +188,9 @@ function GenerateTracesFull(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector
 	return traces, tmpBaseY
 	end
 
+function ConvertFieldName2Hash(x)
+  return translateDict[x]
+  end
 function GenerateTracesHash(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector, doStandardization::Bool=true) # Vector{GenericTrace}, tmpBaseY
 	singleHeight = 100
 	baseList = log.( abs.( (tmpRet["amountTotalTransfer"]) ) )
@@ -212,7 +216,7 @@ function GenerateTracesHash(tmpRet::Dict, tmpKeys::Vector{String}, axisX::Vector
 		push!(traces, 
 			PlotlyJS.scatter(
 				x = axisX, y = plotfit(tmpListBias, -singleHeight:singleHeight, tmpBaseY),
-				name = ConvertFieldName2Hash(s)*"-bias",
+				name = ConvertFieldName2Hash(s)*"",
 				marker_color = brief_color_bias,
 			)
 		)
@@ -232,18 +236,7 @@ brief_color_down = "blue"
 brief_color_bias = "grey"
 brief_color_ma = "purple"
 touch(briefCachePath)
-route("/brief") do
-	tmpAgent = Genie.headers()["User-Agent"]
-	if !occursin("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)", tmpAgent)
-		if !occursin("Nokia G50 Build/RKQ1.210303.002", tmpAgent) && !occursin("Nokia 7 plus Build/PPR1.180610.011", tmpAgent) && !occursin("MHA-AL00 Build/HUAWEIMHA-AL00", tmpAgent)
-			if occursin("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.53 Safari/537.36", tmpAgent)
-				nothing
-			else
-				@warn tmpAgent
-				return ""
-			end
-		end
-	end
+route("/") do
 	global cacheTs
 	# get params
 	n = parse(Int, Genie.params(:num, "14"))
@@ -307,6 +300,7 @@ route("/brief") do
 				title_text = listTs[end] * " $latestH $latestL",
 				xaxis_title_text = "时间",
 				xaxis_rangeslider_visible = SWITCH_BRIEF_RANGE_SLIDER,
+        autosize = true,
 			)
 		);
 		height = round(Int, 1080*3),
@@ -314,7 +308,7 @@ route("/brief") do
 	)
 	close(f)
 	f = read(briefCachePath, String)
-	f = replace(f, "https://cdn.plot.ly/plotly-2.3.0.min.js" => "http://cdn.git2.biz/plotly-2.3.0.min.js")
+	f = replace(f, "https://cdn.plot.ly/plotly-2.3.0.min.js" => "http://cdn.git2.biz/plotly-2.34.0.min.js")
 	f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" => "http://cdn.git2.biz/MathJax.js")
 	f = replace(f, "<meta chartset" => """<meta http-equiv="refresh" content="360" charset""")
 	return f
@@ -393,7 +387,7 @@ route("/export") do
 		PlotlyJS.plot(
 			traces,
 			Layout(
-				title_text = listTs[end] * " $latestH $latestL",
+				title_text = listTs[end] * " $latestH $latestL" * " 显示异常请按cmd+0复位",
 				xaxis_title_text = "时间",
 				xaxis_rangeslider_visible = SWITCH_BRIEF_RANGE_SLIDER,
 			)
@@ -403,7 +397,7 @@ route("/export") do
 	)
 	close(f)
 	f = read(briefCachePath, String)
-	f = replace(f, "https://cdn.plot.ly/plotly-2.3.0.min.js" => "http://cdn.git2.biz/plotly-2.3.0.min.js")
+	f = replace(f, "https://cdn.plot.ly/plotly-2.3.0.min.js" => "http://cdn.git2.biz/plotly-2.34.0.min.js")
 	f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" => "http://cdn.git2.biz/MathJax.js")
 	f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_SVG.js" => "http://cdn.git2.biz/config/TeX-AMS-MML_SVG.js")
 	f = replace(f, "<meta chartset" => """<meta http-equiv="refresh" content="360" charset""")
@@ -412,7 +406,7 @@ route("/export") do
 
 
 
-GenerateTraces = GenerateTracesFull
+GenerateTraces = GenerateTracesHash
 
 
 
