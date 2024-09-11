@@ -12,8 +12,8 @@ BALANCE_CHUNKS = JLD2.load("/mnt/data/bitcore/balance.chunks.jld2")["BALANCE_CHU
 =#
 
 # define results
-BalanceCounterMatrix = Matrix{Int32}(undef, 799999, length(BALANCE_CHUNKS));
-BalanceAmountMatrix = Matrix{Float64}(undef, 799999, length(BALANCE_CHUNKS));
+BalanceCounterMatrix = Matrix{Int32}(undef, 999999, length(BALANCE_CHUNKS));
+BalanceAmountMatrix = Matrix{Float32}(undef, 999999, length(BALANCE_CHUNKS));
 BalanceCounterMatrix .= 0
 BalanceAmountMatrix .= 0.0
 AddressBalanceList = zeros(Float64, round(Int, 1.28e9))
