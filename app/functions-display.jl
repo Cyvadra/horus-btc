@@ -102,8 +102,8 @@ route("/lab") do
 	)
 	close(f)
 	f = read(labCachePath, String)
-	f = replace(f, "https://cdn.plot.ly/plotly-2.3.0.min.js" => "http://cdn.git2.biz/plotly-2.34.0.min.js")
-	f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" => "http://cdn.git2.biz/MathJax.js")
+	f = replace(f, "https://cdn.plot.ly/plotly-2.3.0.min.js" => "https://cdn.git2.biz/plotly-2.34.0.min.js")
+	f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" => "https://cdn.git2.biz/MathJax.js")
 	# f = replace(f, "<meta chartset" => """<meta http-equiv="refresh" content="360" charset""")
 	return f
 	end
@@ -237,62 +237,65 @@ brief_color_bias = "grey"
 brief_color_ma = "purple"
 touch(briefCachePath)
 route("/") do
-	global cacheTs
-	# get params
-	n = parse(Int, Genie.params(:num, "14"))
-	tmpWindow = parse(Int, Genie.params(:interval, "7200"))
-	# check cache
-	if round(Int,time()) - cacheTs < 10
-		return read(briefCachePath, String)
-	else
-		cacheTs = round(Int,time())
+	return read(briefCachePath, String)
 	end
-	tmpNow  = now() |> dt2unix
-	tmpTs   = min(GetBTCLastTs(), GetLastResultsTimestamp())
-	# SyncBlockInfo()
-	# syncBitcoin()
-	tmpTs   = tmpNow - tmpNow % 1800
-	tmpTs   = min(GetBTCLastTs(), tmpTs)
-	tmpDt   = unix2dt(tmpTs)
-	tmpRet  = GenerateWindowedView(Int32(tmpWindow), dt2unix(tmpDt-Day(n)), dt2unix(tmpDt)) |> ret2dict
-	listTs  = tmpRet["timestamp"]
-	latestH   = reduce( max,
-		GetBTCHighWhen(listTs[end]-300:round(Int,time()))
-		)
-	latestL   = reduce( min,
-		filter(x->x>0,
-			GetBTCLowWhen(listTs[end]-300:round(Int,time()))
-		)
-		)
-	pricesOpen, pricesHigh, pricesLow, pricesClose = GenerateOHLC(listTs, tmpWindow)
-	# plot
-	listTs = map(
-		x-> string( unix2datetime(x) + Hour(8) ),
-		tmpRet["timestamp"]
-		)
-	listTs = map(
-		# x-> x[end-10:end-9] * "-" * x[end-7:end-3],
-		x-> x[1:end-3],
-		listTs
-		)
-	traces, tmpBaseY = GenerateTraces(tmpRet, simpList, listTs)
-	pricesOpen, pricesHigh, pricesLow, pricesClose = plotfit_multi([pricesOpen, pricesHigh, pricesLow, pricesClose], 0:tmpBaseY, tmpBaseY/2)
-	push!(traces, 
-		PlotlyJS.candlestick(
-			x = listTs,
-			open = pricesOpen,
-			high = pricesHigh,
-			low = pricesLow,
-			close = pricesClose,
-			name = "实际值　　　", yaxis = "实际值　　　")
-	)
-	push!(traces, PlotlyJS.scatter(
-		x = listTs, y = ema(pricesClose,7), name="ema　　　　", marker_color="purple")
-	)
-	push!(traces, PlotlyJS.scatter(
-		x = listTs, y = ma(pricesClose,7), name="ma　　　　", marker_color="yellow")
-	)
-	f = open(briefCachePath, "w")
+route("/make_cache") do
+  global cacheTs
+  # get params
+  n = parse(Int, Genie.params(:num, "14"))
+  tmpWindow = parse(Int, Genie.params(:interval, "7200"))
+  # check cache
+  if round(Int,time()) - cacheTs < 10
+    return read(briefCachePath, String)
+  else
+    cacheTs = round(Int,time())
+  end
+  tmpNow  = now() |> dt2unix
+  tmpTs   = min(GetBTCLastTs(), GetLastResultsTimestamp())
+  # SyncBlockInfo()
+  # syncBitcoin()
+  tmpTs   = tmpNow - tmpNow % 1800
+  tmpTs   = min(GetBTCLastTs(), tmpTs)
+  tmpDt   = unix2dt(tmpTs)
+  tmpRet  = GenerateWindowedView(Int32(tmpWindow), dt2unix(tmpDt-Day(n)), dt2unix(tmpDt)) |> ret2dict
+  listTs  = tmpRet["timestamp"]
+  latestH   = reduce( max,
+    GetBTCHighWhen(listTs[end]-300:round(Int,time()))
+    )
+  latestL   = reduce( min,
+    filter(x->x>0,
+      GetBTCLowWhen(listTs[end]-300:round(Int,time()))
+    )
+    )
+  pricesOpen, pricesHigh, pricesLow, pricesClose = GenerateOHLC(listTs, tmpWindow)
+  # plot
+  listTs = map(
+    x-> string( unix2datetime(x) + Hour(8) ),
+    tmpRet["timestamp"]
+    )
+  listTs = map(
+    # x-> x[end-10:end-9] * "-" * x[end-7:end-3],
+    x-> x[1:end-3],
+    listTs
+    )
+  traces, tmpBaseY = GenerateTraces(tmpRet, simpList, listTs)
+  pricesOpen, pricesHigh, pricesLow, pricesClose = plotfit_multi([pricesOpen, pricesHigh, pricesLow, pricesClose], 0:tmpBaseY, tmpBaseY/2)
+  push!(traces, 
+    PlotlyJS.candlestick(
+      x = listTs,
+      open = pricesOpen,
+      high = pricesHigh,
+      low = pricesLow,
+      close = pricesClose,
+      name = "实际值　　　", yaxis = "实际值　　　")
+  )
+  push!(traces, PlotlyJS.scatter(
+    x = listTs, y = ema(pricesClose,7), name="ema　　　　", marker_color="purple")
+  )
+  push!(traces, PlotlyJS.scatter(
+    x = listTs, y = ma(pricesClose,7), name="ma　　　　", marker_color="yellow")
+  )
+  f = open(briefCachePath, "w")
   tmpTs = listTs[end][1:10] * " " * listTs[end][12:16]
   fig = PlotlyJS.plot(traces, Layout(
     title_text = tmpTs * " - $latestH $latestL",
@@ -302,15 +305,16 @@ route("/") do
     xaxis_rangeslider_visible = SWITCH_BRIEF_RANGE_SLIDER,
     autosize = true,
     ));
-	PlotlyJS.savefig(f,fig,format="html")
-	close(f)
-	f = read(briefCachePath, String)
-	f = replace(f, "https://cdn.plot.ly/plotly-2.3.0.min.js" => "http://cdn.git2.biz/plotly-2.34.0.min.js")
-	f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" => "http://cdn.git2.biz/MathJax.js")
-	f = replace(f, "<meta chartset" => """<meta http-equiv="refresh" content="360" charset""")
+  PlotlyJS.savefig(f,fig,format="html")
+  close(f)
+  f = read(briefCachePath, String)
+  f = replace(f, "https://cdn.plot.ly/plotly-2.3.0.min.js" => "https://cdn.git2.biz/plotly-2.34.0.min.js")
+  f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" => "https://cdn.git2.biz/MathJax.js")
+  f = replace(f, "<meta chartset" => """<meta http-equiv="refresh" content="360" charset""")
   f = replace(f, "</body>" => """<script type="text/javascript">window.dispatchEvent(new Event('resize'));</script></body>""")
-	return f
-	end
+  write(briefCachePath, f)
+  return "done"
+  end
 
 route("/export") do
 	tmpAgent = Genie.headers()["User-Agent"]
@@ -395,9 +399,9 @@ route("/export") do
 	)
 	close(f)
 	f = read(briefCachePath, String)
-	f = replace(f, "https://cdn.plot.ly/plotly-2.3.0.min.js" => "http://cdn.git2.biz/plotly-2.34.0.min.js")
-	f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" => "http://cdn.git2.biz/MathJax.js")
-	f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_SVG.js" => "http://cdn.git2.biz/config/TeX-AMS-MML_SVG.js")
+	f = replace(f, "https://cdn.plot.ly/plotly-2.3.0.min.js" => "https://cdn.git2.biz/plotly-2.34.0.min.js")
+	f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" => "https://cdn.git2.biz/MathJax.js")
+	f = replace(f, "https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_SVG.js" => "https://cdn.git2.biz/config/TeX-AMS-MML_SVG.js")
 	f = replace(f, "<meta chartset" => """<meta http-equiv="refresh" content="360" charset""")
 	return f
 	end
