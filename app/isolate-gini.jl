@@ -16,7 +16,7 @@ BalanceCounterMatrix = Matrix{Int32}(undef, 999999, length(BALANCE_CHUNKS));
 BalanceAmountMatrix = Matrix{Float32}(undef, 999999, length(BALANCE_CHUNKS));
 BalanceCounterMatrix .= 0
 BalanceAmountMatrix .= 0.0
-AddressBalanceList = zeros(Float64, round(Int, 1.28e9))
+AddressBalanceList = zeros(Float64, round(Int, 1.88e9))
 
 # define procedure
 function locateChunk(v::Float64)
